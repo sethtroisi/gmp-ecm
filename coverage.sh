@@ -1,5 +1,12 @@
 #!/bin/bash
 # script to perform a coverage test
+#
+# In case of problems, make sure gcov has the same version number as gcc.
+# If not, you might want to add the flag
+#     --gcov-tool <name_of_the_correct_gcov>
+# in geninfo. 
+# Also you may add CC=<name_of_the_correct_gcc> to the make command.
+#
 t=$1 # target directory for the html files
 d=`mktemp -d /tmp/ecmXXX`
 cd $d
