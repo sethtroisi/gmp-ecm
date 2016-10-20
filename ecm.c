@@ -761,15 +761,15 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     }
     else{
 #if USE_ADD_SUB_CHAINS == 0 /* keeping it simple */
-	if (ell_point_mul (Q, batch_s, P, E, n) == 0){
-	    mpz_set (f, Q->x);
+	if (ell_point_mul (f, Q, batch_s, P, E, n) == 0){
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_stage1_w;
         }
 #else
 	/* batch mode and special coding... */
 	short *S = NULL;
-	int w, iS;
+	size_t iS;
+	int w;
 	add_sub_unpack(&w, &S, &iS, batch_s);
 	if (ell_point_mul_add_sub_with_S(f, Q, P, E, n, w, S, iS) == 0){
 	    ret = ECM_FACTOR_FOUND_STEP1;
