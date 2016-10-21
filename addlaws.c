@@ -18,6 +18,7 @@
 
 #define DEBUG_ADD_LAWS 0
 
+#if DEBUG_ADD_LAWS >= 1
 void
 print_mpz_from_mpres(mpres_t x, mpmod_t n)
 {
@@ -28,6 +29,7 @@ print_mpz_from_mpres(mpres_t x, mpmod_t n)
     gmp_printf("%Zd", tmp);
     mpz_clear(tmp);
 }
+#endif
 
 /******************** Weierstrass section ********************/
 
@@ -55,6 +57,7 @@ pt_w_set(mpres_t x0, mpres_t y0, mpres_t z0,
   mpres_set(z0, z, n);
 }
 
+#if DEBUG_ADD_LAWS >= 1
 void
 pt_w_print(mpres_t x, mpres_t y, mpres_t z, ell_curve_t E, mpmod_t n)
 {
@@ -69,6 +72,7 @@ pt_w_print(mpres_t x, mpres_t y, mpres_t z, ell_curve_t E, mpmod_t n)
 	print_mpz_from_mpres(z, n);
     printf("]");
 }
+#endif
 
 /* [x0, y0, z0] <- [x1, y1, z1] + [x2, y2, z2] using lambda=num/den
    with buffer inv.
@@ -352,11 +356,13 @@ hessian_set_to_zero(ell_point_t P, ATTRIBUTE_UNUSED ell_curve_t E, mpmod_t n)
     mpres_set_si(P->z,  0, n);
 }
 
+#if DEBUG_ADD_LAWS >= 1
 void
 hessian_print(ell_point_t P, ell_curve_t E, mpmod_t n)
 {
     pt_w_print(P->x, P->y, P->z, E, n);
 }
+#endif
 
 /* -[u:v:w] = [v:u:w] */
 void
@@ -629,11 +635,13 @@ twisted_hessian_set_to_zero(ell_point_t P, ATTRIBUTE_UNUSED ell_curve_t E, mpmod
     mpres_set_si(P->z,  1, n);
 }
 
+#if DEBUG_ADD_LAWS >= 1
 void
 twisted_hessian_print(ell_point_t P, ell_curve_t E, mpmod_t n)
 {
     pt_w_print(P->x, P->y, P->z, E, n);
 }
+#endif
 
 /* -[u:v:w] = [u:w:v] */
 void
@@ -914,6 +922,7 @@ ell_point_clear(ell_point_t P, ATTRIBUTE_UNUSED ell_curve_t E, mpmod_t n)
     mpres_clear(P->z, n);
 }
 
+#if DEBUG_ADD_LAWS >= 1
 void
 ell_point_print(ell_point_t P, ell_curve_t E, mpmod_t n)
 {
@@ -924,6 +933,7 @@ ell_point_print(ell_point_t P, ell_curve_t E, mpmod_t n)
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	twisted_hessian_print(P, E, n);
 }
+#endif
 
 /* TODO: should depend on E->type... */
 void
@@ -990,6 +1000,7 @@ ell_curve_clear(ell_curve_t E, mpmod_t n)
     /* TODO: case of sq */
 }
 
+#if DEBUG_ADD_LAWS >= 1
 void
 ell_curve_print(ell_curve_t E, mpmod_t n)
 {
@@ -1010,6 +1021,7 @@ ell_curve_print(ell_curve_t E, mpmod_t n)
 	printf("E:=[a, d];\n");
     }
 }
+#endif
 
 /* OUTPUT: 1 if P = O_E, 0 otherwise. */
 int
