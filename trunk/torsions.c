@@ -464,7 +464,7 @@ build_curves_with_torsion_Z7(mpz_t fac, mpmod_t n,
 	}
 	if(ell_point_is_on_curve(Q, E, n) == 0){
 	    printf("#!# Q=[%d]P is not on E\n", u);
-	    ell_point_print(Q, E, n); printf("\n");
+	    //	    ell_point_print(Q, E, n); printf("\n");
 	    ret = ECM_ERROR;
 	    break;
 	}
