@@ -16,8 +16,6 @@
 
 #include "addlaws.h"
 
-#define DEBUG_ADD_LAWS 0
-
 #if DEBUG_ADD_LAWS >= 1
 void
 print_mpz_from_mpres(mpres_t x, mpmod_t n)
@@ -797,63 +795,6 @@ twisted_hessian_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, 
     ret = twisted_hessian_add(R, P, Q, E, n);
     twisted_hessian_negate(Q, E, n);
     return ret;
-}
-
-/* 8M+6S+M_a            +M_{1/d}  or 2*M_d */
-int
-twisted_hessian_triplicate(ell_point_t R, ell_point_t P, 
-			   ATTRIBUTE_UNUSED ell_curve_t E, mpmod_t n)
-{
-    // R = buf[0], V = [1], S = [2], A = [3], B = [4], C = [5], D = [6]
-    // E = [7], tmp = [8]
-    /*	R:=(a*X1^3) mod N;*/
-    mpres_sqr(E->buf[0], P->x, n);
-    mpres_mul(E->buf[0], E->buf[0], P->x, n);
-    mpres_mul(E->buf[0], E->buf[0], E->a4, n);
-    /*	V:=Y1^3 mod N;*/
-    mpres_sqr(E->buf[1], P->y, n);
-    mpres_mul(E->buf[1], E->buf[1], P->y, n);
-    /*	S:=Z1^3 mod N;*/
-    mpres_sqr(E->buf[2], P->z, n);
-    mpres_mul(E->buf[2], E->buf[2], P->z, n);
-    /*	A:=(R-V)^2 mod N;*/
-    mpres_sub(E->buf[3], E->buf[0], E->buf[1], n);
-    mpres_sqr(E->buf[3], E->buf[3], n);
-    /*	B:=(R-S)^2 mod N;*/
-    mpres_sub(E->buf[4], E->buf[0], E->buf[2], n);
-    mpres_sqr(E->buf[4], E->buf[4], n);
-    /*	C:=(V-S)^2 mod N;*/
-    mpres_sub(E->buf[5], E->buf[1], E->buf[2], n);
-    mpres_sqr(E->buf[5], E->buf[5], n);
-    /*	D:=(A+C) mod N;*/
-    mpres_add(E->buf[6], E->buf[3], E->buf[5], n);
-    /*	E:=(A+B) mod N;*/
-    mpres_add(E->buf[7], E->buf[3], E->buf[4], n);
-// ok if 1/d small
-// 	X3:=(1/d)*(R+V+S)*(B+D) mod N;
-    // d small => scaling Y3 and Z3*/
-    /* 	X3:=(R+V+S)*(B+D) mod N; */
-    mpres_add(R->x, E->buf[0], E->buf[1], n);
-    mpres_add(R->x, R->x, E->buf[2], n);
-    mpres_add(E->buf[8], E->buf[4], E->buf[6], n);
-    mpres_mul(R->x, R->x, E->buf[8], n);
-    /*	Y3:=(2*R*C-V*(C-E)) mod N;*/
-    mpres_mul(R->y, E->buf[0], E->buf[5], n);
-    mpres_add(R->y, R->y, R->y, n);
-    mpres_sub(E->buf[8], E->buf[5], E->buf[7], n);
-    mpres_mul(E->buf[8], E->buf[8], E->buf[1], n);
-    mpres_sub(R->y, R->y, E->buf[8], n);
-    /*	Z3:=(2*V*B-R*(B-D)) mod N;*/
-    mpres_mul(R->z, E->buf[1], E->buf[4], n);
-    mpres_add(R->z, R->z, R->z, n);
-    mpres_sub(E->buf[8], E->buf[4], E->buf[6], n);
-    mpres_mul(E->buf[8], E->buf[8], E->buf[0], n);
-    mpres_sub(R->z, R->z, E->buf[8], n);
-    /*	Y3:=(d*Y3) mod N; scaling when d small*/
-    mpres_mul(R->y, R->y, E->a6, n);
-    /*	Z3:=(d*Z3) mod N; scaling when d small*/
-    mpres_mul(R->z, R->z, E->a6, n);
-    return 1;
 }
 
 /* INPUT: a*x^3+y^3+1 = d*x*y
