@@ -290,6 +290,7 @@ pt_w_add(mpz_t f, mpres_t x3, mpres_t y3, mpres_t z3,
     return 0;
 }
 
+#if USE_ADD_SUB_CHAINS > 0
 /* [x3, y3, z3] <- [x1, y1, z1] - [x2, y2, z2]; P3 != P1, P3 != P2. 
    -P2 ~ -(x2/z2, y2/z2, 1) = (x2/z2, -y2/z2-a1*x/z2-a3, 1) 
                             ~ (x2, -y2-a1*x2-a3*z2, z2).
@@ -318,6 +319,7 @@ pt_w_sub(mpz_t f, mpres_t x3, mpres_t y3, mpres_t z3,
     }
     return res;
 }
+#endif
 
 /******************** projective Hessian form ********************/
 
@@ -482,6 +484,7 @@ hessian_add(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t 
 	return hessian_plus(R, P, Q, E, n);
 }
 
+#if USE_ADD_SUB_CHAINS > 0
 int
 hessian_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
 {
@@ -492,6 +495,7 @@ hessian_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t 
     hessian_negate(Q, E, n);
     return ret;
 }
+#endif
 
 /* switch from X^3+Y^3+1=3*D*X*Y to Y^2=X^3+A*X+B
    A:=-27*D*(D^3+8);
@@ -786,6 +790,7 @@ twisted_hessian_add(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, 
 	return twisted_hessian_plus(R, P, Q, E, n);
 }
 
+#if USE_ADD_SUB_CHAINS > 0
 int
 twisted_hessian_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
 {
@@ -796,6 +801,7 @@ twisted_hessian_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, 
     twisted_hessian_negate(Q, E, n);
     return ret;
 }
+#endif
 
 /* INPUT: a*x^3+y^3+1 = d*x*y
    OUTPUT: Y^2 = X^3+A*X+B
@@ -1124,6 +1130,7 @@ ell_point_add(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t 
 	return -1;
 }
 
+#if USE_ADD_SUB_CHAINS > 0
 /* R <- P-Q */
 int
 ell_point_sub(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
@@ -1138,6 +1145,7 @@ ell_point_sub(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t 
     else
 	return -1;
 }
+#endif
 
 int
 ell_point_duplicate(mpz_t f, ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_t n)
