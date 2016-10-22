@@ -618,6 +618,8 @@ echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 1000 2000; checkcode $
 # that is a*X^3+Y^3+Z^3 = d*X*Y*Z
 echo 2432902008176640001 | $ECM -param 7 -A 125/499 -x0 19/485 -y0 5/97 1e5; checkcode $? 14
 echo 2432902008176640001 | $ECM -param 7 -A 125/123 -x0 2 -y0 13 1e5; checkcode $? 14
+# found in Step 2
+echo 2432902008176640001 | $ECM -param 7 -A 125/123 -x0 2 -y0 13 1e4 1e5; checkcode $? 14
 
 fi # tests for Hessian form
 
@@ -689,6 +691,7 @@ echo 3299173 | $ECM -torsion Z2xZ8 -sigma 8 1e2; checkcode $? 14
 echo 2432902008176640001 | $ECM -torsion Z3xZ3 -sigma 2 5; checkcode $? 8
 ## found factor in Step 1 
 echo 2432902008176640001 | $ECM -torsion Z3xZ3 -sigma 3 1e5; checkcode $? 14
+echo 2432902008176640001 | $ECM -torsion Z3xZ3 -sigma -3 1e5; checkcode $? 14
 ## found factor in Z3xZ3 (D)
 echo 171523 | $ECM -torsion Z3xZ3 -sigma 11 1e5; checkcode $? 6
 ## D^3=1 => singluar curve
