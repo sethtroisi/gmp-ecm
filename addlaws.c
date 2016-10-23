@@ -980,7 +980,7 @@ ell_point_is_zero(ell_point_t P, ell_curve_t E, mpmod_t n)
 	return hessian_is_zero(P, E, n);
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	return twisted_hessian_is_zero(P, E, n);
-    return -1;
+    return ECM_ERROR;;
 }
 
 void
@@ -1077,6 +1077,7 @@ ell_point_check(ell_point_t P, ell_curve_t E, mpmod_t n)
 }
 #endif
 
+#if DEBUG_ADD_LAWS >= 1
 int
 ell_point_equal(ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
 {
@@ -1114,6 +1115,7 @@ ell_point_equal(ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
     }
     return ret;
 }
+#endif
 
 /* OUTPUT: 1 if everything ok, 0 otherwise */
 int
@@ -1127,7 +1129,7 @@ ell_point_add(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t 
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	return twisted_hessian_add(R, P, Q, E, n);
     else
-	return -1;
+	return ECM_ERROR;
 }
 
 #if USE_ADD_SUB_CHAINS > 0
@@ -1143,7 +1145,7 @@ ell_point_sub(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t 
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	return twisted_hessian_sub(R, P, Q, E, n);
     else
-	return -1;
+	return ECM_ERROR;;
 }
 #endif
 
@@ -1161,7 +1163,7 @@ ell_point_duplicate(mpz_t f, ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	return twisted_hessian_duplicate(R, P, E, n);
     else
-	return -1;
+	return ECM_ERROR;;
 }
 
 void

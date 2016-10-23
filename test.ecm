@@ -580,6 +580,8 @@ if [ 1 -eq 1 ]; then
 
 # factored with Step 1
 echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 10 100000; checkcode $? 14
+# missed using a 2-torsion point
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 1411930621319333529 -y0 0 100000; checkcode $? 8
 # unfactored
 echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20/3 -y0 10 10000 20000; checkcode $? 0
 # factored with default Step 2
