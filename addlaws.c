@@ -364,12 +364,14 @@ hessian_print(ell_point_t P, ell_curve_t E, mpmod_t n)
 }
 #endif
 
+#if USE_ADD_SUB_CHAINS > 0
 /* -[u:v:w] = [v:u:w] */
 void
 hessian_negate(ell_point_t P, ATTRIBUTE_UNUSED ell_curve_t E, ATTRIBUTE_UNUSED mpmod_t n)
 {
     mpz_swap(P->x, P->y); /* humf */
 }
+#endif
 
 /* TODO: decrease the number of buffers? */
 int
@@ -645,12 +647,14 @@ twisted_hessian_print(ell_point_t P, ell_curve_t E, mpmod_t n)
 }
 #endif
 
+#if USE_ADD_SUB_CHAINS > 0
 /* -[u:v:w] = [u:w:v] */
 void
 twisted_hessian_negate(ell_point_t P, ATTRIBUTE_UNUSED ell_curve_t E, ATTRIBUTE_UNUSED mpmod_t n)
 {
     mpz_swap(P->y, P->z); /* humf */
 }
+#endif
 
 /* TODO: decrease the number of buffers? */
 /* 6M+2S+1M_d: better when d is small */
@@ -929,11 +933,13 @@ ell_curve_set_z(ell_curve_t E, ell_curve_t zE, mpmod_t n)
     mpres_set_z(E->a2, zE->a2, n);
     mpres_set_z(E->a4, zE->a4, n);
     mpres_set_z(E->a6, zE->a6, n);
+#if 0
     E->disc = zE->disc;
     if(E->disc != 0){
 	mpres_init(E->sq[0], n);
 	mpres_set_z(E->sq[0], zE->sq[0], n);
     }
+#endif
 }
 
 void
@@ -980,7 +986,7 @@ ell_point_is_zero(ell_point_t P, ell_curve_t E, mpmod_t n)
 	return hessian_is_zero(P, E, n);
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	return twisted_hessian_is_zero(P, E, n);
-    return ECM_ERROR;;
+    return ECM_ERROR;
 }
 
 void
@@ -1019,6 +1025,7 @@ ell_point_is_on_curve(ell_point_t P, ell_curve_t E, mpmod_t n)
 	    mpres_mul(tmp2, tmp2, P->x, n);
 	    mpres_add(tmp2, tmp2, E->a6, n);
 	}
+#if 0 // useless for the time being
 	else{
 	    /* y^2*z+a1*x*y*z+a3*y*z^2 = x^3+a2*x^2*z+a4*x*z^2+a6*z^3? */
 	    /* y*z*(y+a1*x+a3*z) = ((x+a2*z)*x+a4*z^2)*x+a6*z^3? */
@@ -1045,8 +1052,7 @@ ell_point_is_on_curve(ell_point_t P, ell_curve_t E, mpmod_t n)
 	    mpres_add(tmp2, tmp2, tmp3, n);   /* rhs */
 	    mpres_clear(tmp3, n);
 	}
-
-	/*	gmp_printf("lhs=%Zd rhs=%Zd\n", tmp1, tmp2);*/
+#endif
 	ok = mpres_equal(tmp1, tmp2, n);
 
 	mpres_clear(tmp1, n);
@@ -1145,7 +1151,7 @@ ell_point_sub(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t 
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	return twisted_hessian_sub(R, P, Q, E, n);
     else
-	return ECM_ERROR;;
+	return ECM_ERROR;
 }
 #endif
 
@@ -1163,7 +1169,7 @@ ell_point_duplicate(mpz_t f, ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	return twisted_hessian_duplicate(R, P, E, n);
     else
-	return ECM_ERROR;;
+	return ECM_ERROR;
 }
 
 void
@@ -1189,10 +1195,12 @@ ell_point_negate(ell_point_t P, ell_curve_t E, mpmod_t n)
 		mpres_neg(P->y, P->y, n);
 	    }
 	}
+#if USE_ADD_SUB_CHAINS > 0
 	else if(E->type == ECM_EC_TYPE_HESSIAN)
 	    hessian_negate(P, E, n);
 	else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	    twisted_hessian_negate(P, E, n);
+#endif
     }
 #if DEBUG_ADD_LAWS >= 2
     printf("neg(P):="); ell_point_print(P, E, n); printf(";\n");
