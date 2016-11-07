@@ -425,7 +425,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
           ])
         CFLAGS="-I$cuda_include $CFLAGS"
         CPPFLAGS="-I$cuda_include $CPPFLAGS"
-        NVCCFLAGS="-I$cuda_include -Xcompiler -fPIC $NVCCFLAGS"
+        NVCCFLAGS="-I$cuda_include $NVCCFLAGS"
       ])
     AC_CHECK_HEADERS([cuda.h], [], AC_MSG_ERROR([required header file missing]))
     AC_MSG_CHECKING([that CUDA Toolkit version is at least 3.0])
