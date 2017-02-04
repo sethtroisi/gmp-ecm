@@ -639,6 +639,16 @@ int          outputf (int, const char *, ...);
 void writechkfile (char *, int, double, mpmod_t, mpres_t, mpres_t, mpres_t, mpres_t);
 #define aux_fseek64 __ECM(aux_fseek64)
 int aux_fseek64(FILE *, const int64_t, const int);
+#define ecm_tstbit __ECM(ecm_tstbit)
+int ecm_tstbit (mpz_srcptr, ecm_uint);
+
+/* Due to GMP (6.x and prior) using long as input to mpz_tstbit, factors would be missed
+   on computers with 32-bit longs in batch mode when using B1 > 2977044736UL.
+   So, we need to use our own function when long is not 64-bits wide */
+#if ULONG_MAX == 0xffffffffUL
+#undef mpz_tstbit
+#define mpz_tstbit ecm_tstbit
+#endif
 
 /* auxarith.c */
 #define gcd __ECM(gcd)
