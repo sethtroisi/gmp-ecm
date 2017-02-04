@@ -283,3 +283,35 @@ aux_fseek64(FILE *f, const int64_t offset, const int whence)
   return fseek (f, (long) offset, whence);
 }
 #endif
+
+int
+ecm_tstbit (mpz_srcptr u, ecm_uint bit_index)
+{
+  mp_srcptr     u_ptr      = PTR(u);
+  ecm_int       size       = SIZ(u);
+  ecm_uint      abs_size   = ABS(size);
+  ecm_uint      limb_index = bit_index / GMP_NUMB_BITS;
+  mp_srcptr     p          = u_ptr + limb_index;
+  mp_limb_t     limb;
+
+  if (limb_index >= abs_size)
+    return (size < 0);
+
+  limb = *p;
+  if (size < 0)
+    {
+      limb = -limb;     /* twos complement */
+
+      while (p != u_ptr)
+        {
+          p--;
+          if (*p != 0)
+            {
+              limb--;	/* make it a ones complement instead */
+              break;
+            }
+        }
+    }
+
+  return (limb >> (bit_index % GMP_NUMB_BITS)) & 1;
+}
