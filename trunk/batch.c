@@ -47,8 +47,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
     for the batch product s when using primes larger than the following */
 #define MAX_B1_BATCH 3124253146UL
 #else
-/* nth_prime(2^(MAX_HEIGHT-1)) */
-#define MAX_B1_BATCH 50685770167ULL
+/* nth_prime(2^(MAX_HEIGHT-1))-1 */
+#define MAX_B1_BATCH 50685770166ULL
 #endif
 
 /* If forbiddenres != NULL, forbiddenres = "m r_1 ... r_k -1" indicating that
@@ -67,7 +67,7 @@ compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
 
   prime_info_init (prime_info);
 
-  ASSERT_ALWAYS (B1 < MAX_B1_BATCH);
+  ASSERT_ALWAYS (B1 <= MAX_B1_BATCH);
 
   for (j = 0; j < MAX_HEIGHT; j++)
     mpz_init (acc[j]); /* sets acc[j] to 0 */
