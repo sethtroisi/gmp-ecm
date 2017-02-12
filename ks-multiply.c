@@ -547,10 +547,10 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
 unsigned int
 ks_wrapmul_m (unsigned int m0, unsigned int k, mpz_t n)
 {
+#ifdef FFT_WRAP
   mp_size_t t, s;
   unsigned long i, m;
 
-#ifdef FFT_WRAP
   t = mpz_sizeinbase (n, 2);
   s = t * 2 + 1;
   for (i = k - 1; i; s++, i >>= 1);

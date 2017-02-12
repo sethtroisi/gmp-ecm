@@ -226,7 +226,7 @@ ecm_mul (mpres_t x, mpres_t z, mpz_t e, mpmod_t n, mpres_t b)
 
   while (l-- > 0)
     {
-      if (mpz_tstbit (e, l)) /* k, k+1 -> 2k+1, 2k+2 */
+      if (ecm_tstbit (e, l)) /* k, k+1 -> 2k+1, 2k+2 */
         {
           add3 (x0, z0, x0, z0, x1, z1, x, z, n, u, v, w); /* 2k+1 */
           duplicate (x1, z1, x1, z1, n, b, u, v, w); /* 2k+2 */

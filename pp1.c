@@ -61,8 +61,7 @@ Lucas chains, Peter L. Montgomery, December 1983, revised January 1992. */
 static void
 pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
 {
-  mp_size_t size_e;
-  unsigned long i;
+  mp_size_t size_e, i;
 
   ASSERT (mpz_cmp_ui (e, 1) >= 0);
 
@@ -82,7 +81,7 @@ pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
   size_e = mpz_sizeinbase (e, 2);
   for (i = size_e - 1; i > 0;)
     {
-      if (mpz_tstbit (e, --i)) /* k -> 2k+1 */
+      if (ecm_tstbit (e, --i)) /* k -> 2k+1 */
         {
           if (i) /* Q is not needed for last iteration */
             {

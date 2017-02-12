@@ -3252,7 +3252,7 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0,
                    mpmod_t modulus, unsigned long tmplen, mpres_t *tmp)
 {
   mpz_t abs_e;
-  unsigned long idx;
+  size_t idx;
 
   ASSERT (a0 != r0 && a1 != r0 && a0 != r1 && a1 != r1);
 
@@ -3265,8 +3265,8 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0,
 
   mpz_init (abs_e);
   mpz_abs (abs_e, e);
-  idx = mpz_sizeinbase (abs_e, 2) - 1; /* Thus mpz_tstbit (abs_e, idx) == 1 */
-  ASSERT (mpz_tstbit (abs_e, idx) == 1);
+  idx = mpz_sizeinbase (abs_e, 2) - 1; /* Thus ecm_tstbit (abs_e, idx) == 1 */
+  ASSERT (ecm_tstbit (abs_e, idx) == 1);
 
   mpres_set (r0, a0, modulus);
   mpres_set (r1, a1, modulus);
@@ -3275,7 +3275,7 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0,
     {
       gfp_ext_sqr_norm1 (r0, r1, r0, r1, modulus);
       idx--;
-      if (mpz_tstbit (abs_e, idx))
+      if (ecm_tstbit (abs_e, idx))
 	gfp_ext_mul (r0, r1, r0, r1, a0, a1, Delta, modulus, tmplen, tmp);
     }
 

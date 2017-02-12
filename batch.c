@@ -41,7 +41,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
     is = (2^32-1).  Multiplying all primes up to the following
     will result in a product that has (2^32-1) bits. */
 #define MAX_B1_BATCH 2977044736UL
-#elif defined(_WIN32)
+#elif defined(_WIN32) && __GNU_MP_VERSION <= 6 && !defined(__MPIR_VERSION)
 /* Due to a limitation in GMP on 64-bit Windows, should also
     affect 32-bit Windows, sufficient memory cannot be allocated
     for the batch product s when using primes larger than the following */
@@ -79,40 +79,44 @@ compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
       pp = qi = pi;
       maxpp = B1 / qi;
 #ifdef HAVE_ADDLAWS
-      if(forbiddenres != NULL && pi > 2){
-	  /* non splitting primes can occur in even powers only */
-	  int rp = (int)(pi % forbiddenres[0]);
-	  for(j = 1; forbiddenres[j] >= 0; j++)
-	      if(rp >= forbiddenres[j])
-		  break;
-	  if(rp == forbiddenres[j]){
-	      /*	      printf("p=%lu is forbidden\n", pi);*/
-	      if(qi <= maxpp){
-		  /* qi <= B1/qi => qi^2 <= B1, let it go */
-		  qi *= qi;
-	      }
-	      else{
-		  /* qi is too large, do not increment i */
-		  pi = getprime_mt (prime_info);
-		  continue;
-	      }
-	  }
-      }
+      if (forbiddenres != NULL && pi > 2)
+        {
+          /* non splitting primes can occur in even powers only */
+          int rp = (int)(pi % forbiddenres[0]);
+          for (j = 1; forbiddenres[j] >= 0; j++)
+            if (rp >= forbiddenres[j])
+              break;
+          if (rp == forbiddenres[j])
+            {
+              /* printf("p=%lu is forbidden\n", pi); */
+              if (qi <= maxpp)
+                {
+                  /* qi <= B1/qi => qi^2 <= B1, let it go */
+                  qi *= qi;
+                }
+              else
+                {
+                  /* qi is too large, do not increment i */
+                  pi = getprime_mt (prime_info);
+                  continue;
+                }
+            }
+        }
 #endif
       while (pp <= maxpp)
           pp *= qi;
 
 #if ECM_UINT_MAX == 4294967295
-          mpz_set_ui (ppz, pp);
+      mpz_set_ui (ppz, pp);
 #else
-          mpz_set_uint64 (ppz, pp);
+      mpz_set_uint64 (ppz, pp);
 #endif
 
       if ((i & 1) == 0)
-          mpz_set (acc[0], ppz);
+        mpz_set (acc[0], ppz);
       else
-          mpz_mul (acc[0], acc[0], ppz);
-			
+        mpz_mul (acc[0], acc[0], ppz);
+
       j = 0;
       /* We have accumulated i+1 products so far. If bits 0..j of i are all
          set, then i+1 is a multiple of 2^(j+1). */
@@ -140,7 +144,7 @@ compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
   prime_info_clear (prime_info); /* free the prime tables */
   
   for (i = 0; i < MAX_HEIGHT; i++)
-      mpz_clear (acc[i]);
+    mpz_clear (acc[i]);
   mpz_clear (ppz);
 }
 
@@ -264,13 +268,13 @@ dup_add_batch2 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
           A is curve parameter in Montgomery's form:
           g*y^2*z = x^3 + a*x^2*z + x*z^2
           n is the number to factor
-	  B1 is the stage 1 bound
+          B1 is the stage 1 bound
    Output: If a factor is found, it is returned in x.
            Otherwise, x contains the x-coordinate of the point computed
            in stage 1 (with z coordinate normalized to 1).
-	   B1done is set to B1 if stage 1 completed normally,
-	   or to the largest prime processed if interrupted, but never
-	   to a smaller value than B1done was upon function entry.
+           B1done is set to B1 if stage 1 completed normally,
+           or to the largest prime processed if interrupted, but never
+           to a smaller value than B1done was upon function entry.
    Return value: ECM_FACTOR_FOUND_STEP1 if a factor, otherwise 
            ECM_NO_FACTOR_FOUND
 */
@@ -304,7 +308,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   /* Compute d=(A+2)/4 from A and d'=B*d thus d' = 2^(GMP_NUMB_BITS-2)*(A+2) */
   if (batch == ECM_PARAM_BATCH_SQUARE || batch == ECM_PARAM_BATCH_32BITS_D)
-  {
+    {
       mpres_get_z (u, A, n);
       mpz_add_ui (u, u, 2);
       mpz_mul_2exp (u, u, GMP_NUMB_BITS - 2);
@@ -358,7 +362,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     {
       for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)
         {
-          if (mpz_tstbit (s, i) == 0) /* (j,j+1) -> (2j,2j+1) */
+          if (ecm_tstbit (s, i) == 0) /* (j,j+1) -> (2j,2j+1) */
             /* P2 <- P1+P2    P1 <- 2*P1 */
             dup_add_batch1 (x1, z1, x2, z2, t, u, d_1, n);
           else /* (j,j+1) -> (2j+1,2j+2) */
@@ -371,7 +375,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       mpresn_pad (d_2, n);
       for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)
         {
-          if (mpz_tstbit (s, i) == 0) /* (j,j+1) -> (2j,2j+1) */
+          if (ecm_tstbit (s, i) == 0) /* (j,j+1) -> (2j,2j+1) */
             /* P2 <- P1+P2    P1 <- 2*P1 */
             dup_add_batch2 (x1, z1, x2, z2, t, u, d_2, n);
           else /* (j,j+1) -> (2j+1,2j+2) */
@@ -398,10 +402,8 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpz_clear (z2);
   mpz_clear (t);
   mpz_clear (u);
-  if (batch == 2)
-    {
+  if (batch == ECM_PARAM_BATCH_2)
       mpz_clear (d_2);
-    }
 
   return ret;
 }

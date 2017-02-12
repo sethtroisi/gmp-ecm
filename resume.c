@@ -369,8 +369,8 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
           mpz_mul_ui (checksum, checksum, (*param+1)%CHKSUMMOD);
           if (mpz_fdiv_ui (checksum, CHKSUMMOD) != saved_checksum)
             {
-              fprintf (stderr, "Resume file line has bad checksum %u, expected %lu\n", 
-                       saved_checksum, mpz_fdiv_ui (checksum, CHKSUMMOD));
+              fprintf (stderr, "Resume file line has bad checksum %u, expected %u\n", 
+                       saved_checksum, (unsigned int) mpz_fdiv_ui (checksum, CHKSUMMOD));
               mpz_clear (checksum);
               continue;
             }
@@ -455,8 +455,8 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
   mpz_out_str (file, 16, x);
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n->n, CHKSUMMOD));
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
-  fprintf (file, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;",
-           mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION);
+  fprintf (file, "; CHECKSUM=%u; PROGRAM=GMP-ECM %s;",
+           (unsigned int) mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION);
   mpz_clear (checksum);
   if (y != NULL)
     {
