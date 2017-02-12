@@ -39,7 +39,7 @@ MO_automaton(signed char *T, size_t *IT, mpz_t e, size_t le)
     int state = 0, res = 1, bz;
 
     for(ie = 0; ie < le; ie++){
-	bz = mpz_tstbit(e, ie) == 0;
+	bz = ecm_tstbit(e, ie) == 0;
 	switch(state){
 	case 0:
 	    if(bz)
@@ -1299,7 +1299,7 @@ pt_many_mul_plain(mpz_t f, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
 #if DEBUG_ADD_LAWS >= 2
 	printf("Rdup:="); pt_many_print(tE, tQ, nE, n); printf(";\n");
 #endif
-	if (mpz_tstbit (e, l))
+	if (ecm_tstbit (e, l))
 	  {
 	      if(pt_many_add (f, tQ, tP, tQ, tE, nE, n, num, den, inv, ok) == 0)
 	      {

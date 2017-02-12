@@ -37,8 +37,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
               mpmod_t modulus, mpres_t u, mpres_t v, mpres_t *T,
               unsigned long *tot_muls, unsigned long *tot_gcds)
 {
-  unsigned int i, maxbit, k; /* k is the number of values to batch invert */
-  unsigned int l, t, muls = 0, gcds = 0;
+  ecm_uint i, maxbit, k; /* k is the number of values to batch invert */
+  ecm_uint l, t, muls = 0, gcds = 0;
 #ifdef WANT_EXPCOST
   unsigned int hamweight = 0;
 #endif
@@ -104,8 +104,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
         mpres_add (T[k++], s.y, s.y, modulus);
       
       for (i = 0; i < n && !youpi; i++) 
-        if (mpz_tstbit (q[i], t))       /* If q[i] & (1<<t), we'll add s to R[i] */
-          if (mpz_tstbit (flag, i))     /* Does R[i] contain a partial result yet ? */
+        if (ecm_tstbit (q[i], t))       /* If q[i] & (1<<t), we'll add s to R[i] */
+          if (ecm_tstbit (flag, i))     /* Does R[i] contain a partial result yet ? */
             {                           /* If Yes: need actual point addition so */
               mpres_sub (T[k], s.x, R[i].x, modulus); /* schedule (s.x-R[i].x) for inverting */
               if (k > 0)
@@ -138,9 +138,9 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
       l = k - 1;
 
       for (i = n; i-- > 0; ) /* Go through the R[i] again, backwards */
-        if (mpz_tstbit (q[i], t))
+        if (ecm_tstbit (q[i], t))
           {
-            if (mpz_tstbit (flag, i))
+            if (ecm_tstbit (flag, i))
               {
                 /* T[k] contains 1/(v[0]*...*v[l]) */
                 if (l > 0) /* need to separate the values */
@@ -230,7 +230,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
   
   /* Now take inverse points (negative y-coordinate) where q[i] was < 0 */
   for (i = 0; i < n; i++)
-    if (mpz_tstbit (signs, i))
+    if (ecm_tstbit (signs, i))
       {
         mpz_neg (R[i].y, R[i].y);
         mpz_neg (q[i], q[i]);
