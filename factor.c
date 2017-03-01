@@ -144,7 +144,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
       if (p->gpu == 0)
         {
 #endif
-            res = ecm (f, p->x, p->y, &(p->param), p->sigma, n, p->go,
+            res = ecm (f, p->x, p->y, p->param, p->sigma, n, p->go,
 		       &(p->B1done),
                        B1, p->B2min, p->B2, p->k, p->S, p->verbose,
                        p->repr, p->nobase2step2, p->use_ntt, 
