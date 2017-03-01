@@ -235,7 +235,7 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
 }
 
 int
-gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
+gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
          double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
          unsigned long k, const int S, int verbose, int repr,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
@@ -282,10 +282,10 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
 
   /* Only param = ECM_PARAM_BATCH_32BITS_D is accepted on GPU */
-  if (*param == ECM_PARAM_DEFAULT)
-      *param = ECM_PARAM_BATCH_32BITS_D;
+  if (param == ECM_PARAM_DEFAULT)
+      param = ECM_PARAM_BATCH_32BITS_D;
     
-  if (*param != ECM_PARAM_BATCH_32BITS_D)
+  if (param != ECM_PARAM_BATCH_32BITS_D)
     {
       outputf (OUTPUT_ERROR, "GPU: Error, only param = ECM_PARAM_BATCH_32BITS_D "
                              "is accepted on GPU.\n");
@@ -417,7 +417,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min,
                     B2, S, firstsigma, sigma_is_A, ECM_EC_TYPE_MONTGOMERY,
-                    go, *param, *nb_curves);
+                    go, param, *nb_curves);
   outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
            dF, k, root_params.d1, root_params.d2, root_params.i0);
 
@@ -438,7 +438,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
       else
         {
           rhoinit (256, 10);
-          print_expcurves (B1, B2, dF, k, root_params.S, *param);
+          print_expcurves (B1, B2, dF, k, root_params.S, param);
         }
     }
   
@@ -568,7 +568,7 @@ end_gpu_ecm_rhotable:
           if (youpi == ECM_NO_FACTOR_FOUND && 
               (stop_asap == NULL || !(*stop_asap)()))
               print_exptime (B1, B2, dF, k, root_params.S, 
-                             (long) (tottime / *nb_curves), *param);
+                             (long) (tottime / *nb_curves), param);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }
