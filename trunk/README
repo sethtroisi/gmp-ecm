@@ -395,7 +395,7 @@ Or A and x0 are given (in which case both must be given).
 
 The -param option is used to choose the parametrization from which the curves
 are taken. It can take 4 values (s is the 'sigma' parameter):
-    0: use Suyama parametrization. It was the parametrization used previous
+    0: use Suyama parametrization. It was the parametrization used by previous
     versions of GMP-ECM.
 	                         u = s^2-5, v = 4*s,
                       A = (v-u)^3*(3*u+v)/(4*u^3*v)-2,
