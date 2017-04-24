@@ -118,7 +118,7 @@ usage (void)
     printf ("  -save file   save residues at end of stage 1 to file\n");
     printf ("  -savea file  like -save, appends to existing files\n");
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
-    printf ("  -chkpnt file save periodic checkpoints during stage 1 to file\n");
+    printf ("  -chkpnt file save periodic checkpoints during stage 1 to file (for -param 0)\n");
     printf ("  -primetest   perform a primality test on input\n");
     printf ("  -treefile f  [ECM only] store stage 2 data in files f.0, ... \n");
     printf ("  -maxmem n    use at most n MB of memory in stage 2\n");
