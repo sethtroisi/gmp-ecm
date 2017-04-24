@@ -612,13 +612,16 @@ $ ecm -chkpnt pm1chkpoint -pm1 1e10 1 < largenumber.txt
 
 $ ecm -resume pm1chkpoint 1e10 1
 
-Note: if an existing file is specified as the checkpoint file, it will be
+Note 1: if an existing file is specified as the checkpoint file, it will be
 silently overwritten! 
+
 Note 2: When resuming a checkpoint file, additional small primes may be 
 processed in stage 1 when the checkpoint file is resumed, so the 
 end-of-stage 1 residues of an uninterrupted run and a checkpointed run 
 may not match. The extra primes do not reduce the probability of finding 
 factors, however.
+
+Note 3: for ECM, the -chkpnt option is only implemented with -param 0 so far.
 
 ##############################################################################
 
