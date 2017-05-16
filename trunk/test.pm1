@@ -85,27 +85,29 @@ echo 474476178924594486566271953891 | $PM1 9594209 519569569; checkcode $? 8
 echo 2124306045220073929294177 | $PM1 290021 1193749003; checkcode $? 8
 
 ### Try saving and resuming
-echo 25591172394760497166702530699464321 | $PM1 -save test.pm1.save 100000
+TEST=test.pm1.save$$
+echo 25591172394760497166702530699464321 | $PM1 -save $TEST 100000
 checkcode $? 0
-$PM1 -resume test.pm1.save 120557 2007301
+$PM1 -resume $TEST 120557 2007301
 C=$?
-/bin/rm -f test.pm1.save
+/bin/rm -f $TEST
 checkcode $C 8
 
 # check the -chkpnt option
-echo 25591172394760497166702530699464321 | $PM1 -chkpnt test.pm1.chk 100000
+TEST=test.pm1.chk$$
+echo 25591172394760497166702530699464321 | $PM1 -chkpnt $TEST 100000
 checkcode $? 0
-$PM1 -resume test.pm1.chk 120557 2007301
+$PM1 -resume $TEST 120557 2007301
 C=$?
-/bin/rm -f test.pm1.chk
+/bin/rm -f $TEST
 checkcode $C 8
 
 ### same with -savea
-echo 25591172394760497166702530699464321 | $PM1 -savea test.pm1.save 100000
+echo 25591172394760497166702530699464321 | $PM1 -savea $TEST 100000
 checkcode $? 0
-$PM1 -resume test.pm1.save 120557 2007301
+$PM1 -resume $TEST 120557 2007301
 C=$?
-/bin/rm -f test.pm1.save
+/bin/rm -f $TEST
 checkcode $C 8
 
 # bug in ecm-5.0 (overflow in fin_diff_coeff)

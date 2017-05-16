@@ -100,17 +100,19 @@ echo 2050449353925555290706354283 | $ECM -param 0 -treefile tree -sigma 7 -k 1 3
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -I 1 -c 3 100; checkcode $? 14
 
 # check the -chkpnt option
-echo 2050449353925555290706354283 | $ECM -chkpnt test.ecm.chk -param 0 -sigma 7 30 1e6
-$ECM -resume test.ecm.chk 30 1e6
+TEST=test.ecm.chk$$
+echo 2050449353925555290706354283 | $ECM -chkpnt $TEST -param 0 -sigma 7 30 1e6
+$ECM -resume $TEST 30 1e6
 C=$?
-/bin/rm -f test.ecm.chk
+/bin/rm -f $TEST
 checkcode $C 14
 
 # check the -inp option
-echo 2050449353925555290706354283 > test.ecm.inp
-$ECM -inp test.ecm.inp -param 0 -sigma 7 -I 1 -c 3 100
+TEST=test.ecm.inp$$
+echo 2050449353925555290706354283 > $TEST
+$ECM -inp $TEST -param 0 -sigma 7 -I 1 -c 3 100
 C=$?
-/bin/rm -f test.ecm.inp
+/bin/rm -f $TEST
 checkcode $C 14
 
 # Check a stage 2 of length 1. g1=1822795201 g2=968809 g3=567947
@@ -233,10 +235,11 @@ $ECM -bloads sfile.txt 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 $ECM -bloads ${GMPECM_DATADIR}/test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 
 # exercise batch error messages...
-$ECM -bsaves test.ecm.s 11e3 < ${GMPECM_DATADIR}/c155
-$ECM -bloads test.ecm.s 1000 < ${GMPECM_DATADIR}/c155; checkcode $? 1
-$ECM -bloads test.ecm.s 10900 < ${GMPECM_DATADIR}/c155; checkcode $? 1
-/bin/rm -f test.ecm.s
+TEST=test.ecm.s$$
+$ECM -bsaves $TEST 11e3 < ${GMPECM_DATADIR}/c155
+$ECM -bloads $TEST 1000 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+$ECM -bloads $TEST 10900 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+/bin/rm -f $TEST
 
 # exercise "Error, -bsaves/-bloads makes sense in batch mode only" error message
 $ECM -bsaves test.s -param 0 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
@@ -301,84 +304,85 @@ echo 449590253344339769860648131841615148645295989319968106906219761704350259884
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -param 0 -sigma 585928442 174000; checkcode $? 14
 
 # test -save/-resume
-/bin/rm -f test.ecm.save
-echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save test.ecm.save -param 0 -sigma 585928442 174000 0
-$ECM -resume test.ecm.save 174000 85880350
+TEST=test.ecm.save$$
+/bin/rm -f $TEST
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save $TEST -param 0 -sigma 585928442 174000 0
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 14
 
 # test savea
-cp ${GMPECM_DATADIR}/test_dummy2.save test.ecm.save
-echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea test.ecm.save -param 0 -sigma 585928442 174000 0
-$ECM -resume test.ecm.save 174000 85880350
+cp ${GMPECM_DATADIR}/test_dummy2.save $TEST
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea $TEST -param 0 -sigma 585928442 174000 0
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 14
 
 # test unknown method
-echo "METHOD=FOO" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "METHOD=FOO" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 0
 
 # test invalid checksum
-echo "CHECKSUM=xxx" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "CHECKSUM=xxx" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 0
 
 # test comment
-echo "METHOD=P-1;X=1;N=17;B1=2;COMMENT=this is a comment;" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "METHOD=P-1;X=1;N=17;B1=2;COMMENT=this is a comment;" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 8
 
 # test invalid param
-echo "PARAM=xxx" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "PARAM=xxx" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 0
 
 # test invalid etype
-echo "ETYPE=xxx" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "ETYPE=xxx" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 0
 
 # test invalid B1
-echo "B1=xxx" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "B1=xxx" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 0
 
 # test unknown tag
-echo "FOO=xxx" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "FOO=xxx" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 0
 
 # test semicolon after tags
-echo "METHOD=P-1;X=1;N=17;B1=2" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "METHOD=P-1;X=1;N=17;B1=2" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 0
 
 # test QX tag without sigma
-echo "METHOD=ECM;QX=1;N=17;B1=2;" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "METHOD=ECM;QX=1;N=17;B1=2;" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 0
 
 # test missing fields
-echo "METHOD=ECM;QX=1;N=17;" > test.ecm.save
-$ECM -resume test.ecm.save 174000 85880350
+echo "METHOD=ECM;QX=1;N=17;" > $TEST
+$ECM -resume $TEST 174000 85880350
 C=$?
 checkcode $C 0
 
-/bin/rm -f test.ecm.save
-echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save test.ecm.save -A 22/7 -x0 1/3 -y0 2/7 1e3
-$ECM -resume test.ecm.save 1e3
+/bin/rm -f $TEST
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save $TEST -A 22/7 -x0 1/3 -y0 2/7 1e3
+$ECM -resume $TEST 1e3
 C=$?
-/bin/rm -f test.ecm.save
+/bin/rm -f $TEST
 checkcode $C 0
 
 $ECM -resume ${GMPECM_DATADIR}/test_dummy.save 1e3; checkcode $? 0
@@ -440,11 +444,12 @@ echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 11000
 checkcode $? 8
 
 # test -bsaves/-bloads
-echo 18446744073709551557 | $ECM -param 1 -A 1 -bsaves test.ecm.s 11000
-echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads test.ecm.s 11000; checkcode $? 8
+TEST=test.ecm.s$$
+echo 18446744073709551557 | $ECM -param 1 -A 1 -bsaves $TEST 11000
+echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads $TEST 11000; checkcode $? 8
 # The following test (with -v and -bloads) would crash on Windows prior to svn 2968.
-echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads test.ecm.s -v 11000; checkcode $? 8
-/bin/rm -f test.ecm.s
+echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads $TEST -v 11000; checkcode $? 8
+/bin/rm -f $TEST
 
 # non-regression test for bug fixed by changeset r1819 on 32-bit
 echo 4294967291 | $ECM -param 1 -A 17 1000
@@ -647,10 +652,11 @@ echo 13290059 | $ECM -torsion Z7 -sigma 4 1e2; checkcode $? 14
 ## in step 2
 echo 2432902008176640001 | $ECM -torsion Z7 -sigma 1 1e3 1e8; checkcode $? 14
 ## -save/-resume
-echo 2432902008176640001 | $ECM -torsion Z7 -save test.ecm.save -sigma 1 1e3
-$ECM -resume test.ecm.save 1e3 1e8
+TEST=test.ecm.save$$
+echo 2432902008176640001 | $ECM -torsion Z7 -save $TEST -sigma 1 1e3
+$ECM -resume $TEST 1e3 1e8
 C=$?
-/bin/rm -f test.ecm.save
+/bin/rm -f $TEST
 checkcode $C 14
 ##### Z9
 ## found factor during init of Q in Z9
