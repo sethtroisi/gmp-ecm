@@ -1,16 +1,18 @@
 
-Building GMP-ECM with Microsoft Visual C++ 2015 
+Building GMP-ECM with Microsoft Visual C++ 2017
 ===============================================
 
 If you wish to build the assembler code support you will need to 
 install the YASM assembler that is available at:
 
-  http://www.tortall.net/projects/yasm/
+    http://www.tortall.net/projects/yasm/
 
-THe version you need is vsyasm, which should be put it in the same
-directory as your Visual C++ compiler, which is typically:
+THe version you need is vsyasm, which should be put it in the directory
 
-C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin
+    C:\Program Files\yasm
+
+Alternatively vsyasm can be installed anywhere provided the environment
+variable YASMPATH is set to its absolute file path.
 
 The Multi-Precision Library - GMP and MPIR
 ==========================================
@@ -53,10 +55,10 @@ are in a common parent directory as follows:
 
   Parent Directory
     MPIR (or GMP)
-      build.vc14    -- MPIR (or GMP) build files
+      build.vc15    -- MPIR (or GMP) build files
       ...
     GMP-ECM
-      buid.vc14     -- ECM build files 
+      buid.vc15     -- ECM build files 
       
 The root directories for GMP and GMP-ECM are assumed to have these names
 irrespective of which version is being used (they used to be followed by 
@@ -65,23 +67,24 @@ too frequently).
 
 The normal (non GPU) build is opened by loading the file ecm.sln (from 
 the build.vc14 directory) into Visual Studio. This provides these build
-projects in build.vc14 for the non GPU build:
+projects in build.vc15 for the non GPU build:
 
     ecm           - the ECM application 
     ecmlib        - the ECM library
     tune          - a program for tuning 
-	bench_mulredc - for benchmarking mulredc 
-	multiecm      - work in progress (not working)
+    bench_mulredc - for benchmarking mulredc 
+    multiecm      - work in progress (not working)
 
 The GPU build is opened by loading the file ecm.sln (from  the build.vc14
 directory) into Visual Studio. This provides two build projects in 
-build.vc14:
+build.vc15:
 
     ecm_gpu     - the ECM application 
     ecmlib_gpu  - the ECM library
 
 In all cases you have to choose either a win32 or x64 build and either a
-Release or Debug configuration.  
+Release or Debug configuration (however the win32 builds are no longer 
+actively supported and may not work). 
 
 The non GPU Build
 -----------------
@@ -134,7 +137,7 @@ When a version of ecm and ecmlib are built, the library and the application
 are put in the directory matching the configuration that has been built:
 
     GMP-ECM
-      build.vc14    -- ECM build files 
+      build.vc15    -- ECM build files 
       lib           -- ECM static library files
       bin           -- ECM executable files
       
@@ -170,4 +173,4 @@ x64/release-amd (non GPU) version by default but can be edited to test other
 builds.  It cannot run some tests as a result of the diifficulty in the
 conversion of the Unix shell scripts for the tests for use on Windows. 
 
-    Brian Gladman, September 2015
+    Brian Gladman, November 2017
