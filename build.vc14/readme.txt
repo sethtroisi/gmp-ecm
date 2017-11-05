@@ -10,7 +10,7 @@ install the YASM assembler that is available at:
 THe version you need is vsyasm, which should be put it in the same
 directory as your Visual C++ compiler, which is typically:
 
-C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin
+  C:\Program Files\yasm
 
 The Multi-Precision Library - GMP and MPIR
 ==========================================
@@ -70,8 +70,8 @@ projects in build.vc14 for the non GPU build:
     ecm           - the ECM application 
     ecmlib        - the ECM library
     tune          - a program for tuning 
-	bench_mulredc - for benchmarking mulredc 
-	multiecm      - work in progress (not working)
+    bench_mulredc - for benchmarking mulredc 
+    multiecm      - work in progress (not working)
 
 The GPU build is opened by loading the file ecm.sln (from  the build.vc14
 directory) into Visual Studio. This provides two build projects in 
@@ -170,4 +170,4 @@ x64/release-amd (non GPU) version by default but can be edited to test other
 builds.  It cannot run some tests as a result of the diifficulty in the
 conversion of the Unix shell scripts for the tests for use on Windows. 
 
-    Brian Gladman, September 2015
+    Brian Gladman, November 2017

@@ -167,14 +167,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <YASM Include="..\assembler\mulredc.asm">
-      <Filter>Source Files\Assembler</Filter>
-    </YASM>
-    <YASM Include="..\assembler\redc.asm">
-      <Filter>Source Files\Assembler</Filter>
-    </YASM>
-  </ItemGroup>
-  <ItemGroup>
     <Filter Include="Header Files">
       <UniqueIdentifier>{dfe792df-b4ff-4147-be95-190117baae33}</UniqueIdentifier>
     </Filter>
@@ -189,5 +181,13 @@
     <CudaCompile Include="..\..\cudakernel.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <YASM Include="..\assembler\mulredc.asm">
+      <Filter>Source Files\Assembler</Filter>
+    </YASM>
+    <YASM Include="..\assembler\redc.asm">
+      <Filter>Source Files\Assembler</Filter>
+    </YASM>
   </ItemGroup>
 </Project>
