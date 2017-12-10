@@ -24,7 +24,9 @@
 #define VOL volatile 
 //#define VOL
 
+#ifndef ECM_GPU_CURVES_BY_BLOCK
 #define ECM_GPU_CURVES_BY_BLOCK 32
+#endif
 
 #define ECM_GPU_MAX_BITS ECM_GPU_SIZE_DIGIT * ECM_GPU_NB_DIGITS
 typedef digit_t VOL biguint_t[ECM_GPU_NB_DIGITS];
