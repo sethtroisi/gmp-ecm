@@ -165,7 +165,7 @@ __device__ void Cuda_Square_mod
 }
 
 /* 
-  Compute silmutaneously:
+  Compute simultaneously:
   (xarg : zarg ) <- [2](xarg : zarg) 
   (xarg2 : zarg2 ) <- (xarg : zarg) + (xarg2 : zarg2) 
 */
