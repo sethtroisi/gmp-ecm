@@ -21,7 +21,7 @@
 # http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 
-ECM="${1:-./ecm} -gpu -gpucurves 1"
+ECM="${1:-./ecm} -gpu -gpucurves 32"
 ECMnoGPU="${1-./ecm}"
 
 GMPECM_DATADIR=${GMPECM_DATADIR:-.}
@@ -183,6 +183,8 @@ C=$?
 checkcode $C 14
 
 /bin/rm test_dummy2.save test.ecm.save
+
+echo \" $ECM \"
 
 # find multiple factors in Step 1
 echo "(2^718+1)/5" | $ECM -sigma 3:2000 50 60
