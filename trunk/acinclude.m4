@@ -556,15 +556,19 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
             AC_MSG_RESULT([no])
           ])
       ] )
+
+    # CUDA 9 dropped support for compute capability 2.x cards.
+    MIN_CC=`echo $GPU_ARCH | sed 's/--generate-code arch=compute_// ; s/,code.*//'`
+
     # Use JIT compilation of GPU code for forward compatibility
-    GPU_ARCH="--generate-code arch=compute_20,code=compute_20 $GPU_ARCH"
+    GPU_ARCH="--generate-code arch=compute_${MIN_CC},code=compute_${MIN_CC} $GPU_ARCH"
 
     dnl check that nvcc know ptx instruction madc
     echo "__global__ void test (int *a, int b) { 
           asm(\"mad.lo.cc.u32 %0, %0, %1, %1;\": 
           \"+r\"(*a) : \"r\"(b));} " > conftest.cu
     AC_MSG_CHECKING([if nvcc know ptx instruction madc])
-    $NVCC -c conftest.cu -o conftest.o $NVCCFLAGS --generate-code arch=compute_20,code=compute_20 > /dev/null 2>&1
+    $NVCC -c conftest.cu -o conftest.o $NVCCFLAGS --generate-code arch=compute_${MIN_CC},code=compute_${MIN_CC} > /dev/null 2>&1
     AS_IF([test "$?" -eq "0"], 
       [
         AC_MSG_RESULT([yes])
@@ -573,12 +577,18 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
         AC_MSG_ERROR([nvcc does not recognize ptx instruction madc, you should upgrade it])
       ])
 
+    if test "$MIN_CC" -eq "20" ; then
+       EGCBB="-DECM_GPU_CURVES_BY_BLOCK=16"
+    else
+       EGCBB="-DECM_GPU_CURVES_BY_BLOCK=32"
+    fi
+
     LIBS="$LIBS_BACKUP"
     LDFLAGS="$LDFLAGS_BACKUP"
     
-    NVCCFLAGS="$NVCCFLAGS -DWITH_GPU $GPU_ARCH"
-    CFLAGS="$CFLAGS -DWITH_GPU"
-    CPPFLAGS="$CPPFLAGS -DWITH_GPU"
+    NVCCFLAGS="$NVCCFLAGS -DWITH_GPU $EGCBB $GPU_ARCH"
+    CFLAGS="$CFLAGS -DWITH_GPU $EGCBB"
+    CPPFLAGS="$CPPFLAGS -DWITH_GPU $EGCBB"
 
     NVCCFLAGS="$NVCCFLAGS --ptxas-options=-v"
     NVCCFLAGS="$NVCCFLAGS --compiler-options -fno-strict-aliasing"

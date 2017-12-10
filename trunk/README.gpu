@@ -101,10 +101,6 @@ from the GMP-ECM team will be very limited.
 
 4. Known issues
 
-On some configurations (GTX 570 with compute capability 2.0 for example)
-one gets the Cuda error "too many resources requested for launch". This
-can be solved by decreasing ECM_GPU_CURVES_BY_BLOCK from 32 to 16 in ecm-gpu.h.
-
 ##############################################################################
 
 Please report to mail@cyrilbouvier.fr any problems, bugs, ...
