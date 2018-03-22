@@ -1,8 +1,8 @@
-CC32 = mingw32-gcc
-CC64 = gcc -I../../../mpir-2.7.0/lib/x64/Release
+CC32 = gcc -m32
+CC64 = gcc -m64
 
-CFLAGS = -O3 -march=native -fomit-frame-pointer -I. -Intt
-# CFLAGS = -g -march=native -I. -Intt
+CFLAGS = -O3 -fomit-frame-pointer -I. -Intt
+#CFLAGS = -g -I. -Intt
 
 HDR = \
 	basicdefs.h \
@@ -93,20 +93,11 @@ OBJ_W64 = $(LIB_SRC:.c=.o_w64) \
 w64: $(OBJ_W64)
 	$(CC64) $(CFLAGS) $(OBJ_W64) test.c -o test64 -lgmp -lm
 
-w64a: $(OBJ_W64)
-	$(CC64) $(CFLAGS) $(OBJ_W64) test.c -o a64.exe \
-		../../../mpir-2.7.0/lib/x64/Release/mpir.lib \
-		../../../mpir-2.7.0/lib/x64/Release/chkstk.obj  \
-		../../../mpir-2.7.0/lib/x64/Release/runtmchk.lib -lm
-
 w32: $(OBJ_W32)
 	$(CC32) $(CFLAGS) $(OBJ_W32) test.c -o test32 -lgmp -lm
 
-w32a: $(OBJ_W32)
-	$(CC32) $(CFLAGS) $(OBJ_W32) test.c -o a32.exe -lgmp -lm
-
 clean:
-	rm -rf $(OBJ_W32) $(OBJ_W64) a32.exe a64.exe ./test
+	rm -rf $(OBJ_W32) $(OBJ_W64) test32.exe test64.exe ./test
 
 %.o_w32: %.c $(HDR)
 	$(CC32) $(CFLAGS) -c -o $@ $<
@@ -115,46 +106,46 @@ clean:
 	$(CC32) $(CFLAGS) -DHAVE_SSE2 -DHAVE_SSE42 -DHAVE_AVX2 -DSP_NUMB_BITS=30 -c -o $@ $<
 
 %.o_sp30w32sse2: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_SSE2 -DSP_NUMB_BITS=30 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=core2 -DHAVE_SSE2 -DSP_NUMB_BITS=30 -c -o $@ $<
 
 %.o_sp30w32sse42: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=30 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=nehalem -DHAVE_SSE42 -DSP_NUMB_BITS=30 -c -o $@ $<
 
 %.o_sp30w32avx2: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_AVX2 -DSP_NUMB_BITS=30 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=haswell -DHAVE_AVX2 -DSP_NUMB_BITS=30 -c -o $@ $<
 
 %.o_sp31w32: %.c $(HDR)
 	$(CC32) $(CFLAGS) -DHAVE_SSE2 -DHAVE_SSE42 -DHAVE_AVX2 -DSP_NUMB_BITS=31 -c -o $@ $<
 
 %.o_sp31w32sse2: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_SSE2 -DSP_NUMB_BITS=31 -c -o $@ $<
-
-%.o_sp31w32avx2: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_AVX2 -DSP_NUMB_BITS=31 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=core2 -DHAVE_SSE2 -DSP_NUMB_BITS=31 -c -o $@ $<
 
 %.o_sp31w32sse42: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=31 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=nehalem -DHAVE_SSE42 -DSP_NUMB_BITS=31 -c -o $@ $<
+
+%.o_sp31w32avx2: %.c $(HDR)
+	$(CC32) $(CFLAGS) -march=haswell -DHAVE_AVX2 -DSP_NUMB_BITS=31 -c -o $@ $<
 
 %.o_sp62w32: %.c $(HDR)
 	$(CC32) $(CFLAGS) -DHAVE_SSE2 -DHAVE_SSE42 -DHAVE_AVX2 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp62w32sse2: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_SSE2 -DSP_NUMB_BITS=62 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=core2 -DHAVE_SSE2 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp62w32sse42: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=nehalem -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp62w32avx2: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_AVX2 -DSP_NUMB_BITS=62 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=haswell -DHAVE_AVX2 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp50w32: %.c $(HDR)
-	$(CC32) $(CFLAGS) -mno-fma -DHAVE_AVX -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC32) $(CFLAGS) -DHAVE_AVX -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
 
 %.o_sp50w32avx: %.c $(HDR)
-	$(CC32) $(CFLAGS) -mno-fma -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=ivybridge -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
 
 %.o_sp50w32fma: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC32) $(CFLAGS) -march=haswell -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
 
 
 %.o_w64: %.c $(HDR)
@@ -164,44 +155,44 @@ clean:
 	$(CC64) $(CFLAGS) -DHAVE_SSE2 -DHAVE_SSE42 -DHAVE_AVX2 -DSP_NUMB_BITS=30 -c -o $@ $<
 
 %.o_sp30w64sse2: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_SSE2 -DSP_NUMB_BITS=30 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=core2 -DHAVE_SSE2 -DSP_NUMB_BITS=30 -c -o $@ $<
 
 %.o_sp30w64sse42: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=30 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=nehalem -DHAVE_SSE42 -DSP_NUMB_BITS=30 -c -o $@ $<
 
 %.o_sp30w64avx2: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_AVX2 -DSP_NUMB_BITS=30 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=haswell -DHAVE_AVX2 -DSP_NUMB_BITS=30 -c -o $@ $<
 
 %.o_sp31w64: %.c $(HDR)
 	$(CC64) $(CFLAGS) -DHAVE_SSE2 -DHAVE_SSE42 -DHAVE_AVX2 -DSP_NUMB_BITS=31 -c -o $@ $<
 
 %.o_sp31w64sse2: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_SSE2 -DSP_NUMB_BITS=31 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=core2 -DHAVE_SSE2 -DSP_NUMB_BITS=31 -c -o $@ $<
 
 %.o_sp31w64sse42: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=31 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=nehalem -DHAVE_SSE42 -DSP_NUMB_BITS=31 -c -o $@ $<
 
 %.o_sp31w64avx2: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_AVX2 -DSP_NUMB_BITS=31 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=haswell -DHAVE_AVX2 -DSP_NUMB_BITS=31 -c -o $@ $<
 
 %.o_sp62w64: %.c $(HDR)
 	$(CC64) $(CFLAGS) -DHAVE_SSE2 -DHAVE_SSE42 -DHAVE_AVX2 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp62w64sse2: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_SSE2 -DSP_NUMB_BITS=62 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=core2 -DHAVE_SSE2 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp62w64sse42: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=nehalem -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp62w64avx2: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_AVX2 -DSP_NUMB_BITS=62 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=haswell -DHAVE_AVX2 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp50w64: %.c $(HDR)
-	$(CC64) $(CFLAGS) -mno-fma -DHAVE_AVX -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC64) $(CFLAGS) -DHAVE_AVX -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
 
 %.o_sp50w64avx: %.c $(HDR)
-	$(CC64) $(CFLAGS) -mno-fma -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=ivybridge -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
 
 %.o_sp50w64fma: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC64) $(CFLAGS) -march=haswell -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
 

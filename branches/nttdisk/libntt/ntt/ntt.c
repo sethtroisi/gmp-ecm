@@ -133,7 +133,7 @@ X(nttdata_init_generic)(const nttconfig_t *c,
             spv_t out, sp_t p, sp_t d, 
             sp_t primroot, sp_t order, sp_t perm)
 {
-  /* compute the NTT constants; works for any squarefree NTT size */
+  /* compute the NTT constants; works for any NTT size */
 
   spv_size_t n = c->size;
   spv_size_t m = c->num_ntt_const;

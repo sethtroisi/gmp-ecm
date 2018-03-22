@@ -7,29 +7,11 @@ static const uint8_t ntt40_fixed_const[NC] = {1, 0, 0, 0, 0, 0,
 					1, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0,
 					1};
-
-extern void X(ntt8_init)(spv_t out, sp_t p, sp_t d, 
-			sp_t primroot, sp_t order, sp_t perm);
-
-extern void X(ntt5_init)(spv_t out, sp_t p, sp_t d, 
-			sp_t primroot, sp_t order, sp_t perm);
-
 void
 X(ntt40_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
-  uint32_t i, j;
-  uint32_t num8 = 8;
-  uint32_t num5 = 6;
-  spv_t root8 = (spv_t)alloca(num8 * sizeof(sp_t));
-  spv_t root5 = (spv_t)alloca(num5 * sizeof(sp_t));
-
-  X(ntt8_init)(root8, p, d, primroot, order, 1);
-  X(ntt5_init)(root5, p, d, primroot, order, 1);
-
-  for (i = 0; i < num8; i++)
-    for (j = 0; j < num5; j++)
-      out[num5 * i + j] = sp_mul(root8[i], root5[j], p, d);
+  X(nttdata_init_generic)(&X(ntt40_config), out, p, d, primroot, order, perm);
 }
 
 static void 

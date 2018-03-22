@@ -8,52 +8,7 @@ void
 X(ntt16_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
-  uint32_t i;
-  sp_t w[16];
-  sp_t inv2 = sp_inv(2, p, d);
-  sp_t inv4 = sp_sqr(inv2, p, d);
-  sp_t t0, t1, t2, t3, t4, t5;
-  sp_t p0, p1, p2, p3;
-
-  w[1] = sp_pow(primroot, order / 16, p, d);
-  for (i = 2; i < 16; i++)
-    w[i] = sp_mul(w[i-1], w[1], p, d);
-
-  t3 = sp_sub(w[1], w[9], p);
-  t2 = sp_sub(w[15], w[7], p);
-  t1 = sp_sub(w[5], w[13], p);
-  t0 = sp_sub(w[11], w[3], p);
-
-  p0 = sp_add(t0, t1, p);
-  p1 = sp_sub(t0, t1, p);
-  p2 = sp_add(t2, t3, p);
-  p3 = sp_sub(t2, t3, p);
-
-  t0 = sp_sub(p0, p2, p);
-  t1 = sp_sub(p1, p3, p);
-  t2 = sp_neg(sp_add(p0, p2, p), p);
-  t3 = sp_neg(sp_add(p1, p3, p), p);
-  t4 = p2;
-  t5 = p3;
-
-  out[0] = 1;
-  out[1] = 1;
-  out[2] = 1;
-  out[3] = w[4];
-  out[4] = 1;
-  out[5] = w[4];
-  out[6] = sp_mul(inv2, sp_sub(w[2], w[6], p), p, d);
-  out[7] = sp_mul(inv2, sp_add(w[2], w[6], p), p, d);
-  out[8] = 1;
-  out[9] = w[4];
-  out[10] = out[6];
-  out[11] = out[7];
-  out[12] = sp_mul(inv4, t0, p, d);
-  out[13] = sp_mul(inv4, t1, p, d);
-  out[14] = sp_mul(inv4, t2, p, d);
-  out[15] = sp_mul(inv4, t3, p, d);
-  out[16] = sp_mul(inv4, t4, p, d);
-  out[17] = sp_mul(inv4, t5, p, d);
+  X(nttdata_init_generic)(&X(ntt16_config), out, p, d, primroot, order, perm);
 }
 
 static void 

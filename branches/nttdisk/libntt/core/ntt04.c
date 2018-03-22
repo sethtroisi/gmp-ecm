@@ -8,10 +8,7 @@ void
 X(ntt4_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
-  out[0] = 1;
-  out[1] = 1;
-  out[2] = 1;
-  out[3] = sp_pow(primroot, order / 4, p, d);
+  X(nttdata_init_generic)(&X(ntt4_config), out, p, d, primroot, order, perm);
 }
 
 static void 

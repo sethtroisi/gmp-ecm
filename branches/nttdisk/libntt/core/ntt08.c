@@ -8,19 +8,7 @@ void
 X(ntt8_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
-  sp_t w1 = sp_pow(primroot, order / 8, p, d);
-  sp_t w2 = sp_sqr(w1, p, d);
-  sp_t w3 = sp_mul(w2, w1, p, d);
-  sp_t inv2 = sp_inv(2, p, d);
-
-  out[0] = 1;
-  out[1] = 1;
-  out[2] = 1;
-  out[3] = w2;
-  out[4] = 1;
-  out[5] = w2;
-  out[6] = sp_mul(inv2, sp_sub(w1, w3, p), p, d);
-  out[7] = sp_mul(inv2, sp_add(w1, w3, p), p, d);
+  X(nttdata_init_generic)(&X(ntt8_config), out, p, d, primroot, order, perm);
 }
 
 static void 
