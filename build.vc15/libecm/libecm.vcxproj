@@ -22,7 +22,7 @@
     <ProjectGuid>{CD555681-D65B-4173-A29C-B8BF06A4871B}</ProjectGuid>
     <RootNamespace>libecm</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -95,6 +95,9 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
+    <YASM>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
@@ -118,6 +121,7 @@
     <Lib />
     <YASM>
       <Defines>_WIN64</Defines>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -138,6 +142,9 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
+    <YASM>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
@@ -163,6 +170,7 @@
     <Lib />
     <YASM>
       <Defines>_WIN64</Defines>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
   </ItemDefinitionGroup>
   <ItemGroup>

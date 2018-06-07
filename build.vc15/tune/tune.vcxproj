@@ -14,7 +14,7 @@
     <ProjectGuid>{80E08750-5C6C-492E-BB1E-7200978AE125}</ProjectGuid>
     <RootNamespace>tune</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -78,6 +78,7 @@
     <YASM>
       <Defines>
       </Defines>
+      <ObjectFile>$(IntDir)%(FileName).obj</ObjectFile>
     </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -110,6 +111,7 @@
     </PostBuildEvent>
     <YASM>
       <Defines>_WIN64</Defines>
+      <ObjectFile>$(IntDir)%(FileName).obj</ObjectFile>
     </YASM>
   </ItemDefinitionGroup>
   <ItemGroup>
