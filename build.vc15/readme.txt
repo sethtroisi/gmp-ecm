@@ -115,8 +115,9 @@ The GPU Build
 -------------
 
 1. If you wish to build with a GPU capability you will need to 
-   install Nvidia Nsight for Visual Studio and the CUDA Toolkit
-   v8.0.  You then build the libecm_gpu and ecm_gpu projects
+   install Nvidia Nsight for Visual Studio version 5.4 and the
+   CUDA Toolkit v9.0.  You can then build the libecm_gpu and
+   ecm_gpu projects
    
 2. The choices above for the non GPU build aslo apply when
    building for a GPU based system. 
