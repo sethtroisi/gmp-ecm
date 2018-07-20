@@ -389,14 +389,14 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   if (mpz_cmp_ui (p, 0) == 0)
     pm1_random_seed (p, N, rng);
-  
+
   mpz_init_set (B2min, B2min_parm);
   mpz_init_set (B2, B2_parm);
-  
+
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
     mpz_set_d (B2, pow (B1 * PM1FS2_COST, PM1FS2_DEFAULT_B2_EXPONENT));
-  
+
   /* set B2min */
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
@@ -490,29 +490,33 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
       /* Now decide whether to take NTT or non-NTT. Since the non-NTT code
          uses more memory, we only use it when -no-ntt was given, or when
-         we can't find good parameters for the NTT code. */
-      if (use_ntt == 0 || P_ntt == ECM_ERROR)
+         we can't find good parameters for the NTT code.
+         Warning: we only do that when B2 >= B2min. */
+      if (mpz_cmp (B2, B2min) >= 0)
         {
-          better_params = &params_nontt;
-          mpz_set (B2min, effB2min_nontt);
-          mpz_set (B2, effB2_nontt);
-          use_ntt = 0;
-        }
-      else
-        {
-          better_params = &params_ntt;
-          mpz_set (B2min, effB2min_ntt);
-          mpz_set (B2, effB2_ntt);
-          use_ntt = 1;
-        }
+          if (use_ntt == 0 || P_ntt == ECM_ERROR)
+            {
+              better_params = &params_nontt;
+              mpz_set (B2min, effB2min_nontt);
+              mpz_set (B2, effB2_nontt);
+              use_ntt = 0;
+            }
+          else
+            {
+              better_params = &params_ntt;
+              mpz_set (B2min, effB2min_ntt);
+              mpz_set (B2, effB2_ntt);
+              use_ntt = 1;
+            }
 
-      params.P = better_params->P;
-      params.s_1 = better_params->s_1;
-      params.s_2 = better_params->s_2;
-      params.l = better_params->l;
-      mpz_set (params.m_1, better_params->m_1);
-      params.file_stem = TreeFilename;
-      params.file_stem = TreeFilename;
+          params.P = better_params->P;
+          params.s_1 = better_params->s_1;
+          params.s_2 = better_params->s_2;
+          params.l = better_params->l;
+          mpz_set (params.m_1, better_params->m_1);
+          params.file_stem = TreeFilename;
+          params.file_stem = TreeFilename;
+        }
 
       mpz_clear (params_ntt.m_1);
       mpz_clear (params_nontt.m_1);
