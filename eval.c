@@ -48,6 +48,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
  *                                                               *
  * Adding (working on these at least:				 *
  *   Phi(x,n)							 *
+ *   U(p,q,n)							 *
+ *   primU(p,q,n)						 *
  *                                                               *
  * NOTE Lines ending in a \ character are "joined"               *
  * NOTE C++ // single line comments (rest of line is a comment)  *
@@ -454,17 +456,219 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
   return 1;
 }
 
+int eval_U (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
+{
+  unsigned long N;
+  mpz_t U1,U0,org_n,D,T; /* At each step U1 holds U(k), and U0 holds U(k-1) */
+  long k,l;
+  
+  if (ParamCnt == 0)
+    return 0;
+  if (mpz_cmp_si (n, 0) < 0)
+    return 0;
+  if (mpz_cmp_ui (n, 1) == 0)
+    {
+      mpz_set_ui (n, 1);
+      return 1;
+    }
+  if (mpz_cmp_ui (n, 0) == 0)
+    {
+      mpz_set_ui (n, 0);
+      return 1;
+    }
+  if (mpz_fits_ulong_p (n) == 0)
+    return 0;
+
+  N = mpz_get_ui (n);
+  if (mpz_cmp_ui (P, 0) == 0)
+    {
+      if( N%2==0 )
+        {
+          mpz_set_ui (n, 0);
+	}
+      else
+        {
+	  mpz_neg (Q, Q);
+	  mpz_pow_ui (n, Q, (N-1)/2);
+	  mpz_neg (Q, Q);
+	}
+      return 1;
+    }
+
+
+  mpz_init_set (org_n, n);
+  mpz_init_set_ui (U1, 1);
+  mpz_init_set_ui (U0, 0);
+  mpz_init (D);
+  mpz_init (T);
+  mpz_mul (D, P, P);
+  mpz_submul_ui (D, Q, 4);
+  k=1;
+
+  for(l=mpz_sizeinbase(org_n,2)-2;l>=0;l--)
+    {
+       mpz_mul (U0, U0, U0);
+       mpz_mul (U1, U1, U1);
+       mpz_mul (U0, U0, Q);
+       mpz_sub (U0, U1, U0); // U(2k-1)=U(k)^2-QU(k-1)^2
+       mpz_pow_ui (T, Q, k);
+       mpz_mul (U1, U1, D);
+       mpz_addmul_ui (U1, T, 2);
+       mpz_addmul (U1, Q, U0); // U(2k+1)=DU(k)^2+2Q^k+QU(2k-1)
+       if (mpz_tstbit (org_n, l) )
+         {
+	    k=2*k+1;
+	    mpz_mul (U0,U0,Q); // U0 is 2k, U1 is 2k+1
+	    mpz_add (U0,U1,U0);
+	    mpz_divexact (U0,U0,P);
+	 }
+       else
+         {
+ 	    k=2*k;
+	    mpz_addmul (U1,U0,Q); // U0 is 2k-1, U1 is 2k
+	    mpz_divexact (U1,U1,P);
+         }
+	 /* gmp_printf("%d %Zd %Zd\n",k,U0,U1); */
+    }
+  mpz_set(n, U1);
+
+  mpz_clear(U0);
+  mpz_clear(U1);
+  mpz_clear(org_n);
+  mpz_clear(D);
+  mpz_clear(T);
+
+  return 1;
+}
+
+int eval_primU (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
+{
+  int factors[200];
+  unsigned dwFactors=0, dw;
+  unsigned long N;
+  unsigned long p;
+  mpz_t D, T;
+  
+  if (ParamCnt == 0)
+    return 0;
+
+  if (mpz_cmp_ui (n, 0) <= 0)
+    return 0;
+  if (mpz_cmp_ui (n, 1) == 0)
+    {
+	mpz_set_ui (n, 1);
+      return 1;
+    }
+
+  /* Ignore the special cases where P^2=0,Q or 4Q*/
+  if (mpz_cmp_ui (P, 0) == 0)
+    {
+      return 0;
+    }
+  mpz_init(D);
+  mpz_mul(D,P,P);
+  if (mpz_cmp (D, Q) == 0)
+    {
+      return 0;
+    }
+  mpz_submul_ui(D, Q, 4);
+  if (mpz_cmp_ui (D, 0) == 0)
+    {
+      return 0;
+    }  
+
+
+  if (mpz_fits_ulong_p (n) == 0)
+    return 0;
+
+  N = mpz_get_ui (n);
+
+   /* Obtain the factors of N */
+  for (p = 2; p <= N; p++)
+    {
+      if (N % p == 0)
+	{
+	  /* Add the factor one time */
+	  factors[dwFactors++] = p;
+	  /* but be sure to totally remove it */
+	  do { N /= p; } while (N % p == 0);
+        }
+     }
+  
+  
+  N = mpz_get_ui (n);
+
+  mpz_set_ui (n, 1);
+  mpz_set_ui (D, 1);
+  mpz_init (T);
+	      
+  for(dw=0;(dw<(1U<<dwFactors)); dw++)
+    {
+      /* for all Mobius terms */
+      int iPower=N;
+      int iMobius=0;
+      unsigned dwIndex=0;
+      unsigned dwMask=1;
+		  
+      while(dwIndex < dwFactors)
+	{
+	  if(dw&dwMask)
+	    {
+	      /* printf ("iMobius = %d iPower = %d, dwIndex = %d ", iMobius, iPower, dwIndex); */
+	      iMobius++;
+	      iPower/=factors[dwIndex];
+	      /* printf ("Then iPower = %d\n", iPower);  */
+	    }
+	  dwMask<<=1;
+	  ++dwIndex;
+	}
+ /*     
+      gmp_fprintf (stderr, "Taking U(%Zd,%Zd,%d)\n", P,Q,iPower);
+ */     
+      mpz_set_ui(T,iPower);
+      eval_U(P, Q, T, 1);
+    
+      if(iMobius&1)
+      {
+/*	
+	fprintf (stderr, "Muling D=D*T  ");
+	mpz_out_str(stderr, 10, D);
+	fprintf (stderr, "*");
+	mpz_out_str(stderr, 10, T);
+	fprintf (stderr, "\n");
+*/	
+	mpz_mul(D, D, T);
+      }
+      else
+      {
+/*	
+	fprintf (stderr, "Muling n=n*T  ");
+	mpz_out_str(stderr, 10, n);
+	fprintf (stderr, "*");
+	mpz_out_str(stderr, 10, T);
+	fprintf (stderr, "\n");
+*/	
+	mpz_mul(n, n, T); 
+      }
+  }
+  mpz_divexact(n, n, D);
+  mpz_clear(T);
+  mpz_clear(D);
+
+  return 1;
+}
+
 /* A simple partial-recursive decent parser */
 int eval_2 (int bInFuncParams)
 {
-  mpz_t n_stack[4];
+  mpz_t n_stack[5];
   mpz_t n;
   int i;
   int num_base;
-  char op_stack[4];
+  char op_stack[5];
   char op;
   char negate;
-  for (i=0;i<4;i++)
+  for (i=0;i<5;i++)
     {
       op_stack[i]=0;
       mpz_init(n_stack[i]); 
@@ -522,8 +726,80 @@ int eval_2 (int bInFuncParams)
 		    }
 		  goto MONADIC_SUFFIX_LOOP;
 		}
-	      else
+	      else if (!strncasecmp (&expr_str[i], "U(", 2))
 		{
+		  /* Process the phi(B,N) function */
+		  expr_str+=2;
+		  /* eval the first parameter.  NOTE we pass a 1 since we ARE in parameter mode, 
+		     and this causes the ',' character to act as the end of expression */
+		  if (eval_2 (1) != 2)
+		    {
+		      fprintf (stderr, "Error, Function U() requires 3 parameters\n");
+                      exit (EXIT_FAILURE);
+		    }
+		  /* Save off the parameter */
+		  mpz_set(n_stack[3], t);
+		  /* eval the second parameter.  NOTE we pass a 1 since we ARE in parameter mode, 
+		     and this causes the ',' character to act as the end of expression */
+		  if (eval_2 (1) != 2)
+		    {
+		      fprintf (stderr, "Error, Function U() requires 3 parameters\n");
+                      exit (EXIT_FAILURE);
+		    }
+		  /* Save off the parameter */
+		  mpz_set(n_stack[4], t);
+		  /* Now eval the last parameter NOTE we pass a 0 since we are NOT expecting a ','
+		     character to end the expression, but are expecting a ) character to end the function */
+		  if (eval_2 (0))
+		    {
+		      mpz_set(n, t);
+		      if (eval_U (n_stack[3], n_stack[4], n, 1) == 0)
+			{
+                          fprintf (stderr, "\nParsing Error -  Invalid "
+                                   "parameter passed to the U function\n");
+                          exit (EXIT_FAILURE);
+			}
+		    }
+		  goto MONADIC_SUFFIX_LOOP;
+		}
+	      else if (!strncasecmp (&expr_str[i], "primU(", 6))
+		{
+		  /* Process the phi(B,N) function */
+		  expr_str+=6;
+		  /* eval the first parameter.  NOTE we pass a 1 since we ARE in parameter mode, 
+		     and this causes the ',' character to act as the end of expression */
+		  if (eval_2 (1) != 2)
+		    {
+		      fprintf (stderr, "Error, Function primU() requires 3 parameters\n");
+                      exit (EXIT_FAILURE);
+		    }
+		  /* Save off the parameter */
+		  mpz_set(n_stack[3], t);
+		  /* eval the second parameter.  NOTE we pass a 1 since we ARE in parameter mode, 
+		     and this causes the ',' character to act as the end of expression */
+		  if (eval_2 (1) != 2)
+		    {
+		      fprintf (stderr, "Error, Function primU() requires 3 parameters\n");
+                      exit (EXIT_FAILURE);
+		    }
+		  /* Save off the parameter */
+		  mpz_set(n_stack[4], t);
+		  /* Now eval the last parameter NOTE we pass a 0 since we are NOT expecting a ','
+		     character to end the expression, but are expecting a ) character to end the function */
+		  if (eval_2 (0))
+		    {
+		      mpz_set(n, t);
+		      if (eval_primU (n_stack[3], n_stack[4], n, 1) == 0)
+			{
+                          fprintf (stderr, "\nParsing Error -  Invalid "
+                                   "parameter passed to the U function\n");
+                          exit (EXIT_FAILURE);
+			}
+		    }
+		  goto MONADIC_SUFFIX_LOOP;
+		}              
+              else
+		      {
 		  fprintf (stderr, "\nError - invalid number [%c]\n", expr_str[i]);
                   exit (EXIT_FAILURE);
 		}
@@ -562,7 +838,7 @@ MONADIC_SUFFIX_LOOP:
 	  eval_sum (n_stack[0],n,op_stack[0]);
 	  mpz_set(t, n);
 	  mpz_clear(n);
-	  for (i=0;i<4;i++) 
+	  for (i=0;i<5;i++) 
 	    mpz_clear(n_stack[i]);
 	  /* Hurray! a valid expression (or sub-expression) was parsed! */
 	  return ','==op?2:1;
