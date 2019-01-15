@@ -127,7 +127,7 @@ DISTCLEANFILES = config.m4
 
 if WANT_GPU
 .cu.lo: cudakernel.h
-		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(NVCCFLAGS) $(CPPFLAGS) -o $@ $^ -static
+		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(NVCCFLAGS) --compiler-options -fPIC $(CPPFLAGS) -o $@ $^ -static
 endif
 
 ecm-params:	bench_mulredc$(EXEEXT) tune$(EXEEXT)
