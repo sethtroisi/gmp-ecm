@@ -536,7 +536,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
     dnl Check which GPU architecture nvcc know
     NVCCTEST="$NVCC -c conftest.cu -o conftest.o $NVCCFLAGS --dryrun"
     GPU_ARCH=""
-    m4_foreach_w([compute_compatibility], [20 21 30 32 35 37 50 52 53],
+    m4_foreach_w([compute_compatibility], [20 21 30 32 35 37 50 52 53 60 61 62 70 72 75],
       [
         testcc=compute_compatibility
         AC_MSG_CHECKING([that nvcc know compute capability $testcc])
