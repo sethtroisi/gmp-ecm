@@ -63,7 +63,9 @@ static char *expr_str;
 static void eval_power (mpz_t prior_n, mpz_t n,char op);
 static void eval_product (mpz_t prior_n, mpz_t n,char op);
 static void eval_sum (mpz_t prior_n, mpz_t n,char op);
-static int  eval_Phi (mpz_t prior_n, mpz_t n, int ParamCnt);
+static int  eval_Phi (mpz_t *params, mpz_t n);
+static int  eval_U (mpz_t *params, mpz_t n);
+static int  eval_primU (mpz_t *params, mpz_t n);
 static int  eval_2 (int bInFuncParams);
 
 #if 0 /* strncasecmp is a required function in configure.in */
@@ -333,7 +335,7 @@ void eval_sum (mpz_t prior_n, mpz_t n,char op)
     mpz_sub(n,prior_n,n);
 }
 
-int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
+int eval_Phi (mpz_t* params, mpz_t n)
 {
   int factors[200];
   unsigned dwFactors=0, dw;
@@ -342,15 +344,12 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
   mpz_t D, T, org_n;
   prime_info_t prime_info;
   
-  if (ParamCnt == 0)
-    return 0;
-
   if (mpz_cmp_ui (n, 1) == 0)
     {
       /* return value is 1 if b is composite, or b if b is prime */
-      int isPrime = mpz_probab_prime_p (b, PROBAB_PRIME_TESTS);
+      int isPrime = mpz_probab_prime_p (params[0], PROBAB_PRIME_TESTS);
       if (isPrime)
-	mpz_set (n, b);
+	mpz_set (n, params[0]);
       else
 	mpz_set (n, mpOne);
       return 1;
@@ -360,10 +359,10 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
     return 0;
 
   /* OK parse the Phi out now */
-  if (mpz_cmp_ui (b, 0) <= 0)
+  if (mpz_cmp_ui (params[0], 0) <= 0)
     return 0;
 
-  if (mpz_cmp_ui (b, 1) == 0)
+  if (mpz_cmp_ui (params[0], 1) == 0)
     {
       if (mpz_cmp_ui (n, 1) != 0)
 	mpz_sub_ui (n, n, 1);
@@ -372,10 +371,10 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
 
   /* Ok, do the real h_primative work, since we are not one of the trivial case */
 
-  if (mpz_fits_ulong_p (b) == 0)
+  if (mpz_fits_ulong_p (params[0]) == 0)
     return 0;
 
-  B = mpz_get_ui (b);
+  B = mpz_get_ui (params[0]);
 
   /* Obtain the factors of B */
   prime_info_init (prime_info);
@@ -390,7 +389,7 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
         }
      }
   prime_info_clear (prime_info); /* free the prime tables */
-  B = mpz_get_si (b);
+  B = mpz_get_si (params[0]);
 
   mpz_init_set (org_n, n);
   mpz_set_ui (n, 1);
@@ -456,14 +455,13 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
   return 1;
 }
 
-int eval_U (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
+int eval_U (mpz_t *params, mpz_t n)
+/* params[0]=P, params[1]=Q */
 {
   unsigned long N;
   mpz_t U1,U0,org_n,D,T; /* At each step U1 holds U(k), and U0 holds U(k-1) */
   long k,l;
   
-  if (ParamCnt == 0)
-    return 0;
   if (mpz_cmp_si (n, 0) < 0)
     return 0;
   if (mpz_cmp_ui (n, 1) == 0)
@@ -480,7 +478,7 @@ int eval_U (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
     return 0;
 
   N = mpz_get_ui (n);
-  if (mpz_cmp_ui (P, 0) == 0)
+  if (mpz_cmp_ui (params[0], 0) == 0)
     {
       if( N%2==0 )
         {
@@ -488,9 +486,9 @@ int eval_U (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
 	}
       else
         {
-	  mpz_neg (Q, Q);
-	  mpz_pow_ui (n, Q, (N-1)/2);
-	  mpz_neg (Q, Q);
+	  mpz_neg (params[1], params[1]);
+	  mpz_pow_ui (n, params[1], (N-1)/2);
+	  mpz_neg (params[1], params[1]);
 	}
       return 1;
     }
@@ -501,32 +499,32 @@ int eval_U (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
   mpz_init_set_ui (U0, 0);
   mpz_init (D);
   mpz_init (T);
-  mpz_mul (D, P, P);
-  mpz_submul_ui (D, Q, 4);
+  mpz_mul (D, params[0], params[0]);
+  mpz_submul_ui (D, params[1], 4);
   k=1;
 
   for(l=mpz_sizeinbase(org_n,2)-2;l>=0;l--)
     {
        mpz_mul (U0, U0, U0);
        mpz_mul (U1, U1, U1);
-       mpz_mul (U0, U0, Q);
+       mpz_mul (U0, U0, params[1]);
        mpz_sub (U0, U1, U0); // U(2k-1)=U(k)^2-QU(k-1)^2
-       mpz_pow_ui (T, Q, k);
+       mpz_pow_ui (T, params[1], k);
        mpz_mul (U1, U1, D);
        mpz_addmul_ui (U1, T, 2);
-       mpz_addmul (U1, Q, U0); // U(2k+1)=DU(k)^2+2Q^k+QU(2k-1)
+       mpz_addmul (U1, params[1], U0); // U(2k+1)=DU(k)^2+2Q^k+QU(2k-1)
        if (mpz_tstbit (org_n, l) )
          {
 	    k=2*k+1;
-	    mpz_mul (U0,U0,Q); // U0 is 2k, U1 is 2k+1
+	    mpz_mul (U0,U0,params[1]); // U0 is 2k, U1 is 2k+1
 	    mpz_add (U0,U1,U0);
-	    mpz_divexact (U0,U0,P);
+	    mpz_divexact (U0,U0,params[0]);
 	 }
        else
          {
  	    k=2*k;
-	    mpz_addmul (U1,U0,Q); // U0 is 2k-1, U1 is 2k
-	    mpz_divexact (U1,U1,P);
+	    mpz_addmul (U1,U0,params[1]); // U0 is 2k-1, U1 is 2k
+	    mpz_divexact (U1,U1,params[0]);
          }
 	 /* gmp_printf("%d %Zd %Zd\n",k,U0,U1); */
     }
@@ -541,7 +539,7 @@ int eval_U (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
   return 1;
 }
 
-int eval_primU (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
+int eval_primU (mpz_t* params, mpz_t n)
 {
   int factors[200];
   unsigned dwFactors=0, dw;
@@ -549,9 +547,6 @@ int eval_primU (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
   unsigned long p;
   mpz_t D, T;
   
-  if (ParamCnt == 0)
-    return 0;
-
   if (mpz_cmp_ui (n, 0) <= 0)
     return 0;
   if (mpz_cmp_ui (n, 1) == 0)
@@ -561,17 +556,17 @@ int eval_primU (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
     }
 
   /* Ignore the special cases where P^2=0,Q or 4Q*/
-  if (mpz_cmp_ui (P, 0) == 0)
+  if (mpz_cmp_ui (params[0], 0) == 0)
     {
       return 0;
     }
   mpz_init(D);
-  mpz_mul(D,P,P);
-  if (mpz_cmp (D, Q) == 0)
+  mpz_mul(D, params[0], params[0]);
+  if (mpz_cmp (D, params[1]) == 0)
     {
       return 0;
     }
-  mpz_submul_ui(D, Q, 4);
+  mpz_submul_ui(D, params[1], 4);
   if (mpz_cmp_ui (D, 0) == 0)
     {
       return 0;
@@ -626,7 +621,7 @@ int eval_primU (mpz_t P, mpz_t Q, mpz_t n, int ParamCnt)
       gmp_fprintf (stderr, "Taking U(%Zd,%Zd,%d)\n", P,Q,iPower);
  */     
       mpz_set_ui(T,iPower);
-      eval_U(P, Q, T, 1);
+      eval_U(params, T);
     
       if(iMobius&1)
       {
@@ -663,15 +658,25 @@ int eval_2 (int bInFuncParams)
 {
   mpz_t n_stack[5];
   mpz_t n;
-  int i;
+  mpz_t param_stack[5];
+  int i,j;
   int num_base;
   char op_stack[5];
   char op;
   char negate;
+  const int num_of_funcs=3;
+  const char *func_names[]={"Phi","U","primU"};
+  const int func_num_params[]={2,3,3};
+  typedef int (*fptr)(mpz_t *,mpz_t);
+  const fptr func_ptrs[]={eval_Phi,eval_U,eval_primU};
+  char *paren_position;
+  char tentative_func_name[20];
+  int func_id;
   for (i=0;i<5;i++)
     {
       op_stack[i]=0;
       mpz_init(n_stack[i]); 
+      mpz_init(param_stack[i]); 
     }
   mpz_init(n);
   op = 0;
@@ -699,110 +704,51 @@ int eval_2 (int bInFuncParams)
 	  if (!i)         /* No digits found */
 	    {
 	      /* check for a valid "function" */
-	      if (!strncasecmp (&expr_str[i], "phi(", 4))
-		{
-		  /* Process the phi(B,N) function */
-		  expr_str+=4;
-		  /* eval the first parameter.  NOTE we pass a 1 since we ARE in parameter mode, 
-		     and this causes the ',' character to act as the end of expression */
-		  if (eval_2 (1) != 2)
-		    {
-		      fprintf (stderr, "Error, Function Phi() requires 2 parameters\n");
-                      exit (EXIT_FAILURE);
-		    }
-		  /* Save off the parameter */
-		  mpz_set(n_stack[3], t);
-		  /* Now eval the second parameter NOTE we pass a 0 since we are NOT expecting a ','
-		     character to end the expression, but are expecting a ) character to end the function */
-		  if (eval_2 (0))
-		    {
-		      mpz_set(n, t);
-		      if (eval_Phi (n_stack[3], n, 1) == 0)
-			{
-                          fprintf (stderr, "\nParsing Error -  Invalid "
-                                   "parameter passed to the Phi function\n");
-                          exit (EXIT_FAILURE);
-			}
-		    }
-		  goto MONADIC_SUFFIX_LOOP;
-		}
-	      else if (!strncasecmp (&expr_str[i], "U(", 2))
-		{
-		  /* Process the phi(B,N) function */
-		  expr_str+=2;
-		  /* eval the first parameter.  NOTE we pass a 1 since we ARE in parameter mode, 
-		     and this causes the ',' character to act as the end of expression */
-		  if (eval_2 (1) != 2)
-		    {
-		      fprintf (stderr, "Error, Function U() requires 3 parameters\n");
-                      exit (EXIT_FAILURE);
-		    }
-		  /* Save off the parameter */
-		  mpz_set(n_stack[3], t);
-		  /* eval the second parameter.  NOTE we pass a 1 since we ARE in parameter mode, 
-		     and this causes the ',' character to act as the end of expression */
-		  if (eval_2 (1) != 2)
-		    {
-		      fprintf (stderr, "Error, Function U() requires 3 parameters\n");
-                      exit (EXIT_FAILURE);
-		    }
-		  /* Save off the parameter */
-		  mpz_set(n_stack[4], t);
-		  /* Now eval the last parameter NOTE we pass a 0 since we are NOT expecting a ','
-		     character to end the expression, but are expecting a ) character to end the function */
-		  if (eval_2 (0))
-		    {
-		      mpz_set(n, t);
-		      if (eval_U (n_stack[3], n_stack[4], n, 1) == 0)
-			{
-                          fprintf (stderr, "\nParsing Error -  Invalid "
-                                   "parameter passed to the U function\n");
-                          exit (EXIT_FAILURE);
-			}
-		    }
-		  goto MONADIC_SUFFIX_LOOP;
-		}
-	      else if (!strncasecmp (&expr_str[i], "primU(", 6))
-		{
-		  /* Process the phi(B,N) function */
-		  expr_str+=6;
-		  /* eval the first parameter.  NOTE we pass a 1 since we ARE in parameter mode, 
-		     and this causes the ',' character to act as the end of expression */
-		  if (eval_2 (1) != 2)
-		    {
-		      fprintf (stderr, "Error, Function primU() requires 3 parameters\n");
-                      exit (EXIT_FAILURE);
-		    }
-		  /* Save off the parameter */
-		  mpz_set(n_stack[3], t);
-		  /* eval the second parameter.  NOTE we pass a 1 since we ARE in parameter mode, 
-		     and this causes the ',' character to act as the end of expression */
-		  if (eval_2 (1) != 2)
-		    {
-		      fprintf (stderr, "Error, Function primU() requires 3 parameters\n");
-                      exit (EXIT_FAILURE);
-		    }
-		  /* Save off the parameter */
-		  mpz_set(n_stack[4], t);
-		  /* Now eval the last parameter NOTE we pass a 0 since we are NOT expecting a ','
-		     character to end the expression, but are expecting a ) character to end the function */
-		  if (eval_2 (0))
-		    {
-		      mpz_set(n, t);
-		      if (eval_primU (n_stack[3], n_stack[4], n, 1) == 0)
-			{
-                          fprintf (stderr, "\nParsing Error -  Invalid "
-                                   "parameter passed to the U function\n");
-                          exit (EXIT_FAILURE);
-			}
-		    }
-		  goto MONADIC_SUFFIX_LOOP;
-		}              
-              else
-		      {
+	      paren_position=strchr(&expr_str[i], '(');
+	      if (NULL==paren_position)
+	        {
+		  /* No parentheses found */
 		  fprintf (stderr, "\nError - invalid number [%c]\n", expr_str[i]);
-                  exit (EXIT_FAILURE);
+		  exit (EXIT_FAILURE);
 		}
+	      strncpy(tentative_func_name,&expr_str[i],paren_position-&expr_str[i]);
+	      tentative_func_name[paren_position-&expr_str[i]]='\0';
+	      for (func_id=0;func_id<num_of_funcs;func_id++)
+	        {
+		  if (!strcasecmp (tentative_func_name, func_names[func_id]))
+		    break;
+		}
+	      if(func_id==num_of_funcs)	/* No matching function name found */
+	        {
+		  fprintf (stderr, "Error, Unknown function %s()\n", tentative_func_name);
+		  exit (EXIT_FAILURE);
+		}
+	      /* Now we can actually process existing functions */
+	      expr_str=paren_position+1;
+	      for(j=0;j<func_num_params[func_id]-1;j++)
+	        {
+		  /* eval the first parameters.  NOTE we pass a 1 since we ARE in parameter mode, 
+		     and this causes the ',' character to act as the end of expression */		
+		  if(eval_2 (1) != 2)
+		    {
+		      fprintf (stderr, "Error, Function %s() requires %d parameters\n", func_names[func_id], func_num_params[func_id]);
+                      exit (EXIT_FAILURE);
+		    }
+		  mpz_set(param_stack[j], t);
+		}
+	      /* Now eval the last parameter NOTE we pass a 0 since we are NOT expecting a ','
+		 character to end the expression, but are expecting a ) character to end the function */	
+	      if (eval_2 (0))
+		{
+		  mpz_set(n, t);
+		  if( (func_ptrs[func_id])(param_stack, n) == 0 )
+		    {
+		      fprintf (stderr, "\nParsing Error -  Invalid "
+                               "parameter passed to the %s function\n", func_names[func_id]);
+		      exit (EXIT_FAILURE);
+		    }
+		}
+	      goto MONADIC_SUFFIX_LOOP;
 	    }
 	  /* Now check for a hex number.  If so, handle it as such */
 	  num_base=10;  /* assume base 10 */
