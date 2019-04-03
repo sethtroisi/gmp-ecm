@@ -22,7 +22,8 @@ Table of contents of this file:
 GMP-ECM reads the numbers to be factored from stdin (one number on each
 line) and requires a numerical parameter, the stage 1 bound B1. A reasonable 
 stage 2 bound B2 for the given B1 is chosen by default, but can be overridden 
-by a second numerical parameter. By default, GMP-ECM uses the ECM factoring 
+by a second numerical parameter. (For a given B1 value, the "default" B2 might
+differ between ECM, P-1, and P+1.) By default, GMP-ECM uses the ECM factoring 
 algorithm.
 
 Example: To run one curve of ECM with B1=1000000 on each number in the file
