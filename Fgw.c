@@ -50,14 +50,6 @@ void __cxa_guard_release ()
   return;
 }
 
-static int 
-sgn (const int i)
-{
-  if (i == 0)
-    return 0;
-  return i > 0 ? 1 : -1;
-}
-
 /* With the following 2 functions, we try to find a representation of an
    input number in the form of z = k*b^n+c. If such a representation was
    found, set the the appropriate values and return 1. Otherwise, set b to
@@ -68,7 +60,6 @@ int
 kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c, mpz_t z)
 {
   int i = 0;
-  int j = 0;
   int exp = 1;
   int check_it_out = 0;
   int ret = 0;
@@ -83,7 +74,6 @@ kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c, mpz_t z)
   mpz_t base;
   mpz_t base_min;
   mpz_t base_max;
-  unsigned long test_k_ui = 0;
 
   /* this puts a bound on how large our C value can be */
   int max_diff = 8388607;
@@ -229,7 +219,7 @@ int
 kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
           char *z, mpz_t num)
 {
-  int i = 0;
+  unsigned long i = 0;
   int total = 0;
   char strk[11];
   char strb[11];
