@@ -59,7 +59,6 @@ void __cxa_guard_release ()
 int
 kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c, mpz_t z)
 {
-  int i = 0;
   int exp = 1;
   int check_it_out = 0;
   int ret = 0;
