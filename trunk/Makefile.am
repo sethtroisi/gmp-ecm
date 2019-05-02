@@ -101,6 +101,7 @@ if WITH_GWNUM
   # Use ecm_DEPENDENCIES += gwdata.ld instead? Is that possible?
   ecm_DEPENDENCIES = gwdata.ld
   ecm_LDFLAGS = $(AM_LDFLAGS) -Wl,gwdata.ld
+  LIBS += -ldl
   Fgwtest : Fgw.c gwdata.ld
 	$(CC) $(CFLAGS) $(CPPFLAGS) -g -DTESTDRIVE -Wl,gwdata.ld -o Fgwtest Fgw.c libecm.a $(LIBS)
 endif
