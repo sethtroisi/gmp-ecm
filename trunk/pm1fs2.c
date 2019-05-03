@@ -1849,7 +1849,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 
       if (c == 2UL)
 	{
-	  /* Check it's symmetric (we write c-1 instead of 2 to avoid a
+	  /* Check it's symmetric (we write c-1 instead of 1 to avoid a
            compiler warning with clang 2.9) */
 	  ASSERT_ALWAYS (set->elem[0] == -set->elem[c - 1]);
 	  V (Qt, Q, set->elem[0], modulus);
