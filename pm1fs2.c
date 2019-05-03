@@ -1864,7 +1864,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 	  ASSERT_ALWAYS (c % 2UL == 1UL);
 	  ASSERT_ALWAYS (set->elem[(c - 1UL) / 2UL] == 0UL);
 	  /* Generate the F(Q^{2k_i} * X)*F(Q^{-2k_i} * X) polynomials.
-	     Each is symmetric of degree 2*deg, so each has deg+1 coeffients
+	     Each is symmetric of degree 2*deg, so each has deg+1 coefficients
 	     in standard basis. */
 	  for (i = 0UL; i < (c - 1UL) / 2UL; i++)
 	    {
