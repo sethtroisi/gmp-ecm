@@ -762,6 +762,9 @@ mpmod_init (mpmod_t modulus, const mpz_t N, int repr)
 	  break;
 	}
       /* else go through */
+#if defined( __GNUC__ ) && __GNUC__ >= 7 && !defined(__ICC)
+      __attribute__ ((fallthrough));
+#endif
     case ECM_MOD_NOBASE2:
       if (mpz_size (N) < MPZMOD_THRESHOLD)
 	repr = ECM_MOD_MODMULN;
