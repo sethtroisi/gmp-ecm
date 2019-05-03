@@ -383,7 +383,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A),
       PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, 0);
 #endif
-  
+
   /* Test that not more was written to gw_x and gw_z than we had space for */
   ASSERT_ALWAYS (siz_x <= (unsigned long) ALLOC(gw_x));
   ASSERT_ALWAYS (siz_z <= (unsigned long) ALLOC(gw_z));
