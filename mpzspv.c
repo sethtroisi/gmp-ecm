@@ -259,7 +259,9 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
 }
 
 /* convert mpzvi to CRT representation, fast version, assumes
-   mpzspm->T has been precomputed (see mpzspm.c) */
+   mpzspm->T has been precomputed (see mpzspm.c).
+   Warning: this function should be thread-safe, since it might be called
+   simultaneously by several threads. */
 static void
 mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
                        mpzspm_t mpzspm)
@@ -267,36 +269,42 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
   const unsigned int sp_num = mpzspm->sp_num;
   unsigned int i, j, k, i0 = I0_THRESHOLD, I0;
   mpzv_t *T = mpzspm->T;
+  mpz_t *U;
   unsigned int d = mpzspm->d, ni;
 
   ASSERT (d > i0);
 
-  /* T[0] serves as vector of temporary mpz_t's, since it contains the small
-     primes, which are also in mpzspm->spm[j]->sp */
+  U = malloc (sp_num * sizeof (mpz_t));
+  for (j = 0; j < sp_num; j++)
+    mpz_init (U[j]);
+
   /* initially we split mpzvi in two */
   ni = 1 << (d - 1);
-  mpz_mod (T[0][0], mpzvi, T[d-1][0]);
-  mpz_mod (T[0][ni], mpzvi, T[d-1][1]);
+  mpz_mod (U[0], mpzvi, T[d-1][0]);
+  mpz_mod (U[ni], mpzvi, T[d-1][1]);
   for (i = d-1; i-- > i0;)
     { /* goes down from depth i+1 to i */
       ni = 1 << i;
       for (j = k = 0; j + ni < sp_num; j += 2*ni, k += 2)
         {
-          mpz_mod (T[0][j+ni], T[0][j], T[i][k+1]);
-          mpz_mod (T[0][j], T[0][j], T[i][k]);
+          mpz_mod (U[j+ni], U[j], T[i][k+1]);
+          mpz_mod (U[j], U[j], T[i][k]);
         }
-      /* for the last entry T[0][j] if j < sp_num, there is nothing to do */
+      /* for the last entry U[j] if j < sp_num, there is nothing to do */
     }
   /* last steps */
   I0 = 1 << i0;
   for (j = 0; j < sp_num; j += I0)
     {
       for (k = j; k < j + I0 && k < sp_num; k++)
-        x[k][offset] = mpn_mod_1 (PTR(T[0][j]), SIZ(T[0][j]),
+        x[k][offset] = mpn_mod_1 (PTR(U[j]), SIZ(U[j]),
                                   (mp_limb_t) mpzspm->spm[k]->sp);
     }
   /* The typecast to mp_limb_t assumes that mp_limb_t is at least
      as wide as sp_t */
+
+  for (j = 0; j < sp_num; j++)
+    mpz_clear (U[j]);
 }
 
 #if defined(TRACE_mpzspv_from_mpzv) || defined(TRACE_ntt_sqr_reciprocal)
