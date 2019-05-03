@@ -198,6 +198,7 @@ typedef struct
 
     /* product tree to speed up conversion from mpz to sp */
     mpzv_t *T;            /* product tree */
+    mpz_t **buf;          /* mpzspv_from_mpzv_fast buffer, one per thread */
     unsigned int d;       /* ceil(log(sp_num)/log(2)) */
   } __mpzspm_struct;
 
