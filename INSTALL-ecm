@@ -75,8 +75,10 @@ Instructions to install GMP-ECM:
    gwnum.h and related header files. The source file of the gwnum library
    is available at <http://www.mersenne.org/source.htm>.
 
-   Note: if you get an error "undefined unixDlError", you might want to add
-   -ldl in Makefile, line "LIBS = ... gwnum.a".
+   Note: Jonathan Crombie reported an error (Segmentation fault) with GWNUM
+   29.6 with some inputs. George Woltman says the error lies in the giants
+   half-GCD code. This will be fixed in a later GWNUM release. In the meantime,
+   a fix is to use a GMP-based modular inversion.
 
 2) compile the program with:
 
