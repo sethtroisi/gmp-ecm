@@ -19,33 +19,32 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{3DCDD03F-7F5E-4C3C-BC19-F5C6531EAC00}</ProjectGuid>
-    <RootNamespace>libecm_gpu</RootNamespace>
+    <ProjectGuid>{CD555681-D65B-4173-A29C-B8BF06A4871B}</ProjectGuid>
+    <RootNamespace>libecm</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfAtl>Static</UseOfAtl>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
     <Import Project="..\vsyasm.props" />
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.1.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -75,43 +74,34 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)..\lib\$(Platform)\$(Configuration)\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)..\lib\$(Platform)\$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Platform)\$(Configuration)\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ecmlib</TargetName>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Platform)\$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
-      <Command>..\prebuild GPU</Command>
+      <Command>..\prebuild NO_GPU</Command>
     </PreBuildEvent>
     <ClCompile>
+      <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC50;NDEBUG;_LIB;SSE2;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;SSE2;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
-      <Optimization>Full</Optimization>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
-    <CudaCompile>
-      <CodeGeneration>compute_50,sm_50</CodeGeneration>
-    </CudaCompile>
-    <CudaCompile>
-      <PtxAsOptionV>true</PtxAsOptionV>
-      <AdditionalCompilerOptions>
-      </AdditionalCompilerOptions>
-      <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
-      <TargetMachinePlatform>32</TargetMachinePlatform>
-    </CudaCompile>
-    <ProjectReference>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-    </ProjectReference>
+    <YASM>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
-      <Command>..\prebuild GPU</Command>
+      <Command>..\prebuild NO_GPU</Command>
     </PreBuildEvent>
     <Midl>
       <TargetEnvironment>X64</TargetEnvironment>
@@ -120,7 +110,7 @@
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC50;_WIN64;NDEBUG;_LIB;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WIN64;NDEBUG;_LIB;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -131,33 +121,20 @@
     <Lib />
     <YASM>
       <Defines>_WIN64</Defines>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
-    <CudaCompile>
-      <CodeGeneration>compute_50,sm_50</CodeGeneration>
-      <PtxAsOptionV>true</PtxAsOptionV>
-      <AdditionalCompilerOptions>
-      </AdditionalCompilerOptions>
-      <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
-      <TargetMachinePlatform>64</TargetMachinePlatform>
-    </CudaCompile>
-    <ProjectReference>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-    </ProjectReference>
-    <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>..\prebuild GPU</Command>
+      <Command>..\prebuild NO_GPU</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC50;_DEBUG;_LIB;SSE2;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;SSE2;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -165,23 +142,13 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
-    <CudaCompile>
-      <CodeGeneration>compute_50,sm_50</CodeGeneration>
-    </CudaCompile>
-    <CudaCompile>
-      <PtxAsOptionV>true</PtxAsOptionV>
-      <AdditionalCompilerOptions>
-      </AdditionalCompilerOptions>
-      <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
-      <TargetMachinePlatform>32</TargetMachinePlatform>
-    </CudaCompile>
-    <ProjectReference>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-    </ProjectReference>
+    <YASM>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
+    </YASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>..\prebuild GPU</Command>
+      <Command>..\prebuild NO_GPU</Command>
     </PreBuildEvent>
     <Midl>
       <TargetEnvironment>X64</TargetEnvironment>
@@ -189,9 +156,10 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC50;_WIN64;_DEBUG;_LIB;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WIN64;_DEBUG;_LIB;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -202,27 +170,15 @@
     <Lib />
     <YASM>
       <Defines>_WIN64</Defines>
+      <ObjectFile>$(IntDir)%(Filename).obj</ObjectFile>
     </YASM>
-    <CudaCompile>
-      <CodeGeneration>compute_50,sm_50</CodeGeneration>
-    </CudaCompile>
-    <CudaCompile>
-      <PtxAsOptionV>true</PtxAsOptionV>
-      <AdditionalCompilerOptions>
-      </AdditionalCompilerOptions>
-      <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
-      <TargetMachinePlatform>64</TargetMachinePlatform>
-    </CudaCompile>
-    <ProjectReference>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\addlaws.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <YASM Include="..\assembler\mulredc.asm" />
+    <YASM Include="..\assembler\redc.asm" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\addlaws.c" />
     <ClCompile Include="..\..\aprtcle\mpz_aprcl.c" />
     <ClCompile Include="..\..\auxarith.c" />
     <ClCompile Include="..\..\auxlib.c" />
@@ -268,11 +224,7 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Full</Optimization>
     </ClCompile>
     <ClCompile Include="..\..\stage2.c" />
-    <ClCompile Include="..\..\torsions.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\torsions.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\mpir\lib\x64\release\gmp.h" />
@@ -281,7 +233,6 @@
     <ClInclude Include="..\..\aprtcle\mpz_aprcl.h" />
     <ClInclude Include="..\..\champions.h" />
     <ClInclude Include="..\..\config.h" />
-    <ClInclude Include="..\..\cudakernel.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
     <ClInclude Include="..\..\ecm-gpu.h" />
@@ -291,21 +242,12 @@
     <ClInclude Include="..\..\getprime_r.h" />
     <ClInclude Include="..\..\listz_handle.h" />
     <ClInclude Include="..\..\longlong.h" />
+    <ClInclude Include="..\..\mpmod.h" />
     <ClInclude Include="..\..\sp.h" />
     <ClInclude Include="..\..\torsions.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="..\..\cudakernel.cu">
-      <FileType>Document</FileType>
-    </CudaCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <YASM Include="..\assembler\mulredc.asm" />
-    <YASM Include="..\assembler\redc.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\vsyasm.targets" />
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.1.targets" />
   </ImportGroup>
 </Project>
