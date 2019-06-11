@@ -25,12 +25,6 @@ MA 02110-1301, USA. */
 #include "ecm-impl.h"
 #include "sp.h"
 
-#ifdef _OPENMP
-#include <omp.h>
-#else
-static int omp_get_thread_num () {return 0;}
-#endif
-
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)
 {
@@ -275,8 +269,12 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
   const unsigned int sp_num = mpzspm->sp_num;
   unsigned int i, j, k, i0 = I0_THRESHOLD, I0;
   mpzv_t *T = mpzspm->T;
-  mpz_t *U = mpzspm->buf[omp_get_thread_num()];
+  mpz_t *U;
   unsigned int d = mpzspm->d, ni;
+
+  U = malloc (sp_num * sizeof (mpz_t));
+  for (j = 0; j < sp_num; j++)
+    mpz_init (U[j]);
 
   ASSERT (d > i0);
 
@@ -304,6 +302,9 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
     }
   /* The typecast to mp_limb_t assumes that mp_limb_t is at least
      as wide as sp_t */
+
+  for (j = 0; j < sp_num; j++)
+    mpz_clear (U[j]);
 }
 
 #if defined(TRACE_mpzspv_from_mpzv) || defined(TRACE_ntt_sqr_reciprocal)

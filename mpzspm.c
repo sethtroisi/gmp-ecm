@@ -23,9 +23,6 @@ MA 02110-1301, USA. */
 #include <stdlib.h>
 #include "sp.h"
 #include "ecm-impl.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 /* Tables for the maximum possible modulus (in bit size) for different 
    transform lengths l.
@@ -111,10 +108,6 @@ mpzspm_max_len (mpz_t modulus)
   return (spv_size_t)1 << i;
 }
 
-#ifndef _OPENMP
-static int omp_get_num_threads () {return 1;}
-#endif
-
 /* initialize mpzspm->T such that with m[j] := mpzspm->spm[j]->sp
    T[0][0] = m[0], ..., T[0][n-1] = m[n-1]
    ...
@@ -131,12 +124,6 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   unsigned int d, i, j, oldn;
   unsigned int n = mpzspm->sp_num;
   mpzv_t *T;
-  mpz_t **buf;
-  int nthreads;
-#if defined(_OPENMP)
-#pragma omp parallel  
-#endif
-  nthreads = omp_get_num_threads ();
 
   for (i = n, d = 0; i > 1; i = (i + 1) / 2, d ++);
   if (d <= I0_THRESHOLD)
@@ -146,13 +133,6 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
     }
   T = (mpzv_t*) malloc ((d + 1) * sizeof (mpzv_t));
   T[0] = (mpzv_t) malloc (n * sizeof (mpz_t));
-  buf = (mpz_t**) malloc (nthreads * sizeof (mpz_t*));
-  for (int i = 0; i < nthreads; i++)
-    {
-      buf[i] = malloc (n * sizeof (mpz_t));
-      for (j = 0; j < n; j++)
-        mpz_init (buf[i][j]);
-    }
   for (j = 0; j < n; j++)
     {
       mpz_init (T[0][j]);
@@ -173,7 +153,6 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
         }
     }
   mpzspm->T = T;
-  mpzspm->buf = buf;
   mpzspm->d = d;
 }
 
@@ -382,7 +361,6 @@ mpzspm_product_tree_clear (mpzspm_t mpzspm)
   unsigned int n = mpzspm->sp_num;
   unsigned int d = mpzspm->d;
   mpzv_t *T = mpzspm->T;
-  mpz_t **buf = mpzspm->buf;
 
   if (T == NULL) /* use the slow method */
     return;
@@ -395,13 +373,6 @@ mpzspm_product_tree_clear (mpzspm_t mpzspm)
       n = (n + 1) / 2;
     }
   free (T);
-  for (int i = 0; i < omp_get_num_threads(); i++)
-    {
-      for (j = 0; j < n; j++)
-        mpz_clear (buf[i][j]);
-      free (buf[i]);
-    }
-  free (buf);
 }
 
 void mpzspm_clear (mpzspm_t mpzspm)

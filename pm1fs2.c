@@ -2221,6 +2221,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
       if (thread_nr == 0)
 	outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
 
+      /* chunklen = ceil (len / nr_chunks) */
       chunklen = (len - 1UL) / (unsigned long) nr_chunks + 1UL;
       offset = chunklen * (unsigned long) thread_nr;
       if (offset <= len)
