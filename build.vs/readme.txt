@@ -185,7 +185,7 @@ available here:
 The set up required to run the tests in this way is:
 
 1. Extract bash.exe and put it in the gmp-ecm root directory
-2. For teting the non-GPU version, copy ecm.exe from the bin
+2. For testing the non-GPU version, copy ecm.exe from the bin
    directory to the gmp-ecm root directory
 3. For testing the GPU version, copy ecm_gpu.exe from the bin
    directory to the gmp-ecm root directory and then rename the
@@ -197,7 +197,7 @@ The set up required to run the tests in this way is:
   
    for example 'bash.exe test.pm1'
 
-The tests are in the gmp-ecm root directory with the nmaes
+The tests are in the gmp-ecm root directory with the names
 test.type where 'type' is the type of test.  
 
     Brian Gladman, August 2019
