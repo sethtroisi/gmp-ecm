@@ -174,4 +174,30 @@ x64/release-amd (non GPU) version by default but can be edited to test other
 builds.  It cannot run some tests as a result of the diifficulty in the
 conversion of the Unix shell scripts for the tests for use on Windows. 
 
-    Brian Gladman, May 2019
+Running the tests with bash
+===========================
+
+It is possible to run the tests with the Windows version of bash which is
+available here:
+
+  http://win-bash.sourceforge.net/
+
+The set up required to run the tests in this way is:
+
+1. Extract bash.exe and put it in the gmp-ecm root directory
+2. For teting the non-GPU version, copy ecm.exe from the bin
+   directory to the gmp-ecm root directory
+3. For testing the GPU version, copy ecm_gpu.exe from the bin
+   directory to the gmp-ecm root directory and then rename the
+   copy to ecm.exe
+4. Open a windows command prompt in the gmp-ecm root directory
+   and use the command:
+     
+      bash.exe <test_name>
+  
+   for example 'bash.exe test.pm1'
+
+The tests are in the gmp-ecm root directory with the nmaes
+test.type where 'type' is the type of test.  
+
+    Brian Gladman, August 2019
