@@ -182,22 +182,23 @@ available here:
 
   http://win-bash.sourceforge.net/
 
-The set up required to run the tests in this way is:
+The bash executable needs to be obtained and placed in the gmp-ecm root
+directory alongside the existing test files which have the names test.ext
+or testlong.ext where 'ext' is the name of the test (for example test.pp1).
 
-1. Extract bash.exe and put it in the gmp-ecm root directory
-2. For testing the non-GPU version, copy ecm.exe from the bin
-   directory to the gmp-ecm root directory
-3. For testing the GPU version, copy ecm_gpu.exe from the bin
-   directory to the gmp-ecm root directory and then rename the
-   copy to ecm.exe
-4. Open a windows command prompt in the gmp-ecm root directory
-   and use the command:
-     
-      bash.exe <test_name>
-  
-   for example 'bash.exe test.pm1'
+With a Windows command prompt opened in the gmp-ecm root directory, the
+commands to run one of the tests on the x64|Release version of gmp-ecm is:
 
-The tests are in the gmp-ecm root directory with the names
-test.type where 'type' is the type of test.  
+  bash test.ext bin\x64\Release\ecm.exe
+ 
+ and:
+ 
+  bash testlong.ext bin\x64\Release\ecm.exe
 
-    Brian Gladman, August 2019
+where 'ext' is the filename extension of the test required.  
+
+To test the GPU version the command is:
+
+  bash test.gpuecm bin\x64\Release\ecm_gpu.exe
+
+    Brian Gladman, 1st October 2019
