@@ -330,7 +330,7 @@ print_prob (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   int i;
   char sep;
 
-  outputf (OUTPUT_VERBOSE, "Probability of finding a factor of n digits:\n");
+  outputf (OUTPUT_VERBOSE, "Probability of finding a factor of n digits (assuming one exists):\n");
   outputf (OUTPUT_VERBOSE, "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
   for (i = 20; i <= 65; i += 5)
     {

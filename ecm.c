@@ -876,7 +876,7 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     j += sprintf (outs + j, "%u%c", i, (i < DIGITS_END) ? '\t' : '\n');
   outs[j] = '\0';
   outputf (OUTPUT_VERBOSE, "Expected number of curves to find a factor "
-           "of n digits:\n%s", outs);
+           "of n digits (assuming one exists):\n%s", outs);
   for (i = DIGITS_START; i <= DIGITS_END; i += DIGITS_INCR)
     {
       sep = (i < DIGITS_END) ? '\t' : '\n';
