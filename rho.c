@@ -645,6 +645,10 @@ ecmprob (double B1, double B2, double N, double nr, int S)
   return prob (B1, B2, N, nr, S, ECM_EXTRA_SMOOTHNESS);
 }
 
+/* see Willemien Ekkelkamp's Phd thesis:
+   https://openaccess.leidenuniv.nl/bitstream/handle/1887/14567/proefschrift_041109.pdf?sequence=2:
+   Bach-Peralta formula page 12
+   Corollary 4 page 18 with a 2nd-order term */
 double
 pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
 {
