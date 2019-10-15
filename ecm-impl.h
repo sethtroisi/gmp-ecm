@@ -614,6 +614,10 @@ void   rhoinit (int, int);
 double ecmprob (double, double, double, double, int);
 double pm1prob (double, double, double, double, int, const mpz_t);
 
+/* pm1.c */
+void print_prob (double, const mpz_t, unsigned long, unsigned long, int,
+                 const mpz_t);
+
 /* auxlib.c */
 #define mpz_add_si __ECM(mpz_add_si)
 void         mpz_add_si (mpz_t, mpz_t, long);

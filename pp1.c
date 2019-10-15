@@ -408,6 +408,22 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
             faststage2_params.m_1);
     }
 
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      if (mpz_sgn (B2min_parm) >= 0)
+        {
+          outputf (OUTPUT_VERBOSE, 
+            "Can't compute success probabilities for B1 <> B2min\n");
+        }
+      else
+        {
+          rhoinit (256, 10);
+          /* If x0 is chosen randomly, the resulting group order will behave,
+             on average, like for P-1, thus we use the same code as for P-1. */
+          print_prob (B1, B2, 0, k, 1, go);
+        }
+    }
+
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
 

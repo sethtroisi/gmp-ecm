@@ -658,6 +658,10 @@ pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
      account by the "smoothness" value here; a prime p-1 is about as likely
      smooth as a random number around (p-1)/exp(smoothness).
      smoothness = \sum_{q in Primes} log(q)/(q-1)^2 */
+  /* Note that this routine is also called for P+1, where we assume the same
+     behaviour as with P-1. However, if x0=6/5, Kruppa writes in his PhD
+     thesis that we get smoothness = 1.92012, and with x0=2/7, we get
+     smoothness = 2.05093. */
   double smoothness = 1.2269688;
   unsigned long i;
   

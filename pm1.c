@@ -322,7 +322,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
 }
 
 
-static void
+void
 print_prob (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
             int S, const mpz_t go)
 {
