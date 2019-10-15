@@ -660,7 +660,7 @@ pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
      smoothness = \sum_{q in Primes} log(q)/(q-1)^2 */
   /* Note that this routine is also called for P+1, where we assume the same
      behaviour as with P-1. However, if x0=6/5, Kruppa writes in his PhD
-     thesis that we get smoothness = 1.92012, and with x0=2/7, we get
+     thesis that we get smoothness = 1.92012; with x0=2/7, we get
      smoothness = 2.05093. */
   double smoothness = 1.2269688;
   unsigned long i;
