@@ -443,6 +443,11 @@ dickmanrhosigma_i (int ai, double x)
 }
 #endif
 
+/* return the value of the "local" Dickman rho function, for numbers near x
+   (as opposed to numbers <= x for the original Dickman rho function).
+   Reference: PhD thesis of Alexander Kruppa,
+   http://docnum.univ-lorraine.fr/public/SCD_T_2010_0054_KRUPPA.pdf,
+   equation (5.6) page 100 */
 static double
 dickmanlocal (double alpha, double x)
 {
@@ -493,20 +498,22 @@ isprime(unsigned long n)
   return ((primemap[n / 30] & (1 << r)) != 0);
 }
 
+/* return the sum in Equation (5.10) page 102 of Alexander Kruppa's
+   PhD thesis */
 static double
 dickmanmu_sum (const unsigned long B1, const unsigned long B2, 
 	       const double x)
 {
   double s = 0.;
-  const double logB1 = 1. / log(B1);
+  const double inv_logB1 = 1. / log(B1);
   const double logx = log(x); 
   unsigned long p;
 
   for (p = B1 + 1; p <= B2; p++)
     if (isprime(p))
-      s += dickmanlocal ((logx - log(p)) * logB1, x / p) / p;
+      s += dickmanlocal ((logx - log(p)) * inv_logB1, x / p) / p;
 
-  return (s);
+  return s;
 }
 
 /* return the probability that a number < x has its 2nd largest prime factor
