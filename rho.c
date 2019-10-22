@@ -509,6 +509,9 @@ dickmanmu_sum (const unsigned long B1, const unsigned long B2,
   return (s);
 }
 
+/* return the probability that a number < x has its 2nd largest prime factor
+   less than x^(1/alpha) and its largest prime factor less than x^(beta/alpha)
+*/
 static double
 dickmanmu (double alpha, double beta, double x)
 {
@@ -667,6 +670,7 @@ pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
   
   if (go != NULL && mpz_cmp_ui (go, 1UL) > 0)
     {
+      double res;
       mpz_init (cof);
       mpz_set (cof, go);
       for (i = 2; i < 100; i++)
@@ -681,8 +685,9 @@ pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
           }
       /* printf ("pm1prob: smoothness after dividing out go primes < 100: %f\n", 
                smoothness); */
-      return prob (B1, B2, N, nr, S, smoothness + log(mpz_get_d (cof)));
+      res = prob (B1, B2, N, nr, S, smoothness + log(mpz_get_d (cof)));
       mpz_clear (cof);
+      return res;
     }
 
   return prob (B1, B2, N, nr, S, smoothness);
