@@ -64,6 +64,7 @@ static void eval_power (mpz_t prior_n, mpz_t n,char op);
 static void eval_product (mpz_t prior_n, mpz_t n,char op);
 static void eval_sum (mpz_t prior_n, mpz_t n,char op);
 static int  eval_Phi (mpz_t *params, mpz_t n);
+static int  eval_gcd (mpz_t *params, mpz_t n);
 static int  eval_U (mpz_t *params, mpz_t n);
 static int  eval_primU (mpz_t *params, mpz_t n);
 static int  eval_2 (int bInFuncParams);
@@ -455,6 +456,12 @@ int eval_Phi (mpz_t* params, mpz_t n)
   return 1;
 }
 
+int eval_gcd (mpz_t *params, mpz_t n)
+{
+  mpz_gcd(n, n, params[0]);
+  return 1;
+}
+
 int eval_U (mpz_t *params, mpz_t n)
 /* params[0]=P, params[1]=Q */
 {
@@ -665,10 +672,10 @@ int eval_2 (int bInFuncParams)
   char op;
   char negate;
   const int num_of_funcs=3;
-  const char *func_names[]={"Phi","U","primU"};
-  const int func_num_params[]={2,3,3};
+  const char *func_names[]={"Phi","U","primU","gcd"};
+  const int func_num_params[]={2,3,3,2};
   typedef int (*fptr)(mpz_t *,mpz_t);
-  const fptr func_ptrs[]={eval_Phi,eval_U,eval_primU};
+  const fptr func_ptrs[]={eval_Phi,eval_U,eval_primU,eval_gcd};
   char *paren_position;
   char tentative_func_name[20];
   int func_id;
