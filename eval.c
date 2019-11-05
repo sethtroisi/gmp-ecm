@@ -671,7 +671,7 @@ int eval_2 (int bInFuncParams)
   char op_stack[5];
   char op;
   char negate;
-  const int num_of_funcs=3;
+  const int num_of_funcs=4;
   const char *func_names[]={"Phi","U","primU","gcd"};
   const int func_num_params[]={2,3,3,2};
   typedef int (*fptr)(mpz_t *,mpz_t);
