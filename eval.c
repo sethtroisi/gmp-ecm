@@ -556,7 +556,7 @@ int aurif (mpz_t output, mpz_t n, mpz_t base, int sign) // Evaluate Aurifeullian
     }
   mpz_set(output, C);
   (sign>0 ? mpz_addmul : mpz_submul)(output, D, l);
-  gmp_fprintf(stderr, "Calculated base=%Zd, exp=%Zd, C=%Zd, D=%Zd, output=%Zd\n",base,n,C,D,output);
+//  gmp_fprintf(stderr, "Calculated base=%Zd, exp=%Zd, C=%Zd, D=%Zd, output=%Zd\n",base,n,C,D,output);
   mpz_clears(orig_base,C,D,l,m,NULL);
   return 1;
 }
