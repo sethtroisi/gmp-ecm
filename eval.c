@@ -46,10 +46,15 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
  *   Simple Primorial:           n#     11# == 2*3*5*7*11        *
  *   Reduced Primorial:          n#m    17#5 == 5.7.11.13.17     *
  *                                                               *
- * Adding (working on these at least:				 *
- *   Phi(x,n)							 *
+ * Supported functions:	(case insensitive)			 *
+ *   Phi(n,x)							 *
+ *   GCD(m,n)							 *
  *   U(p,q,n)							 *
  *   primU(p,q,n)						 *
+ *   TODO: PhiL(k,n), PhiM(k,n)  				 *
+ *      only for bases 2,3,5,6,7,10,11 (times a square)		 *
+ * Note for developers: 					 *
+ * 	First k-1 arguments are passed as an mpz_t array	 *
  *                                                               *
  * NOTE Lines ending in a \ character are "joined"               *
  * NOTE C++ // single line comments (rest of line is a comment)  *
@@ -64,10 +69,13 @@ static void eval_power (mpz_t prior_n, mpz_t n,char op);
 static void eval_product (mpz_t prior_n, mpz_t n,char op);
 static void eval_sum (mpz_t prior_n, mpz_t n,char op);
 static int  eval_Phi (mpz_t *params, mpz_t n);
+static int  eval_PhiL (mpz_t *params, mpz_t n);
+static int  eval_PhiM (mpz_t *params, mpz_t n);
 static int  eval_gcd (mpz_t *params, mpz_t n);
 static int  eval_U (mpz_t *params, mpz_t n);
 static int  eval_primU (mpz_t *params, mpz_t n);
 static int  eval_2 (int bInFuncParams);
+static int  aurif (mpz_t output, mpz_t n, mpz_t base, int sign);
 
 #if 0 /* strncasecmp is a required function in configure.in */
 #if defined (_MSC_VER) || defined (__MINGW32__)
@@ -456,6 +464,125 @@ int eval_Phi (mpz_t* params, mpz_t n)
   return 1;
 }
 
+int aurif (mpz_t output, mpz_t n, mpz_t base, int sign) // Evaluate Aurifeullian polynomials
+{
+  int b,k=mpz_get_ui(n);
+  mpz_t orig_base;
+  mpz_t C,D,l,m;
+  // Find a proper base
+  mpz_init_set(orig_base,base);
+  mpz_inits(C,D,l,m,NULL);
+  for(b=2;b<=11;b++)
+    {
+      mpz_set(base,orig_base);
+      mpz_mul_ui(base,base,b);
+      if(mpz_perfect_square_p(base)) break;
+    }
+  if(b==12) // not found
+    {
+      gmp_fprintf (stderr, "Error: base %Zd not supported for Aurifeullian factorization yet\n", orig_base);
+      return 0;
+    }
+  if(k%((b==5)?b:(2*b))!=0)
+    {
+      gmp_fprintf (stderr, "Error: exponent %Zd does not make sense for base %Zd\n", n, orig_base);
+      return 0;
+    }
+  k/=((b==5)?b:(2*b));
+  if(k%2==0)
+    {
+      gmp_fprintf (stderr, "Error: exponent %Zd does not make sense for base %Zd\n", n, orig_base);
+      return 0;
+    }
+  mpz_set(base,orig_base);
+  mpz_pow_ui(m, base, k); 
+  mpz_mul_ui(l, m, b); 
+  mpz_sqrt(l, l);
+  switch(b)
+    {
+    case 2:
+    case 3:
+      mpz_add_ui(C, m, 1);
+      mpz_set_ui(D, 1);
+      break;
+    case 5:
+    case 6:
+      mpz_add_ui(C, m, 3);
+      mpz_mul(C, C, m);
+      mpz_add_ui(C, C, 1);
+      mpz_add_ui(D, m, 1);
+      break;
+    case 7:
+      mpz_add_ui(C, m, 1);
+      mpz_pow_ui(C, C, 3);
+      mpz_add_ui(D, m, 1);
+      mpz_mul(D, D, m);
+      mpz_add_ui(D, D, 1);
+      break;
+    case 10:
+      mpz_add_ui(C, m, 5);
+      mpz_mul(C, C, m);
+      mpz_add_ui(C, C, 7);
+      mpz_mul(C, C, m);
+      mpz_add_ui(C, C, 5);
+      mpz_mul(C, C, m);
+      mpz_add_ui(C, C, 1);
+      mpz_add_ui(D, m, 2);
+      mpz_mul(D, D, m);
+      mpz_add_ui(D, D, 2);
+      mpz_mul(D, D, m);
+      mpz_add_ui(D, D, 1);
+      break;
+    case 11:
+      mpz_add_ui(C, m, 5);
+      mpz_mul(C, C, m);
+      mpz_sub_ui(C, C, 1);
+      mpz_mul(C, C, m);
+      mpz_sub_ui(C, C, 1);
+      mpz_mul(C, C, m);
+      mpz_add_ui(C, C, 5);
+      mpz_mul(C, C, m);
+      mpz_add_ui(C, C, 1);
+      mpz_add_ui(D, m, 1);
+      mpz_mul(D, D, m);
+      mpz_sub_ui(D, D, 1);
+      mpz_mul(D, D, m);
+      mpz_add_ui(D, D, 1);
+      mpz_mul(D, D, m);
+      mpz_add_ui(D, D, 1);
+      break;
+    default: // not supposed to arrive here
+      break;
+    }
+  mpz_set(output, C);
+  (sign>0 ? mpz_addmul : mpz_submul)(output, D, l);
+  gmp_fprintf(stderr, "Calculated base=%Zd, exp=%Zd, C=%Zd, D=%Zd, output=%Zd\n",base,n,C,D,output);
+  mpz_clears(orig_base,C,D,l,m,NULL);
+  return 1;
+}
+int eval_PhiL (mpz_t *params, mpz_t n)
+{
+  mpz_t aur;
+  int err1,err2;
+  mpz_init(aur);
+  err1=aurif(aur,params[0],n,-1);
+  err2=eval_Phi(params,n); // n now holds Phi(params[0],n) 
+  mpz_gcd(n,n,aur);
+  mpz_clear(aur);
+  return err1*err2;
+}
+int eval_PhiM (mpz_t *params, mpz_t n)
+{
+  mpz_t aur;
+  int err1,err2;
+  mpz_init(aur);
+  err1=aurif(aur,params[0],n,1);
+  err2=eval_Phi(params,n); // n now holds Phi(params[0],n) 
+  mpz_gcd(n,n,aur);
+  mpz_clear(aur);
+  return err1*err2;
+}
+
 int eval_gcd (mpz_t *params, mpz_t n)
 {
   mpz_gcd(n, n, params[0]);
@@ -671,11 +798,11 @@ int eval_2 (int bInFuncParams)
   char op_stack[5];
   char op;
   char negate;
-  const int num_of_funcs=4;
-  const char *func_names[]={"Phi","U","primU","gcd"};
-  const int func_num_params[]={2,3,3,2};
+  const int num_of_funcs=6;
+  const char *func_names[]={"Phi","PhiL","PhiM","U","primU","gcd"};
+  const int func_num_params[]={2,2,2,3,3,2};
   typedef int (*fptr)(mpz_t *,mpz_t);
-  const fptr func_ptrs[]={eval_Phi,eval_U,eval_primU,eval_gcd};
+  const fptr func_ptrs[]={eval_Phi,eval_PhiL,eval_PhiM,eval_U,eval_primU,eval_gcd};
   char *paren_position;
   char tentative_func_name[20];
   int func_id;
