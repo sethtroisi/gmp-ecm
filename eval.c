@@ -346,6 +346,7 @@ void eval_sum (mpz_t prior_n, mpz_t n,char op)
 
 int eval_Phi (mpz_t* params, mpz_t n)
 {
+  /* params[0]=exp, n=base */
   int factors[200];
   unsigned dwFactors=0, dw;
   unsigned long B;
@@ -353,30 +354,52 @@ int eval_Phi (mpz_t* params, mpz_t n)
   mpz_t D, T, org_n;
   prime_info_t prime_info;
   
-  if (mpz_cmp_ui (n, 1) == 0)
-    {
-      /* return value is 1 if b is composite, or b if b is prime */
-      int isPrime = mpz_probab_prime_p (params[0], PROBAB_PRIME_TESTS);
-      if (isPrime)
-	mpz_set (n, params[0]);
-      else
-	mpz_set (n, mpOne);
-      return 1;
-    }
-  if (mpz_cmp_si (n, -1) == 0)
-    /* this is actually INVALID, but it is easier to simply */
+  /* deal with trivial cases first */
+  if (mpz_cmp_ui (params[0], 0) == 0)
+  {
+    mpz_set_ui (n, 1);
+    return 1;
+  }
+  if (mpz_cmp_ui (params[0], 0) < 0)
     return 0;
-
-  /* OK parse the Phi out now */
-  if (mpz_cmp_ui (params[0], 0) <= 0)
-    return 0;
-
   if (mpz_cmp_ui (params[0], 1) == 0)
     {
-      if (mpz_cmp_ui (n, 1) != 0)
-	mpz_sub_ui (n, n, 1);
+	    mpz_sub_ui (n, n, 1);
       return 1;
     }
+  if (mpz_cmp_ui (params[0], 2) == 0)
+    {
+	    mpz_add_ui (n, n, 1);
+      return 1;
+    }
+  if (mpz_cmp_ui (n, 0) < 0) 
+  /* Convert to positive base; this is always valid when exp>=3 */
+    {
+      mpz_neg (n, n);
+      if (mpz_congruent_ui_p (params[0], 1, 2))
+        {
+          mpz_mul_ui(params[0], params[0], 2);
+        }
+      else if (mpz_congruent_ui_p (params[0], 2, 4))
+        {
+          mpz_divexact_ui(params[0], params[0], 2);
+        }
+    }
+  if (mpz_cmp_ui (n, 1) == 0)
+    {
+      /* return value is p if params[0] is prime power p^k, or 1 otherwise */
+      int maxpower=mpz_sizeinbase(params[0], 2)+1;
+      mpz_init (T);
+      for (int power=maxpower; power>=1; --power)
+        {
+          if ( mpz_root (T, params[0], power) ) break;
+        }
+      int isPrime = mpz_probab_prime_p (T, PROBAB_PRIME_TESTS);
+      mpz_set (n, isPrime ? T : mpOne);
+      mpz_clear(T);
+      return 1;
+    }
+
 
   /* Ok, do the real h_primative work, since we are not one of the trivial case */
 
@@ -583,7 +606,7 @@ int eval_PhiM (mpz_t *params, mpz_t n)
   return err1*err2;
 }
 
-#if 0
+#if 1
 int eval_gcd (mpz_t *params, mpz_t n)
 {
   mpz_gcd(n, n, params[0]);
@@ -757,7 +780,10 @@ int eval_primU (mpz_t* params, mpz_t n)
       gmp_fprintf (stderr, "Taking U(%Zd,%Zd,%d)\n", P,Q,iPower);
  */     
       mpz_set_ui(T,iPower);
-      eval_U(params, T);
+      if(eval_U(params, T)==0)
+      {
+        return 0;
+      }
     
       if(iMobius&1)
       {
@@ -801,7 +827,7 @@ int eval_2 (int bInFuncParams)
   char op;
   char negate;
   typedef int (*fptr)(mpz_t *,mpz_t);
-#if 0  
+#if 1  
   const int num_of_funcs=6;
   const char *func_names[]={"Phi","PhiL","PhiM","U","primU","gcd"};
   const int func_num_params[]={2,2,2,3,3,2};

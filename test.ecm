@@ -192,11 +192,41 @@ echo "2^1123-1" | $ECM -v -maxmem 10 -k 5 11000 11000000000000000000; checkcode 
 # exercise "stage 2 interval too large" error message
 echo "2^1123-1" | $ECM -v -maxmem 10 11000 1e27; checkcode $? 1
 
-# exercise "Function Phi() requires 2 parameters" error message
-echo "phi(31)" | $ECM 11e3; checkcode $? 1
+# exercise "unknown function" error message
+echo "mer(31)" | $ECM 11e3; checkcode $? 1
 
-# exercise "Invalid parameter passed to the Phi function" error message
-echo "phi(31,-1)" | $ECM 11e3; checkcode $? 1
+
+# exercise "Function requires x parameters" error message
+echo "phi(31)" | $ECM 11e3; checkcode $? 1
+echo "phi(31,5,8)" | $ECM 11e3; checkcode $? 1
+echo "phil(31)" | $ECM 11e3; checkcode $? 1
+echo "phim(31,5,8)" | $ECM 11e3; checkcode $? 1
+echo "u(534)" | $ECM 11e3; checkcode $? 1
+echo "primu(1,534)" | $ECM 11e3; checkcode $? 1
+echo "gcd(35)" | $ECM 11e3; checkcode $? 1
+echo "gcd(2,6,60)" | $ECM 11e3; checkcode $? 1
+
+
+# exercise "Invalid parameter passed to function" error message
+echo "phi(-5,2)" | $ECM 11e3; checkcode $? 1
+echo "phi(2^67-1,2)" | $ECM 11e3; checkcode $? 1
+echo "u(1,-1,-6)" | $ECM 11e3; checkcode $? 1
+echo "u(1,-1,2^67-1)" | $ECM 11e3; checkcode $? 1
+echo "primu(1,-1,-6)" | $ECM 11e3; checkcode $? 1
+echo "primu(0,-1,17)" | $ECM 11e3; checkcode $? 1
+echo "primu(2,4,17)" | $ECM 11e3; checkcode $? 1
+echo "primu(6,9,17)" | $ECM 11e3; checkcode $? 1
+
+# exercise "base %Zd not supported for Aurifeullian factorization yet" error message
+echo "phil(84,14)" | $ECM 11e3; checkcode $? 1
+echo "phil(39,13)" | $ECM 11e3; checkcode $? 1
+echo "phil(45,-15)" | $ECM 11e3; checkcode $? 1
+
+# exercise "exponent %Zd does not make sense for base %Zd" error message
+echo "phil(256,2)" | $ECM 11e3; checkcode $? 1
+echo "phim(166,2)" | $ECM 11e3; checkcode $? 1
+echo "phim(30,5)" | $ECM 11e3; checkcode $? 1
+echo "phil(30,10)" | $ECM 11e3; checkcode $? 1
 
 # exercise "Error - invalid number" error message
 echo ")" | $ECM 11e3; checkcode $? 1
@@ -503,14 +533,50 @@ fi
 echo "Phi(101,30)" | $ECM -sigma 0:12023436370081639188 1e5
 checkcode $? 14
 
+echo "Phi(202,-30)" | $ECM -sigma 0:12023436370081639188 1e5
+checkcode $? 14
+
 echo "1+Phi(102,1)" | $ECM -sigma 0:12023436370081639188 1e5
 checkcode $? 8
 
 echo "Phi(101,1)" | $ECM -sigma 0:12023436370081639188 1e5
 checkcode $? 8
 
+echo "Phi(101^3,1)" | $ECM -sigma 0:12023436370081639188 1e5
+checkcode $? 8
+
 echo "17+Phi(1,2)" | $ECM -sigma 0:17 1e3
 checkcode $? 6
+
+# tests to exercise gcd code in eval.c
+echo "gcd(Phi(44,968),968^11-44*968^5+1)" | $ECM -sigma 1:3751794696 2e3
+checkcode $? 14
+
+# tests to exercise the Aurifeullian code in eval.c
+echo "PhiL(44,968)" | $ECM -sigma 1:3751794696 2e3
+checkcode $? 14
+
+echo "PhiM(630,3)" | $ECM -sigma 1:1931892209 2e3
+checkcode $? 6
+
+echo "PhiL(525,5)" | $ECM -sigma 1:2261023611 200
+checkcode $? 14
+
+echo "PhiM(180,150)" | $ECM -sigma 1:3327014026 11e3
+checkcode $? 10
+
+echo "PhiL(350,7)/3851" | $ECM -sigma 1:283849997 11e3
+checkcode $? 14
+
+echo "PhiM(140,10)" | $ECM -sigma 1:500092364 11e3
+checkcode $? 10
+
+echo "PhiL(242,44)" | $ECM -sigma 1:1028204016 11e3
+checkcode $? 10
+
+# tests to exercise U and primU code in eval.c
+echo "primU(5,-1,160)" | $ECM -sigma 1:450587089 11e3
+checkcode $? 10
 
 # on systems with 64-bit limbs, exercise mulredc9
 echo "2^567-181" | $ECM -sigma 0:2521899833399249862 11000; checkcode $? 14
