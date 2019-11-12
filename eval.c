@@ -606,13 +606,11 @@ int eval_PhiM (mpz_t *params, mpz_t n)
   return err1*err2;
 }
 
-#if 1
 int eval_gcd (mpz_t *params, mpz_t n)
 {
   mpz_gcd(n, n, params[0]);
   return 1;
 }
-#endif
 
 int eval_U (mpz_t *params, mpz_t n)
 /* params[0]=P, params[1]=Q */
@@ -827,17 +825,10 @@ int eval_2 (int bInFuncParams)
   char op;
   char negate;
   typedef int (*fptr)(mpz_t *,mpz_t);
-#if 1  
   const int num_of_funcs=6;
   const char *func_names[]={"Phi","PhiL","PhiM","U","primU","gcd"};
   const int func_num_params[]={2,2,2,3,3,2};
   const fptr func_ptrs[]={eval_Phi,eval_PhiL,eval_PhiM,eval_U,eval_primU,eval_gcd};
-#else
-  const int num_of_funcs=5;
-  const char *func_names[]={"Phi","PhiL","PhiM","U","primU"};
-  const int func_num_params[]={2,2,2,3,3};
-  const fptr func_ptrs[]={eval_Phi,eval_PhiL,eval_PhiM,eval_U,eval_primU};
-#endif  
   char *paren_position;
   char tentative_func_name[20];
   int func_id;
