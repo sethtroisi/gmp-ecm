@@ -1175,6 +1175,12 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   /* If the parametrization is not given, choose it. */
   if (param == ECM_PARAM_DEFAULT)
     param = get_default_param (sigma_is_A, *B1done, repr);
+  /* when dealing with several input numbers, if we had already computed
+     batch_s, but the new number uses the base-2 representation, then we
+     are forced to use ECM_PARAM_SUYAMA, and we reset batch_s to 1 to avoid
+     the error "-bsaves/-bloads makes sense in batch mode only" below */
+  if (param == ECM_PARAM_SUYAMA)
+    mpz_set_ui (batch_s, 1);
 
   /* In batch mode, 
         we force repr=MODMULN, 
