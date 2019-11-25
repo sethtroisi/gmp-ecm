@@ -1350,12 +1350,24 @@ main (int argc, char *argv[])
       /* this is a hack to produce an error in ecm() when -bsaves is used
          but we are not in batch mode */
       if (savefile_s != NULL)
-        mpz_set_ui (params->batch_s, 2);
+        {
+          if (!IS_BATCH_MODE(param))
+            {
+              fprintf (stderr, "Error, -bsaves makes sense in batch mode only\n");
+              exit (EXIT_FAILURE);
+            }
+          mpz_set_ui (params->batch_s, 2);
+        }
 
       /* load batch product s from a file */
       if (loadfile_s != NULL)
         {
           int st = cputime ();
+          if (!IS_BATCH_MODE(param))
+            {
+              fprintf (stderr, "Error, -bloads makes sense in batch mode only\n");
+              exit (EXIT_FAILURE);
+            }
           params->batch_last_B1_used = B1;
           if (read_s_from_file (params->batch_s, loadfile_s, B1))
             {
