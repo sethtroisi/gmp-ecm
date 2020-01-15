@@ -609,7 +609,7 @@ MainStart:
 
           if (verbose >= APRTCLE_VERBOSE1)
           {
-            printf("P = %2d, Q = %12d  (%3.2f%%)\r", P, Q, (i * (TestingQs + 1) + j) * 100.0 / (NP * (TestingQs + 1)));
+            printf("APR primality test: P = %2d, Q = %12d  (%3.2f%%)\r", P, Q, (i * (TestingQs + 1) + j) * 100.0 / (NP * (TestingQs + 1)));
             fflush(stdout);
           }
 

@@ -455,7 +455,8 @@ echo 493671084022010320922697718944221569774262937898523672663031469122444419595
 # in mulredc*.asm. This input has 1363 bits so it has 22 64 bit words 
 # (43 32 bit words) and cannot use mulredc which handles only up to 20 limbs
 
-echo "10090030271*10^400+696212088699" | $ECM -param 0 -sigma 3923937547 1e3 1e6; checkcode $? 14
+# Test APR primality test
+echo "10090030271*(10^400+69)" | $ECM -param 0 -sigma 3923937547 1e3 1e6; checkcode $? 14
 
 echo 31622776601683791911 | $ECM -sigma 0:249908706013996416 11000; checkcode $? 0
 
