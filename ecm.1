@@ -103,11 +103,22 @@ is valid\&. If not given,
 is generated from the sigma value for ECM, or at random for P\-1 and P+1\&.
 .RE
 .PP
+\fB\-param \fR\fB\fIi\fR\fR
+.RS 4
+[ECM] Use
+\fIi\fR
+as curve parametrization\&.
+ If omitted,
+\fIi\fR
+is generated at random\&.
+.RE
+.PP
 \fB\-sigma \fR\fB\fIs\fR\fR
 .RS 4
 [ECM] Use
 \fIs\fR
-(arbitrary\-precision integer) as curve generator\&. If omitted,
+(arbitrary\-precision integer) as curve generator\&, can use -sigma \fR\fB\fIi:s\fR\fR to specify -param \fR\fB\fIi\fR\fR at the same time\&.
+ If omitted,
 \fIs\fR
 is generated at random\&.
 .RE
@@ -308,7 +319,7 @@ option\&.
 .RS 4
 .\}
 .nf
-ecm \-chkpnt foo \-pm1 1e10 < largenumber\&.txt 
+ecm \-chkpnt foo \-pm1 1e10 < largenumber\&.txt
 .fi
 .if n \{\
 .RE
@@ -438,6 +449,11 @@ mode (below normal priority)\&.
 Run the program in
 \(lqvery nice\(rq
 mode (idle priority)\&.
+.RE
+.PP
+\fB\-primetest\fR
+.RS 4
+perform a primality test on input, exits 0 if input is prime (or PRP for large inputs)\&.
 .RE
 .PP
 \fB\-B2scale \fR\fB\fIf\fR\fR
