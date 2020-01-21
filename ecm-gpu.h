@@ -21,7 +21,7 @@
   typedef int carry_t;
 #endif
 
-#define VOL volatile 
+#define VOL volatile
 //#define VOL
 
 #ifndef ECM_GPU_CURVES_BY_BLOCK
@@ -43,13 +43,13 @@ typedef carry_t VOL bigint_t[ECM_GPU_NB_DIGITS];
 #ifdef WITH_GPU
 int gpu_ecm (mpz_t, mpz_t, int, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
              mpz_t, unsigned long, const int, int, int, int, int, int,
-             FILE*, FILE*, char*, char *, double, int (*)(void), mpz_t, 
+             FILE*, FILE*, char*, char *, double, int (*)(void), mpz_t,
              double *, int, int*, unsigned int*);
 #else
 int gpu_ecm ();
 #endif
 #define gpu_ecm_stage1 __ECM(gpu_ecm_stage1)
-int gpu_ecm_stage1 (mpz_t *, int *, mpz_t, mpz_t, unsigned int, unsigned int, 
+int gpu_ecm_stage1 (mpz_t *, int *, mpz_t, mpz_t, unsigned int, unsigned int,
                     float *, int);
 
 #endif

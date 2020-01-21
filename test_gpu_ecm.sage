@@ -11,45 +11,40 @@ GPU_PARAM = 3
 
 def GroupOrderParam0(p, sigma):
     K = GF(p)
-    v = (4*sigma) * K.gen()
-    u = (sigma^2 - 5) * K.gen()
+    v = K(4*sigma)
+    u = K(sigma^2 - 5)
     x = u^3
     b = 4*x*v
     a = (v-u)^3*(3*u+v)
     A = a/b-2
     x = x/v^3
     b = x^3 + A*x^2 + x
-    return EllipticCurve([0,b*A,0,b^2,0])
+    return EllipticCurve(K,[0,b*A,0,b^2,0])
+
+def GroupOrderA(p, s):
+    K = GF(p)
+    A = K(4 *s - 2);
+    b = K(16*s + 2);
+    return EllipticCurve(K,[0,b*A,0,b^2,0])
 
 # From parametrizations.c
 def GroupOrderParam2(p,sigma):
-   K = GF(p)
-   E = EllipticCurve(K,[0,36])
-   P = sigma*E(-3,3)
-   x,y = P.xy()
-   x3 = (3*x+y+6)/(2*(y-3))
-   A = -(3*x3^4+6*x3^2-1)/(4*x3^3)
-   d = K((A+2)/4)
-
-   a = K(4 *d - 2)
-   b = K(16*d + 2)
-   return EllipticCurve(K,[0,b*a,0,b^2,0])
+    K = GF(p)
+    E = EllipticCurve(K,[0,36])
+    P = sigma*E(-3,3)
+    x,y = P.xy()
+    x3 = (3*x+y+6)/(2*(y-3))
+    A = -(3*x3^4+6*x3^2-1)/(4*x3^3)
+    d = K((A+2)/4)
+    return GroupOrderA(p, d)
 
 def GroupOrderParam1(p, sigma):
     K = GF(p)
-    inv2_64 = inverse_mod(2 ^ 64, p)
-    s = K(sigma^2 * inv2_64)
-    A = K(4 *s - 2);
-    b = K(16*s + 2);
-    return EllipticCurve([0,b*A,0,b^2,0])
+    return GroupOrderA(p, K(sigma^2 / 2^64))
 
 def GroupOrderParam3(p, sigma):
     K = GF(p)
-    inv2_32 = inverse_mod(2 ^ 32, p)
-    s = K(sigma * inv2_32)
-    A = K(4 *s - 2);
-    b = K(16*s + 2);
-    return EllipticCurve([0,b*A,0,b^2,0])
+    return GroupOrderA(p, K(sigma / 2^32))
 
 def GroupOrder(param, prime, sigma):
     if param == 0:
@@ -68,21 +63,31 @@ def GroupOrder(param, prime, sigma):
 def testInternal():
     # Verify code is working.
 
-    # echo "78257675131877111603" | ecm -sigma "0:1057" 5000 15000-16000
-    assert GroupOrder(0, 78257675131877111603, 1057) == \
-        2^3 * 3 * 19 * 61 * 149 * 499 * 563 * 4337 * 15497
+    # echo "78257675131877111603" | ecm -sigma "0:4528" 3100 8000-9000
+    assert GroupOrder(0, 78257675131877111603, 4528) == \
+        2^3 * 3 * 71 * 563 * 1531 * 2153 * 3011 * 8219
+    # echo "78257675131877111603" | ecm -sigma "1:3396" 4800 8000-9000
+    assert GroupOrder(1, 78257675131877111603, 3396) == \
+        2^4 * 3 * 223 * 271 * 811 * 821 * 4799 * 8443
+    # echo "78257675131877111603" | ecm -sigma "2:1801" 2100 9000-9300
+    assert GroupOrder(2, 78257675131877111603, 1801) == \
+        2^9 * 3^3 * 23 * 41 * 47 * 67 * 101 * 2039 * 9257
+    # echo "78257675131877111603" | ecm -sigma "3:2012" 6000 8000-9000
+    assert GroupOrder(3, 78257675131877111603, 2012) == \
+        2^3 * 5^3 * 43^2 * 71 * 83 * 139 * 5779 * 8941
 
-    # echo "78257675131877111603" | ecm -sigma "1:1511" 17000 25000-26000
-    assert GroupOrder(1, 78257675131877111603, 1511) == \
-        2^6 * 3 * 5 * 7 * 193 * 293 * 491 * 16651 * 25189
-
-    # echo "78257675131877111603" | ecm -sigma "2:1272" 2000 88000-89000
-    assert GroupOrder(2, 78257675131877111603, 1272) == \
-        2^2 * 3^6 * 13 * 29 * 491 * 1117 * 1471 * 88237
-
-    # echo "78257675131877111603" | ecm -sigma "3:1203" 6000 73000-74000
-    assert GroupOrder(3, 78257675131877111603, 1203) == \
-        2^3 * 3^3 * 13 * 139 * 587 * 821 * 5693 * 73079
+    # echo "1082500099132634560519" | ecm -sigma "0:6677" 1200 5000-6000
+    assert GroupOrder(0, 1082500099132634560519, 6677) == \
+        2^2 * 3 * 5^2 * 7 * 139 * 677 * 887 * 947 * 1123 * 5807
+    # echo "1082500099132634560519" | ecm -sigma "1:1800" 4000 6000-7000
+    assert GroupOrder(1, 1082500099132634560519, 1800) == \
+        2^5 * 7^2 * 13 * 17 * 79 * 701 * 2647 * 3347 * 6367
+    # echo "1082500099132634560519" | ecm -sigma "2:2966" 2000 7000-8000
+    assert GroupOrder(2, 1082500099132634560519, 2966) == \
+        2^3 * 3^2 * 13 * 29 * 31^2 * 61 * 109 * 487 * 1709 * 7499
+    # echo "1082500099132634560519" | ecm -sigma "3:1600" 2000 3000-3100
+    assert GroupOrder(3, 1082500099132634560519, 1600) == \
+        2^3 * 3^3 * 7 * 23^2 * 37 * 67 * 71 * 1297 * 1933 * 3067
 
     # From Zimmermann, https://homepages.cwi.nl/~herman/Zimmermann.pdf
     assert GroupOrder(0, 322410908070969630339041359359164154612901586904078700184707, 20041348) == \
@@ -117,7 +122,7 @@ def smallGroupOrders(prime, param, B1, sigma_count):
         assert len(f) >= 1, (order, f)
 
         for p, k in f[:-1]:
-            if p ** k > B1:
+            if p ^ k > B1 :
                 break
         else:
             if f[-1][0] ** f[-1][1] <= B1:
@@ -167,21 +172,22 @@ def stage1Tests(N_size, prime_size, B1, param, sigma_count, seed=None):
             factor_by_sigma[sigma] *= prime
 
     if len(factor_by_sigma) == 0:
-        raise ValueError("No primes would be found in step1, lower prime_size or increase B1")
+        raise ValueError("No primes would be found in step 1, lower prime_size or increase B1")
 
     N_log2 = log(prod(N), 2).n()
     assert N_log2 < N_size, (N_size, N_log2, prime_size, pprime_count)
 
     N_str = "*".join(map(str, N))
-    print
-    print "N=" + N_str
-    print
-    print "Should find:"
-    for sigma, factor in sorted(factor_by_sigma.items()):
-        print "\tsigma %d => %d" % (sigma, factor)
+    # TODO add a verbose flag
+    # print
+    # print "N=" + N_str
+    # print
+    # print "Should find:"
+    # for sigma, f in sorted(factor_by_sigma.items()):
+    #    print "\tsigma %d => %d" % (sigma, f)
 
     # TODO pass in $ECM
-    cmd = "echo %s | ./ecm -gpu -gpucurves %d -sigma %d:%d %d" % (
+    cmd = "echo %s | ./ecm -gpu -gpucurves %d -sigma %d:%d %d 0" % (
         N_str, sigma_count, param, SIGMA_0, B1)
 
     print
@@ -196,39 +202,53 @@ def stage1Tests(N_size, prime_size, B1, param, sigma_count, seed=None):
 
     found_factors = {}
     for line in lines:
-        match = re.search("factor ([0-9]*) found.*-sigma [0-4]:([0-9]*)\)", line)
+        match = re.search("factor ([0-9]*) found in Step 1.*-sigma [0-4]:([0-9]*)\)", line)
         if match:
-            factor, sigma = map(int, match.groups())
+            f, sigma = map(int, match.groups())
             assert sigma not in found_factors
-            found_factors[sigma] = factor
+            found_factors[sigma] = f
 
-    success = found_factors == factor_by_sigma
+    perfect_match = factor_by_sigma == found_factors
+    near_match = True
 
     all_sigmas = set(factor_by_sigma.keys()) | set(found_factors.keys())
     for sigma in sorted(all_sigmas):
-        theory = factor_by_sigma.get(sigma, 0)
-        practice = found_factors.get(sigma, 0)
+        theory = factor_by_sigma.get(sigma, 1)
+        practice = found_factors.get(sigma, 1)
+        if theory > practice:
+            near_match = False
+
         if theory != practice:
             print "sigma=%d Expected to find %d, found %d" % (sigma, theory, practice)
-            assert success == False
+            if practice % theory == 0:
+                extra = practice / theory
+                f = factor(GroupOrder(param, extra, sigma))
+                print "\t", extra, sigma, f
 
     print
-    print "Result Matched" if success else "Bad Result"
-    if not success:
+    if perfect_match:
+        print "Results matched"
+    elif near_match:
+        print "Results were superset (GPU found extra)"
+    else:
+        print "Wrong results"
         sys.exit(1)
 
 
 if __name__ == "__main__":
-    #testInternal()
+    testInternal()
 
     # TODO pass -gpucurves, -reps, -seed
 
-    # For Nvidia gtx 970
-    sigma_count = 32 #832
+    seed = None
+    reps = 15
+    sigma_count = 64
+    N_bits = 1000
 
-    # Test N = 1000 bits, compossed of ~20 50-bit primes, found at B1=1e4
-    stage1Tests(1000, 30, 10^4, GPU_PARAM, sigma_count)
+    for i in range(reps):
+        # Test smallish primes (40 bits = 12 digit) at B1=1e4
+        stage1Tests(N_bits, 40, 10^4, GPU_PARAM, sigma_count, seed=seed)
 
-    # Test larger primes at B1=1e5
-    stage1Tests(1000, 60, 10^5, GPU_PARAM, sigma_count)
+        # Test larger primes at B1=1e5
+        stage1Tests(N_bits, 60, 10^5, GPU_PARAM, sigma_count)
 

@@ -39,12 +39,7 @@ def FindGroupOrderParam2(p,s):
 
 # for parameter sigma = 3:s
 def FindGroupOrderParam3(p,s):
-   K = GF(p)
-   d = K(s/2^32)
-   A = 4*d-2
-   B = 4*A+10
-   E = EllipticCurve(K,[0,A/B,0,1/B^2,0])
-   return factor(E.cardinality())
+   return FindGroupOrderA (p, 4*s/2^32-2)
 
 def FindGroupOrderParam (p, sigma, param):
    if param == 0:
@@ -87,7 +82,7 @@ def is_found(l, B1, B2):
       if l[i][0]^l[i][1] > B1:
          return False
    return True
-  
+
 # check if a prime p is found with bounds B1 and B2,
 # for parameter 'param' and sigma in [sigma_min,sigma_max-1]
 # check_found ("./ecm", 31622776601683800097, 11000, 1873422, 0, 1000)
@@ -98,6 +93,7 @@ def check_found (ecm, p, B1, B2, param, sigma_max):
    assert (is_prime (p))
    e2 = 0
    e3 = 0
+   tested = 0
    tries = 0
    for sigma in range(sigma_max):
       try:
@@ -110,12 +106,13 @@ def check_found (ecm, p, B1, B2, param, sigma_max):
       if l[1][0] == 3:
          e3 += l[1][1]
       if is_found (l, B1, B2):
+         tested += 1
          # check the factor is really found
          check_found_aux (ecm, p, B1, B2, param, sigma)
-   print tries, 1.0*e2/tries, 1.0*e3/tries, 2.0^(e2/tries)*3.0^(e3/tries)
+   print tries, tested, 1.0*e2/tries, 1.0*e3/tries, 2.0^(e2/tries)*3.0^(e3/tries)
 
 # check all parametrizations 0, 1, 2, 3
-# check_found_all ("./ecm", 31622776601683800097, 11000, 1873422, 1000)
+#check_found_all ("./ecm", 31622776601683800097, 11000, 1873422, 200)
 def check_found_all (ecm, p, B1, B2, sigma_max):
    for param in range(4):
       check_found (ecm, p, B1, B2, param, sigma_max)
