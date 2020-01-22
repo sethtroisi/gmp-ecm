@@ -13,7 +13,7 @@ def FindGroupOrder(p,s):
 
 def FindGroupOrderA(p,A):
    K = GF(p)
-   d = K(A)
+   d = K((A+2)/4)
    a = K(4*d-2)
    b = K(16*d+2)
    E = EllipticCurve(K,[0,a/b,0,1/b^2,0])
@@ -21,7 +21,7 @@ def FindGroupOrderA(p,A):
 
 # for parameter sigma = 1:s
 def FindGroupOrderParam1(p,s):
-   return FindGroupOrderA (p, s^2/2^64)
+   return FindGroupOrderA (p, 4*s^2/2^64-2)
 
 # for parameter sigma = 2:s
 def FindGroupOrderParam2(p,s):
@@ -31,15 +31,11 @@ def FindGroupOrderParam2(p,s):
    x,y = P.xy()
    x3 = (3*x+y+6)/(2*(y-3))
    A = -(3*x3^4+6*x3^2-1)/(4*x3^3)
-   d = K((A+2)/4)
-   a = K(4*d-2)
-   b = K(16*d+2)
-   E = EllipticCurve(K,[0,a/b,0,1/b^2,0])
-   return factor(E.cardinality())
+   return FindGroupOrderA(p, A)
 
 # for parameter sigma = 3:s
 def FindGroupOrderParam3(p,s):
-   return FindGroupOrderA (p, s/2^32)
+   return FindGroupOrderA (p, 4*s/2^32-2)
 
 def FindGroupOrderParam (p, sigma, param):
    if param == 0:
