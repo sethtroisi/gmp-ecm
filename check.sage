@@ -13,7 +13,7 @@ def FindGroupOrder(p,s):
 
 def FindGroupOrderA(p,A):
    K = GF(p)
-   d = K((A+2)/4)
+   d = K(A)
    a = K(4*d-2)
    b = K(16*d+2)
    E = EllipticCurve(K,[0,a/b,0,1/b^2,0])
@@ -21,7 +21,7 @@ def FindGroupOrderA(p,A):
 
 # for parameter sigma = 1:s
 def FindGroupOrderParam1(p,s):
-   return FindGroupOrderA (p, 4*s^2/2^64-2)
+   return FindGroupOrderA (p, s^2/2^64)
 
 # for parameter sigma = 2:s
 def FindGroupOrderParam2(p,s):
@@ -39,12 +39,7 @@ def FindGroupOrderParam2(p,s):
 
 # for parameter sigma = 3:s
 def FindGroupOrderParam3(p,s):
-   K = GF(p)
-   d = K(s/2^32)
-   A = 4*d-2
-   B = 4*A+10
-   E = EllipticCurve(K,[0,A/B,0,1/B^2,0])
-   return factor(E.cardinality())
+   return FindGroupOrderA (p, s/2^32)
 
 def FindGroupOrderParam (p, sigma, param):
    if param == 0:
@@ -99,6 +94,7 @@ def check_found (ecm, p, B1, B2, param, sigma_max):
    e2 = 0
    e3 = 0
    tries = 0
+   found = 0
    for sigma in range(sigma_max):
       try:
          l = FindGroupOrderParam (p, sigma, param)
@@ -112,7 +108,8 @@ def check_found (ecm, p, B1, B2, param, sigma_max):
       if is_found (l, B1, B2):
          # check the factor is really found
          check_found_aux (ecm, p, B1, B2, param, sigma)
-   print tries, 1.0*e2/tries, 1.0*e3/tries, 2.0^(e2/tries)*3.0^(e3/tries)
+         found += 1
+   print tries, found, 1.0*e2/tries, 1.0*e3/tries, 2.0^(e2/tries)*3.0^(e3/tries)
 
 # check all parametrizations 0, 1, 2, 3
 # check_found_all ("./ecm", 31622776601683800097, 11000, 1873422, 1000)
