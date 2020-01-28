@@ -67,7 +67,7 @@ FACTOR_FOUND_RE = re.compile(
     'factor ([0-9]*) found in Step 1.*-sigma [0-4]:([0-9]*)\)')
 
 
-def GroupOrderParam0(p, sigma):
+def CurveParam0(p, sigma):
     K = GF(p)
     v = K(4*sigma)
     u = K(sigma^2 - 5)
@@ -77,16 +77,17 @@ def GroupOrderParam0(p, sigma):
     A = a/b-2
     x = x/v^3
     b = x^3 + A*x^2 + x
-    return EllipticCurve(K,[0,b*A,0,b^2,0])
+    return EllipticCurve(K,[0,A/b,0,1/b^2,0])
 
-def GroupOrderS(p, s):
+def PointOrderS(p, s):
     K = GF(p)
-    A = K(4 *s - 2);
-    b = K(16*s + 2);
-    return EllipticCurve(K,[0,b*A,0,b^2,0])
+    A = K(4 *s - 2)
+    b = K(16*s + 2)
+    E = EllipticCurve(K,[0,A/b,0,1/b^2,0])
+    return E(2/b,1/b) # x0=2, y0=1
 
 # From parametrizations.c
-def GroupOrderParam2(p,sigma):
+def CurveParam2(p, sigma):
     K = GF(p)
     E = EllipticCurve(K,[0,36])
     P = sigma*E(-3,3)
@@ -94,25 +95,25 @@ def GroupOrderParam2(p,sigma):
     x3 = (3*x+y+6)/(2*(y-3))
     A = -(3*x3^4+6*x3^2-1)/(4*x3^3)
     d = K((A+2)/4)
-    return GroupOrderS(p, d)
+    return PointOrderS(p, d)
 
-def GroupOrderParam1(p, sigma):
+def CurveParam1(p, sigma):
     K = GF(p)
-    return GroupOrderS(p, K(sigma^2 / 2^64))
+    return PointOrderS(p, K(sigma^2 / 2^64))
 
-def GroupOrderParam3(p, sigma):
+def CurveParam3(p, sigma):
     K = GF(p)
-    return GroupOrderS(p, K(sigma / 2^32))
+    return PointOrderS(p, K(sigma / 2^32))
 
 def GroupOrder(param, prime, sigma):
     if param == 0:
-        ec = GroupOrderParam0(prime, sigma)
+        ec = CurveParam0(prime, sigma)
     elif param == 1:
-        ec = GroupOrderParam1(prime, sigma)
+        ec = CurveParam1(prime, sigma)
     elif param == 2:
-        ec = GroupOrderParam2(prime, sigma)
+        ec = CurveParam2(prime, sigma)
     elif param == 3:
-        ec = GroupOrderParam3(prime, sigma)
+        ec = CurveParam3(prime, sigma)
     else:
         raise ValueError('Unknown param: ' + str(param))
 
@@ -127,26 +128,26 @@ def testInternal():
         2^3 * 3 * 71 * 563 * 1531 * 2153 * 3011 * 8219
     # echo '78257675131877111603' | ecm -sigma '1:3396' 4800 8000-9000
     assert GroupOrder(1, 78257675131877111603, 3396) == \
-        2^4 * 3 * 223 * 271 * 811 * 821 * 4799 * 8443
+        2 * 3 * 223 * 271 * 811 * 821 * 4799 * 8443
     # echo '78257675131877111603' | ecm -sigma '2:1801' 2100 9000-9300
     assert GroupOrder(2, 78257675131877111603, 1801) == \
-        2^9 * 3^3 * 23 * 41 * 47 * 67 * 101 * 2039 * 9257
+        2^8 * 3^3 * 23 * 41 * 47 * 67 * 101 * 2039 * 9257
     # echo '78257675131877111603' | ecm -sigma '3:2012' 6000 8000-9000
     assert GroupOrder(3, 78257675131877111603, 2012) == \
-        2^3 * 5^3 * 43^2 * 71 * 83 * 139 * 5779 * 8941
+        2^2 * 5^3 * 43^2 * 71 * 83 * 139 * 5779 * 8941
 
     # echo '1082500099132634560519' | ecm -sigma '0:6677' 1200 5000-6000
     assert GroupOrder(0, 1082500099132634560519, 6677) == \
         2^2 * 3 * 5^2 * 7 * 139 * 677 * 887 * 947 * 1123 * 5807
     # echo '1082500099132634560519' | ecm -sigma '1:1800' 4000 6000-7000
     assert GroupOrder(1, 1082500099132634560519, 1800) == \
-        2^5 * 7^2 * 13 * 17 * 79 * 701 * 2647 * 3347 * 6367
+        2^5 * 13 * 17 * 79 * 701 * 2647 * 3347 * 6367
     # echo '1082500099132634560519' | ecm -sigma '2:2966' 2000 7000-8000
     assert GroupOrder(2, 1082500099132634560519, 2966) == \
-        2^3 * 3^2 * 13 * 29 * 31^2 * 61 * 109 * 487 * 1709 * 7499
+        2^3 * 3 * 29 * 31^2 * 61 * 109 * 487 * 1709 * 7499
     # echo '1082500099132634560519' | ecm -sigma '3:1600' 2000 3000-3100
     assert GroupOrder(3, 1082500099132634560519, 1600) == \
-        2^3 * 3^3 * 7 * 23^2 * 37 * 67 * 71 * 1297 * 1933 * 3067
+        3^3 * 7 * 23^2 * 37 * 67 * 71 * 1297 * 1933 * 3067
 
     # From Zimmermann, https://homepages.cwi.nl/~herman/Zimmermann.pdf
     assert GroupOrder(0, 322410908070969630339041359359164154612901586904078700184707, 20041348) == \
@@ -271,41 +272,26 @@ def stage1Tests(N_size, prime_size, B1, param, num_curves, seed):
             found_factors[sigma] = f
 
     perfect_match = factor_by_sigma == found_factors
-    near_match = True
 
-    extra_count = 0
     all_sigmas = set(factor_by_sigma.keys()) | set(found_factors.keys())
     for sigma in sorted(all_sigmas):
         theory = factor_by_sigma.get(sigma, 1)
         practice = found_factors.get(sigma, 1)
-        if theory > practice:
-            near_match = False
-
         if theory != practice:
-            if args.verbose > 2 or practice < theory:
+            if practice < theory:
                 print('sigma=%d Expected to find %d, found %d' %
                     (sigma, theory, practice))
             if practice % theory == 0:
                 extra = practice / theory
-                extra_count += 1
                 f = factor(GroupOrder(param, extra, sigma))
-                if args.verbose:
-                    # This is nothing to worry about. A curve's order is
-                    # an upper bound on what B1 will find a prime, the order
-                    # of x0 may be smaller which is what happened here.
-                    print('\tExtra factor (%d) found by sigma=%d '
-                          'expected order=%s' % (extra, sigma, f))
+                print('\tExtra factor (%d) found by sigma=%d '
+                      'expected order=%s' % (extra, sigma, f))
 
     expected_curves = len(factor_by_sigma)
     if perfect_match:
         if args.verbose:
             print('Results matched extra (%d curves found factors)' %
                 expected_curves)
-    elif near_match:
-        if args.verbose:
-            print('GPU got lucky and found superset '
-                  '(%d curves found factors + %d extra factors)' %
-                        (expected_curves, extra_count))
     else:
         print('Wrong results for seed=%d' % seed)
         print(cmd)
