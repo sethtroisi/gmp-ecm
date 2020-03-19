@@ -594,6 +594,36 @@ error
   AC_MSG_RESULT(DLL)
   AC_MSG_ERROR([gmp.h is a DLL: use --disable-static --enable-shared]) ])
   fi
+
+  AC_MSG_CHECKING([whether we can link without -lpsapi])
+  # AC_SEARCH_LIBS won't work here, so do it by hand...
+  AC_DEFUN([ECM_PSAPI_PROGRAM],
+    [AC_LANG_PROGRAM([[
+	#ifdef _WIN32
+	#include <windows.h>
+	#include <psapi.h>
+	int testfunc ()
+	{
+	    PROCESS_MEMORY_COUNTERS info;
+	    GetProcessMemoryInfo(GetCurrentProcess(), &info, sizeof(info));
+	    return (int) (info.PeakWorkingSetSize >> 10);
+	}
+	#endif
+	]])])
+  AC_LINK_IFELSE([ECM_PSAPI_PROGRAM],
+    [AC_MSG_RESULT(yes)],
+    [AC_MSG_RESULT(no)
+    try_link_psapi=yes
+   ])
+  if test x"$try_link_psapi" = "xyes"; then
+    AC_MSG_CHECKING([whether we can link with -lpsapi])
+    LIBS="-lpsapi $LIBS"
+    AC_LINK_IFELSE([ECM_PSAPI_PROGRAM],
+      [AC_MSG_RESULT(yes)],
+      [AC_MSG_RESULT(no)
+       AC_MSG_ERROR([memusage.c using unresolved GetProcessMemoryInfo])
+     ])
+  fi
   ;;
 esac
 CL_AS_NOEXECSTACK
