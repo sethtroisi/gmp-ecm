@@ -1,6 +1,6 @@
 /* factor.c - public interface for libecm.
 
-Copyright 2005, 2006, 2007, 2009, 2011 Paul Zimmermann, Alexander Kruppa,
+Copyright 2005, 2006, 2007, 2009, 2011, 2020 Paul Zimmermann, Alexander Kruppa,
 David Cleaver, Cyril Bouvier.
 
 This file is part of the ECM Library.
@@ -83,6 +83,16 @@ ecm_init (ecm_params q)
   q->gw_b = 0;
   q->gw_n = 0;
   q->gw_c = 0;
+}
+
+/* function to be called between two calls of ecm_factor, it the same
+   ecm_params q is reused */
+void
+ecm_reset (ecm_params q)
+{
+  mpz_set_ui (q->sigma, 0);
+  q->B1done = ECM_DEFAULT_B1_DONE;
+  mpz_set_ui (q->x, 0);
 }
 
 void
