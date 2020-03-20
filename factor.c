@@ -131,6 +131,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
     }
   else if (mpz_cmp_ui (n, 1) == 0)
     {
+      /* we consider n=1 is fully factored (thus in step 1) */
       mpz_set_ui (f, 1);
       return ECM_FACTOR_FOUND_STEP1;
     }
