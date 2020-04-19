@@ -158,7 +158,7 @@ fi
 
 
 dnl Checks for programs.
-AC_PROG_CC
+AC_PROG_CC_C99
 AM_PROG_AS
 AM_PROG_CC_C_O
 
@@ -421,12 +421,6 @@ if test "x$GCC" = xyes && test "x$user_redefine_cc" != xyes; then
   case $CFLAGS in
     "-W "* | *" -W "* | *" -W") ;;
     *) CFLAGS="-W $CFLAGS"
-  esac
-  # -std=c99 is required (long long, // comments)
-  # https://gforge.inria.fr/tracker/index.php?func=detail&aid=21835&group_id=135&atid=623
-  case $CFLAGS in
-    "-std=c99 "* | *" -std=c99 "* | *" -std=c99") ;;
-    *) CFLAGS="-std=c99 $CFLAGS"
   esac
 #  CFLAGS="-Wall -W -Wundef -pedantic $CFLAGS"
 fi
