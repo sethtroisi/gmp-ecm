@@ -64,8 +64,8 @@ Instructions to install GMP-ECM:
 
    Note 3: If you want to use George Woltman's GWNUM library for speeding up
    factoring base 2 numbers, obtain the source file from
-   <ftp://mersenne.org/gimps/> (on May 2019 the latest source is
-   p95v298b3.source.zip), build the gwnum library for your operating system
+   <ftp://mersenne.org/gimps/> (on May 2020 the latest source is
+   p95v298b7.source.zip), build the gwnum library for your operating system
    (for example under 64-bit Linux go to the gwnum directory and type
    "make -f make64"), then use:
 
