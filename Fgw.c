@@ -312,14 +312,15 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   return 0;
 }
 
-/* this method doesn't care if v is 32 or 64 bits... */
+/* return ceil(log(v)/log(2)) */
 unsigned long gw_log_2(unsigned long v)
 {
-  unsigned long r = 0; /* r will be lg(v) */
+  unsigned long r = 0;
 
-  while (v >>= 1)
+  while (v > 1)
     {
       r++;
+      v = (v + 1) / 2;
     }
 
   return r;
