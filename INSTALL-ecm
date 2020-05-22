@@ -77,8 +77,7 @@ Instructions to install GMP-ECM:
 
    Note: Jonathan Crombie reported an error (Segmentation fault) with GWNUM
    29.6 with some inputs. George Woltman says the error lies in the giants
-   half-GCD code. This will be fixed in a later GWNUM release. In the meantime,
-   a fix is to use a GMP-based modular inversion.
+   half-GCD code. This issue is fixed in p95v298b7.
 
 2) compile the program with:
 
