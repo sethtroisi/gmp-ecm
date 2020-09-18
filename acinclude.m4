@@ -292,8 +292,10 @@ AC_CACHE_CHECK([if globals are prefixed by underscore],
 [cat >conftes1.c <<EOF
 #ifdef __cplusplus
 extern "C" { void underscore_test(); }
+#else
+extern void underscore_test();
 #endif
-main () { underscore_test(); }
+int main () { underscore_test(); return 1; }
 EOF
 for tmp_underscore in "" "_"; do
   cat >conftes2.s <<EOF
