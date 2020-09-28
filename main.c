@@ -1356,7 +1356,10 @@ main (int argc, char *argv[])
               fprintf (stderr, "Error, -bsaves makes sense in batch mode only\n");
               exit (EXIT_FAILURE);
             }
-          mpz_set_ui (params->batch_s, 2);
+          /* if batch_s <> 1, it means it was already initialized,
+             thus don't discard it, for example with -c 2 */
+          if (mpz_cmp_ui (params->batch_s, 1) == 0) /* not initialized */
+            mpz_set_ui (params->batch_s, 2);
         }
 
       /* load batch product s from a file */
@@ -1492,8 +1495,8 @@ main (int argc, char *argv[])
 
       /* now call the ecm library */
       if (result == ECM_NO_FACTOR_FOUND)
-	  /* if torsion was used, some factor may have been found... */
-	  result = ecm_factor (f, n.n, B1, params);
+        /* if torsion was used, some factor may have been found... */
+        result = ecm_factor (f, n.n, B1, params);
 
       if (result == ECM_ERROR)
         {
