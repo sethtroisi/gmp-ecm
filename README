@@ -631,6 +631,10 @@ $ make ecm-params
 
 This will optimize parameters for your machine and put them in ecm-params.h.
 
+If you do an out-of-source build, then:
+* copy the new ecm-params.h file into the source folder
+* run "make clean" and "make" again
+
 The ecm program automatically selects what it thinks is the best
 arithmetic for the given input number. If that choice is not optimal, you may 
 force the use of a certain arithmetic by trying options -modmulm, -mpzmod, 
