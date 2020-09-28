@@ -621,7 +621,7 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
 				 comment);
 	}
     }
-  else
+  else /* gpu case */
     {
       mpz_add_ui (params->sigma, params->sigma, params->gpu_number_of_curves);
       for (i = 0; i < params->gpu_number_of_curves; i++)
@@ -631,7 +631,9 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
           mpz_mod (tmp_x, tmp_x, n->n);
           write_resumefile_line (file, method, params->B1done, params->sigma,
 				 params->sigma_is_A, params->E->type,
-				 params->param, 
+                                 /* since the gpu version always uses -param 3,
+                                    we hardcode it in the save file */
+				 ECM_PARAM_BATCH_32BITS_D,
 				 tmp_x, NULL, n, orig_x0, orig_y0, 
 				 comment);
         }

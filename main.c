@@ -398,7 +398,7 @@ main (int argc, char *argv[])
   unsigned long gw_n = 0;  /* set default values for gwnum poly k*b^n+c */
   signed long gw_c = 0;    /* set default values for gwnum poly k*b^n+c */
 #endif
-  int use_gpu = 0; /* Do we use the GPU for stage 1 (by default no)*/
+  int use_gpu = 0; /* Do we use the GPU for stage 1 (by default no) */
   int gpudevice = -1; /* Which device do we use for GPU code (by default CUDA */
                       /* chooses)                                             */
   unsigned int gpucurves = 0; /* How many curves do we want for GPU code */ 
