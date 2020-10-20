@@ -1,7 +1,7 @@
 m4_define([ECM_VERSION_AC], [7.0.5-dev])
 
 AC_PREREQ([2.57])
-AC_INIT([ecm], ECM_VERSION_AC, [ecm-discuss@lists.gforge.inria.fr])
+AC_INIT([ecm], ECM_VERSION_AC, [ecm-discuss@inria.fr])
 
 AC_CONFIG_MACRO_DIR([m4])
 GMP_INIT([config.m4])

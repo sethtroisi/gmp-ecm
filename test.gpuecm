@@ -136,7 +136,7 @@ checkcode $? 6
 
 
 # bug found and patched by Greg Childers: resuming from gpu generated save file didn't work
-# Details: https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-April/004348.html
+# Details: https://sympa.inria.fr/sympa/arc/ecm-discuss/2016-04/msg00012.html
 # fixed with svn 2915.  several test cases given to exercise patch:
 /bin/rm -f test.ecm.save
 # Save file with no factor found in step 1 or step 2

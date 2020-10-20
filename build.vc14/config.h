@@ -4,7 +4,7 @@
 
 #define VERSION_GPU "gpu_ecm-win"
 
-#define PACKAGE_BUGREPORT "ecm-discuss@lists.gforge.inria.fr"
+#define PACKAGE_BUGREPORT "ecm-discuss@inria.fr"
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.

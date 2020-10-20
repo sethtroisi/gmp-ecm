@@ -153,15 +153,15 @@ def testInternal():
     assert GroupOrder(0, 322410908070969630339041359359164154612901586904078700184707, 20041348) == \
         2^4 * 3^2 * 391063 * 1197631 * 82011967 * 126033329 * 1926338723 * 4654300159 * 51585518429
 
-    # From David Broadhurst, https://lists.gforge.inria.fr/pipermail/ecm-discuss/2005-September/003792.html
+    # From David Broadhurst, https://sympa.inria.fr/sympa/arc/ecm-discuss/2005-09/msg00022.html
     assert GroupOrder(0, 2580118483169716809210552261225054520765090617558895237, 161957884569085) == \
         2^2 * 3 * 1483 * 91381 * 103231 * 239587 * 1151317 * 1186033 * 1611697 * 4199071 * 6941601157
 
-    # From David Broadhurst, https://lists.gforge.inria.fr/pipermail/ecm-discuss/2005-September/003790.html
+    # From David Broadhurst, https://sympa.inria.fr/sympa/arc/ecm-discuss/2005-09/msg00020.html
     assert GroupOrder(0, 73372650975767950626979890709193208431269141871367229612025497, 175923) == \
         2^2 * 3^2 * 13 * 41 * 3389 * 3989 * 1662013 * 2782993 * 5013037 * 94921033 * 1144363489 * 112303943380877
 
-    # From David Broadhurst, https://lists.gforge.inria.fr/pipermail/ecm-discuss/2005-September/003802.html
+    # From David Broadhurst, https://sympa.inria.fr/sympa/arc/ecm-discuss/2005-09/msg00032.html
     assert GroupOrder(0, 6314722182591714308391592266483806595696758378370807102207443753223500809, 2481305347) == \
         2^3 * 3^6 * 11 * 13^2 * 17^4 * 31^2 * 53^2 * 163 * 449 * 853^2 * 3923^2 * 7489 * 11113 * \
         23459^2 * 116531 * 1016891 * 580801721
