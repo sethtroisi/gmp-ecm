@@ -302,7 +302,10 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
         mpz_sub_ui (tmp, tmp, (*c * -1));
 
       if (mpz_divisible_p (tmp, num))
-        return 1;
+        {
+          mpz_clear(tmp);
+          return 1;
+        }
     }
 
   /* set b to zero so users have a second way to know we didn't find k,b,n,c */

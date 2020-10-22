@@ -305,6 +305,7 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
 
   for (j = 0; j < sp_num; j++)
     mpz_clear (U[j]);
+  free(U);
 }
 
 #if defined(TRACE_mpzspv_from_mpzv) || defined(TRACE_ntt_sqr_reciprocal)
