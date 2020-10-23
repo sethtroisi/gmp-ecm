@@ -1562,17 +1562,16 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
 #pragma omp parallel if (deg > 1000)
   {
     mpmod_t modulus_local;
-    long i; /* OpenMP insists on signed loop iteration var :( */
     
     mpmod_init_set (modulus_local, modulus);
     
 #pragma omp for
-    for (i = 0; (unsigned long) i <= 2 * deg - 2; i++)
+    for (i = 0; i <= 2 * deg - 2; i++)
       mpres_mul_z_to_z (H[i], Vt, H[i], modulus_local);
     mpmod_clear (modulus_local);
   }
 #else
-  for (i = 0; (unsigned long) i <= 2 * deg - 2; i++)
+  for (i = 0; i <= 2 * deg - 2; i++)
     mpres_mul_z_to_z (H[i], Vt, H[i], modulus);
 #endif
 
