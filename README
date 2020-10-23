@@ -1,3 +1,4 @@
+[note: this file is outdated now that GMP-ECM moved to gitlab.]
 
 This is the README file for GMP-ECM. (See INSTALL-ecm for installing GMP-ECM
 and the ecm library, and README.lib for using the ecm library.)
