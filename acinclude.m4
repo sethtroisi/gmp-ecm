@@ -378,7 +378,7 @@ dnl  the GPU architecture for which it is compiled is in GPU_ARCH
 
 AC_DEFUN([CU_CHECK_CUDA],
 [
-# Is the GPU version is requested?
+# Is the GPU version requested?
 AC_ARG_ENABLE(gpu,
   AS_HELP_STRING([--enable-gpu=GPU_ARCH],
                  [Enable the cuda version [default=no]]),
