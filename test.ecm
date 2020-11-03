@@ -80,7 +80,9 @@ echo 2050449353925555290706354283 | $ECM -primetest -param 0 -sigma 7 -k 1 30 0-
 
 # test the -primetest option
 echo 69281828573340491 | $ECM -primetest -param 1 -sigma 758224547 -k 1 2e4; checkcode $? 0
+if [ "$MUL" != "redc"]; then
 echo 69281828573340491 | $ECM            -param 1 -sigma 758224547 -k 1 2e4; checkcode $? 8
+fi
 
 # exercise the -q option
 echo 2050449353925555290706354283 | $ECM -q -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
@@ -556,6 +558,8 @@ checkcode $? 8
 echo "17+Phi(1,2)" | $ECM -sigma 0:17 1e3
 checkcode $? 6
 
+if [ "$MUL" != "redc"]; then
+
 # tests to exercise gcd code in eval.c
 echo "gcd(Phi(44,968),968^11-44*968^5+1)" | $ECM -sigma 1:3751794696 2e3
 checkcode $? 14
@@ -585,6 +589,8 @@ checkcode $? 10
 # tests to exercise U and primU code in eval.c
 echo "primU(5,-1,160)" | $ECM -sigma 1:450587089 11e3
 checkcode $? 10
+
+fi
 
 # on systems with 64-bit limbs, exercise mulredc9
 echo "2^567-181" | $ECM -sigma 0:2521899833399249862 11000; checkcode $? 14

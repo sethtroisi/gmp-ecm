@@ -215,7 +215,7 @@ Changed paths:
    M /trunk/README.gpu
 
 [README.gpu] added hint about Cuda error "too many resources requested for launch"
-(see https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-July/004368.html)
+(see https://sympa.inria.fr/sympa/arc/ecm-discuss/2016-07/msg00004.html)
 
 ------------------------------------------------------------------------
 r2968 | dcleaver | 2016-07-31 20:12:55 +0200 (Sun, 31 Jul 2016) | 1 line
@@ -233,7 +233,7 @@ Changed paths:
    M /trunk/test.gpuecm
 
 increased initial sigma so that test works with ECM_GPU_CURVES_BY_BLOCK=16
-(see https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-July/004368.html)
+(see https://sympa.inria.fr/sympa/arc/ecm-discuss/2016-07/msg00004.html)
 
 ------------------------------------------------------------------------
 r2966 | dcleaver | 2016-07-24 16:06:00 +0200 (Sun, 24 Jul 2016) | 1 line
@@ -315,7 +315,7 @@ Changed paths:
    M /trunk/main.c
 
 fixed duplicate output with -q reported by Par Kurlberg
-(https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-June/004361.html)
+(https://sympa.inria.fr/sympa/arc/ecm-discuss/2016-06/msg00004.html)
 
 ------------------------------------------------------------------------
 r2957 | zimmerma | 2016-06-17 17:37:53 +0200 (Fri, 17 Jun 2016) | 2 lines
@@ -402,7 +402,7 @@ Changed paths:
    M /trunk/parametrizations.c
 
 removed debug stuff (it was a compiler issue, cf
-https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-June/004360.html)
+https://sympa.inria.fr/sympa/arc/ecm-discuss/2016-06/msg00003.html)
 
 ------------------------------------------------------------------------
 r2945 | zimmerma | 2016-06-15 14:22:37 +0200 (Wed, 15 Jun 2016) | 2 lines
@@ -3604,7 +3604,7 @@ Changed paths:
    M /trunk/test.pm1
 
 fixed bug reported by Andrew Booker
-(http://lists.gforge.inria.fr/pipermail/ecm-discuss/2013-March/004214.html):
+(https://sympa.inria.fr/sympa/arc/ecm-discuss/2013-03/msg00000.html):
 when B1=1, the -go parameter was ignored for P-1
 
 ------------------------------------------------------------------------
@@ -7995,7 +7995,7 @@ Changed paths:
    M /trunk/mpmod.c
 
 fixed various problems with ecm-6.4.1-rc1 reported by David Cleaver
-(http://lists.gforge.inria.fr/pipermail/ecm-discuss/2012-March/004144.html):
+(https://sympa.inria.fr/sympa/arc/ecm-discuss/2012-03/msg00024.html):
 * replaced unsigned long by mp_limb_t in batch=1 (under Windows, unsigned long
   has 32 bits only)
 * configure.in: added -lm for mathematical functions

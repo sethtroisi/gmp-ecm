@@ -138,7 +138,7 @@ Known problems:
 
 * [reported by Sam Rawlins] with MinGW under Windows XP (32-bit), the
   compilation fails in spv.c. A fix seems to add -msse2 to CFLAGS.
-  See http://lists.gforge.inria.fr/pipermail/ecm-discuss/2010-June/004077.html
+  See https://sympa.inria.fr/sympa/arc/ecm-discuss/2010-06/msg00000.html
 * GCC 4.4 might miscompile GMP-ECM on Sparc,
   see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=45559 for more details.
   The problem is due in fact to a bug in the Linux kernel. A fix is to use
@@ -214,6 +214,6 @@ In case of a problem, report it to us, with:
 
 - the output you get.
 
-Then send your bug report at <ecm-discuss@lists.gforge.inria.fr>.
+Then send your bug report at <ecm-discuss@inria.fr>.
 This is a public list, with archives available at
-<http://lists.gforge.inria.fr/pipermail/ecm-discuss/>.
+<https://sympa.inria.fr/sympa/arc/ecm-discuss/>.

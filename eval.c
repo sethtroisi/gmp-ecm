@@ -944,8 +944,11 @@ MONADIC_SUFFIX_LOOP:
 	  eval_sum (n_stack[0],n,op_stack[0]);
 	  mpz_set(t, n);
 	  mpz_clear(n);
-	  for (i=0;i<5;i++) 
-	    mpz_clear(n_stack[i]);
+	  for (i=0;i<5;i++)
+            {
+              mpz_clear(n_stack[i]);
+              mpz_clear(param_stack[i]);
+            }
 	  /* Hurray! a valid expression (or sub-expression) was parsed! */
 	  return ','==op?2:1;
 	}

@@ -68,7 +68,7 @@ Changes between GMP-ECM 6.4 and GMP-ECM 6.4.1:
 * GMP-ECM is now distributed under the GPL version 3 or later for the binary,
   and under the LGPL version 3 or later for the library
 * Fixed a speed regression with respect to GMP-ECM 6.3
-  http://lists.gforge.inria.fr/pipermail/ecm-discuss/2012-February/004103.html
+  https://sympa.inria.fr/sympa/arc/ecm-discuss/2012-02/msg00000.html
 * Fixed a bug with the -treefile option which had been present for a long time
 * Several fixes for the Visual Studio 2010 build
 * New experimental option -batch=2, and speedup for -batch (i.e., -batch=1)

@@ -309,8 +309,6 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
-  mpmod_init (modulus, n, repr);
-
     {
       long P;
       const unsigned long lmax = 1UL<<28; /* An upper bound */
@@ -424,6 +422,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
         }
     }
 
+  mpmod_init (modulus, n, repr);
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
 
