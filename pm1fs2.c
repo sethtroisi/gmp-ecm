@@ -1562,7 +1562,9 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
 #pragma omp parallel if (deg > 1000)
   {
     mpmod_t modulus_local;
-    
+#ifdef _MSC_VER
+    long i; /* Microsoft C/C++ stuck on OpenMP 2.0 :( */
+#endif
     mpmod_init_set (modulus_local, modulus);
     
 #pragma omp for
