@@ -98,6 +98,7 @@ To make a new release:
      $ git push
 
      Version     svn tag     git tag
+     6.0.1       r781        1a2f3c6
      6.2         r1290       1fb9bfa
      6.2.1 	 r1307       b600e50
      6.3	 r1501	     b3451db
