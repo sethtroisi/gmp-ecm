@@ -111,7 +111,6 @@ Table of contents:
 5) bugs
 
 6) others
-- add primality proving of factors/cofactors? Maybe link Pari for this?
 - add point counting algorithm? SEA implementation exists for Pari/GP,
    use that?
 - let user specify previous factoring work, compute distribution of
