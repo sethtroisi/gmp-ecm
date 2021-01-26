@@ -72,7 +72,7 @@ To make a new release:
   1) Check the version (configure.ac and build.vc*/gen_ecm_h.bat).
      Switch assertions to off by default in configure.ac.
   2) Update the NEWS file, and check the INSTALL-ecm file is up-to-date.
-  3) Update the ChangeLog file, e.g. svn -v log > /tmp/ChangeLog and edit
+  3) Update the ChangeLog file, e.g. git log > /tmp/ChangeLog and edit
      ChangeLog to insert /tmp/ChangeLog at the beginning and remove
      the duplicated lines.
   4) Check the required sizes of P-1, P+1, ECM champions in champions.h.
@@ -92,23 +92,30 @@ To make a new release:
      and all sigma values < 1000, and checks the prime 31622776601683800097
      is found when it should be (i.e., when the group order is (B1,B2)-smooth):
      check_found_all ("./ecm", 31622776601683800097, 11000, 1873422, 1000)
-  9) If there is no problem, add a tag to the svn version corresponding to the
+  9) If there is no problem, add a tag to the version corresponding to the
      release, for example:
-     $ svn cp . svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/tags/6.2
-     or more detailed:
-     $ svn cp -r1307 svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/trunk \
-             svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/tags/6.2.1 \
-             -m "Tagging r1307 as version 6.2.1"
+     $ git tag -a 7.0.4 fcc8509
+     $ git push
 
-     Version 6.2 is r1290, 6.2.1 is r1307, 6.3 is r1501, 6.4 is r1672,
-     6.4.1 is r1844, 6.4.2 is r1882, 6.4.3 is r2100, 6.4.4 is r2439,
-     7.0 is r2900, 7.0.1 is r2932, 7.0.2 is r2961, 7.0.3 is r2963,
-     7.0.4 is r2991.
+     Version     svn tag     git tag
+     6.0.1       r781        1a2f3c6
+     6.2         r1290       1fb9bfa
+     6.2.1 	 r1307       b600e50
+     6.3	 r1501	     b3451db
+     6.4	 r1672	     468d182
+     6.4.1	 r1844	     1a2d08a
+     6.4.2	 r1882	     69fd89d
+     6.4.3	 r2100	     f8c244d
+     6.4.4	 r2439	     2f06a62
+     7.0	 r2900	     2ffe6f9
+     7.0.1	 r2932	     cd57d0b
+     7.0.2	 r2961	     4dcc4fc
+     7.0.3	 r2963	     ee145f2
+     7.0.4	 r2991	     fcc8509
 
  10) increase the version number in configure.ac and build.vc*/gen_ecm_h.bat,
      and switch assertions to on by default in configure.ac.
 
 To see the differences between a given tag and the current version:
 
-$ svn diff --old=svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/tags/6.2.1 \
-           --new=svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/trunk
+$ git diff 7.0.4

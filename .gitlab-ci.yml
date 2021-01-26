@@ -1,0 +1,9 @@
+linux_gmp621:
+  stage: build
+  script:
+    - autoreconf -i
+    - ./configure --with-gmp-include=/builds/gmp-6.2.1 --with-gmp-lib=/builds/gmp-6.2.1/.libs
+    - make
+    - make check
+  tags:
+    - linux
