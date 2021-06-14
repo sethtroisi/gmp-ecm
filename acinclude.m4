@@ -616,32 +616,3 @@ AC_SUBST(CUDALDFLAGS)
 AC_SUBST(CUDARPATH)
 
 ])
-
-dnl Checks whether the stack can be marked nonexecutable by passing an option
-dnl to the C-compiler when acting on .s files. Appends that option to ASMFLAGS.
-dnl This macro is adapted from one found in GMP 6.1.1.
-dnl FIXME: This test looks broken. It tests that a file with .note.GNU-stack...
-dnl can be compiled/assembled with -Wa,--noexecstack.  It does not determine
-dnl if that command-line option has any effect on general asm code.
-AC_DEFUN([CL_AS_NOEXECSTACK],[
-dnl AC_REQUIRE([AC_PROG_CC]) GMP uses something else
-AC_CACHE_CHECK([whether assembler supports --noexecstack option],
-cl_cv_as_noexecstack, [dnl
-  cat > conftest.c <<EOF
-void foo() {}
-EOF
-  if AC_TRY_COMMAND([${CC} $CFLAGS $CPPFLAGS
-                     -S -o conftest.s conftest.c >/dev/null]) \
-     && grep .note.GNU-stack conftest.s >/dev/null \
-     && AC_TRY_COMMAND([${CC} $CFLAGS $CPPFLAGS -Wa,--noexecstack
-                       -c -o conftest.o conftest.s >/dev/null])
-  then
-    cl_cv_as_noexecstack=yes
-  else
-    cl_cv_as_noexecstack=no
-  fi
-  rm -f conftest*])
-  if test "$cl_cv_as_noexecstack" = yes; then
-    LIBECM_LDFLAGS="$LIBECM_LDFLAGS -Wl,-znoexecstack"
-  fi
-])
