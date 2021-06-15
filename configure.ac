@@ -620,7 +620,6 @@ error
   fi
   ;;
 esac
-CL_AS_NOEXECSTACK
 AC_SUBST([LIBECM_LDFLAGS])
 
 
