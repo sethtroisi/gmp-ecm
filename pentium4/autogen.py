@@ -3,6 +3,13 @@
 import re
 import sys
 
+# Final assembler statement to mark stack as not executable on linux elf platforms
+# Single quotes are used around # to prevent M4 to discard them as comments. M4 will remove them.
+noexecstack_statement = """
+`#'if defined(__linux__) && defined(__ELF__)
+.section .note.GNU-stack,"",%progbits
+`#'endif
+"""
 
 def offaddr(addr, offset):
 	if offset == 0:
@@ -237,7 +244,7 @@ GSYM_PREFIX`'mulredc1:
 	movl    %edx, (%ecx)
 	adcl	$0, %eax
 	ret
-""")
+""" + noexecstack_statement)
 else:
-	print(mulredc_k_rolled(k))
+	print(mulredc_k_rolled(k) + noexecstack_statement)
 
