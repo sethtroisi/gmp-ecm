@@ -194,7 +194,7 @@ Loop:
 	
 k = int(sys.argv[1])
 if k == 1:
-	print """#
+	print("""#
 #  mp_limb_t mulredc1(mp_limb_t *z, const mp_limb_t x, const mp_limb_t y,
 #                 const mp_limb_t m, mp_limb_t inv_m)
 #
@@ -237,7 +237,7 @@ GSYM_PREFIX`'mulredc1:
 	movl    %edx, (%ecx)
 	adcl	$0, %eax
 	ret
-"""
+""")
 else:
-	print mulredc_k_rolled(k)
+	print(mulredc_k_rolled(k))
 
