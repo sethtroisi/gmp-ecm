@@ -413,6 +413,13 @@ are taken. It can take 4 values (s is the 'sigma' parameter):
 Generally, the parameter s is chosen randomly but the -sigma option can be
 used to choose its value.
 
+* with -param 0, there is no constraint on sigma
+* with -param 1 (only for 64-bit processors), s^2 should fit in a 64-bit
+  integer, thus s < 2^32
+* with -param 2, there is no constraint on sigma
+* with -param 3 (mostly used for GPU), s should fit in a 32-bit word,
+  thus s < 2^32
+
 In the case where only "-sigma s" is used, "-param 0" is assumed in order to be
 compatible with older version of GMP-ECM. The above is also true when resuming
 from a file (see Section 7). In the case where only "-param p" is used, the
@@ -675,7 +682,7 @@ Performance of NTT is dependent on:
   64 bit only work for x86 using gcc or Intel cc, so it is compiler dependent.
 
 Note on factoring Fermat numbers:
-GMP-ECM features Schönhage-Strassen multiplication for polynomials in 
+GMP-ECM features SchÃ¶nhage-Strassen multiplication for polynomials in 
 stage 2 when factoring Fermat numbers (not in the new, fast stage 2 for
 P+1 and P-1. This is to be implemented.) This greatly reduces the number of 
 modular multiplications required, thus improving speed. It does, however, 
@@ -685,7 +692,7 @@ approximately 4.
 For the number of blocks, choices of 2, 3 or 4 usually give best performance.
 However, if the polynomial degree becomes too large, relatively expensive
 Karatsuba or Toom-Coom methods are required to split the polynomial before
-Schönhage-Strassen's method can handle them. That can make a larger number 
+SchÃ¶nhage-Strassen's method can handle them. That can make a larger number 
 of blocks worthwhile. When factoring the m-th Fermat number F_m = 2^(2^m)+1,
 degrees up to dF=2^(m+1) can be handled directly. If your B2 choice
 requires a degree much larger than this (dF is printed with the -v
