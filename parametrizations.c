@@ -242,16 +242,14 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 
   ASSERT (GMP_NUMB_BITS == 64);
       
-  mpz_mul (tmp, sigma, sigma); /* tmp = sigma^2*/
-  
-  /* A=4*d-2 with d = sigma^2/2^GMP_NUMB_BITS*/
-  /* Compute d = sigma^2/2^GMP_NUMB_BITS */
-  for (i = 0; i < GMP_NUMB_BITS; i++)
-    {
-      if (mpz_tstbit (tmp, 0) == 1)
-          mpz_add (tmp, tmp, n->orig_modulus);
-      mpz_div_2exp (tmp, tmp, 1);
-    }
+  /* A=4*d-2 with d = sigma^2/2^64 */
+  /* Compute d = sigma^2/2^64 */
+  mpz_ui_pow_ui(tmp, 2, 64);
+  mpz_invert(tmp, tmp, n->orig_modulus);
+
+  /* tmp = sigma^2/2^64 */
+  mpz_mul (tmp, tmp, sigma);
+  mpz_mul (tmp, tmp, sigma);
 
   mpz_mod (tmp, tmp, n->orig_modulus);
   /* TODO add d!=-1/8*/
@@ -389,28 +387,15 @@ get_curve_from_param3 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
   int i;
   mpz_t tmp;
-  mpz_t two32;
-  mpz_init (two32);
-  mpz_ui_pow_ui (two32, 2, 32);
   mpz_init (tmp);
 
-  /* sigma < 2^32 (it was generated for 32-bit machines) */
-  /* To use it on a 64-bits machines one should multiplied it by 2^32 */
-  if (GMP_NUMB_BITS == 64)
-      mpz_mul (tmp, sigma, two32);
-  else  
-      mpz_set (tmp, sigma);
-  
-  /* A=4*d-2 with d = sigma/2^GMP_NUMB_BITS*/
-  /* Compute d = sigma/2^GMP_NUMB_BITS */
-  for (i = 0; i < GMP_NUMB_BITS; i++)
-    {
-      if (mpz_tstbit (tmp, 0) == 1)
-      mpz_add (tmp, tmp, n->orig_modulus);
-      mpz_div_2exp (tmp, tmp, 1);
-    }
-
+  /* A=4*d-2 with d = sigma/2^32*/
+  /* Compute d = sigma/2^32 */
+  mpz_ui_pow_ui (tmp, 2, 32);
+  mpz_invert (tmp, tmp, n->orig_modulus);
+  mpz_mul (tmp, sigma, tmp);
   mpz_mod (tmp, tmp, n->orig_modulus);
+
   /* TODO add d!=-1/8*/
   if (mpz_sgn (tmp) == 0 || mpz_cmp_ui (tmp, 1) == 0)
       return ECM_ERROR;
@@ -422,7 +407,6 @@ get_curve_from_param3 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpres_set_ui (x0, 2, n);
 
   mpz_clear(tmp);
-  mpz_clear (two32);
   return ECM_NO_FACTOR_FOUND;
 }
 
