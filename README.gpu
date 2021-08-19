@@ -45,6 +45,11 @@ Some versions of CUDA are not compatible with recent versions of gcc.
 To specify which C compiler is called by the CUDA compiler nvcc, type:
 
   $ ./configure --enable-gpu --with-cuda-compiler=/PATH/DIR 
+
+If you get errors about "cuda.h: present but cannot be compiled"
+Try using an older CC:
+
+  $ ./configure --enable-gpu CC=gcc-8
   
 The value of this parameter is directly passed to nvcc via the option
 "--compiler-bindir". By default, GMP-ECM lets nvcc choose what C compiler it
