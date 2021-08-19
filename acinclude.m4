@@ -380,10 +380,18 @@ AC_DEFUN([CU_CHECK_CUDA],
 [
 # Is the GPU version requested?
 AC_ARG_ENABLE(gpu,
-  AS_HELP_STRING([--enable-gpu=GPU_ARCH],
-                 [Enable the cuda version [default=no]]),
-  [ AS_IF([test "x$enableval" = "xno"], [ enable_gpu="no" ],
-                                        [ enable_gpu="yes" ]) ] )
+  AS_HELP_STRING([--enable-gpu@<:@=GPU_ARCH@:>@],
+                 [Build with support for CUDA stage 1, by default builds with all possible compute capabilities
+                  to build with a single compute capability pass use --enable-gpu=XX [default=no]]),
+  [ AS_IF([test "x$enableval" = "xno"],
+    [ enable_gpu="no" ],
+    [ enable_gpu="yes"
+      AS_CASE(["x$enableval"],
+        [ xyes ], [],
+        [ x[[2-9]][[0-9]] ], [ WANTED_GPU_ARCH="$enableval" ],
+        [ AC_MSG_ERROR([Didn't recognize GPU_ARCH="$enableval"]) ])
+    ]) ])
+
 
 AC_ARG_WITH(cuda,
   AS_HELP_STRING([--with-cuda=DIR],
@@ -535,41 +543,39 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
         AC_MSG_ERROR(gcc version is not compatible with nvcc)
       ])
       
-    dnl Check which GPU architecture nvcc know
+    dnl Check which GPU architecture nvcc knows
     NVCCTEST="$NVCC -c conftest.cu -o conftest.o $NVCCFLAGS --dryrun"
     GPU_ARCH=""
-    m4_foreach_w([compute_compatibility], [20 21 30 32 35 37 50 52 53 60 61 62 70 72 75],
+    m4_foreach_w([compute_capability], [30 32 35 37 50 52 53 60 61 62 70 72 75],
       [
-        testcc=compute_compatibility
-        AC_MSG_CHECKING([that nvcc know compute capability $testcc])
-        AS_IF([test "$testcc" -eq "21"],
+        testcc=compute_capability
+        AS_IF([test -z "$WANTED_GPU_ARCH" -o "$WANTED_GPU_ARCH" = "$testcc"],
           [
-            NEW="--generate-code arch=compute_20,code=sm_21"
-          ],
-          [
+            AC_MSG_CHECKING([that nvcc know compute capability $testcc])
             NEW="--generate-code arch=compute_$testcc,code=sm_$testcc"
+            $NVCCTEST $NEW > /dev/null 2>&1
+            AS_IF([test "$?" -eq "0"], 
+              [
+                AC_MSG_RESULT([yes])
+                GPU_ARCH="$GPU_ARCH $NEW"
+                MIN_CC=${MIN_CC:-$testcc}
+              ], [
+                AC_MSG_RESULT([no])
+              ])
           ])
-        $NVCCTEST $NEW > /dev/null 2>&1
-        AS_IF([test "$?" -eq "0"], 
-          [
-            AC_MSG_RESULT([yes])
-            GPU_ARCH="$GPU_ARCH $NEW"
-          ], [
-            AC_MSG_RESULT([no])
-          ])
-      ] )
-
-    # CUDA 9 dropped support for compute capability 2.x cards.
-    MIN_CC=`echo $GPU_ARCH | sed 's/--generate-code arch=compute_// ; s/,code.*//'`
-
+      ])
+ 
     # Use JIT compilation of GPU code for forward compatibility
-    GPU_ARCH="--generate-code arch=compute_${MIN_CC},code=compute_${MIN_CC} $GPU_ARCH"
+    AC_MSG_NOTICE([Setting MIN_CC=$MIN_CC  GPU_ARCH=$GPU_ARCH])
+
+    AS_IF([test -z "$GPU_ARCH"],
+        [AC_MSG_ERROR([No supported compute capabilities found])])
 
     dnl check that nvcc know ptx instruction madc
     echo "__global__ void test (int *a, int b) { 
           asm(\"mad.lo.cc.u32 %0, %0, %1, %1;\": 
           \"+r\"(*a) : \"r\"(b));} " > conftest.cu
-    AC_MSG_CHECKING([if nvcc know ptx instruction madc])
+    AC_MSG_CHECKING([if nvcc knows ptx instruction madc])
     $NVCC -c conftest.cu -o conftest.o $NVCCFLAGS --generate-code arch=compute_${MIN_CC},code=compute_${MIN_CC} > /dev/null 2>&1
     AS_IF([test "$?" -eq "0"], 
       [
