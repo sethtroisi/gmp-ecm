@@ -140,13 +140,15 @@ echo "2^919-1" | $ECM -param 0 -sigma 262763035 937 1; checkcode $? 6
 
 echo "2^919-1 // comment" | $ECM -param 0 -sigma 262763035 937 1; checkcode $? 6
 
-echo "101#-1" | $ECM -sigma 0:17 4e5; checkcode $? 14
+echo "101#-1" | $ECM -sigma 0:18 1e5; checkcode $? 14
 
 echo '101!-1' | $ECM -sigma 0:17 1e5; checkcode $? 2
 
-echo '101!3-1' | $ECM -sigma 0:17 1e5; checkcode $? 2
+echo '(101!3-1)/214663' | $ECM -sigma 0:17 1e5; checkcode $? 2
 
 echo '101#3-2' | $ECM -sigma 0:18 1e5; checkcode $? 14
+
+echo '(101#3+1)/2^7/19259' | $ECM -sigma 0:18 1e2; checkcode $? 6
 
 ## The following tests produce errors (in normal usage), and should not be
 ## tested with valgrind (we do not free all memory in case of error)
