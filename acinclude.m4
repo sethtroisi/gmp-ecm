@@ -369,6 +369,19 @@ AC_DEFUN([ECM_C_INLINESSE2_PROG], dnl
   }
 ]])])
 
+dnl  NVCC_CHECK_COMPILE(body, flags, action-if-true, action-if-false)
+dnl  Similiar to AC_LANG_PUSH(CUDA) AC_COMPILE_IFELSE($1+$2, $3, $4) AC_LANG_POP(CUDA)
+dnl  Check if conftest.cu with <body> compiles with $NVCC $flags
+
+m4_define([NVCC_CHECK_COMPILE],
+[
+   echo "$1" > conftest.cu
+   $NVCC -c conftest.cu -o conftest.o $2 &> /dev/null
+   ret=$?
+   rm conftest.cu
+   AS_IF([test "$ret" -eq "0"], [$3], [$4])
+])
+
 dnl  CU_CHECK_CUDA
 dnl  Check if a GPU version is asked, for which GPU and where CUDA is install.
 dnl  Includes are put in CUDA_INC_FLAGS
@@ -532,19 +545,16 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
           [NVCCFLAGS=" --compiler-bindir $cuda_compiler NVCCFLAGS"])
  
     dnl check that gcc version is compatible with nvcc version
-    touch conftest.cu
+    dnl (seth) How is this checking if gcc and nvcc are compatible?
     AC_MSG_CHECKING([for compatibility between gcc and nvcc])
-    $NVCC -c conftest.cu -o conftest.o $NVCCFLAGS > /dev/null 2>&1
-    AS_IF([test "$?" -eq "0"], 
+    NVCC_CHECK_COMPILE([], [$NVCCFLAGS],
+      [AC_MSG_RESULT([yes])],
       [
-        AC_MSG_RESULT([yes])
-      ], [
         AC_MSG_RESULT([no])
         AC_MSG_ERROR(gcc version is not compatible with nvcc)
       ])
       
     dnl Check which GPU architecture nvcc knows
-    NVCCTEST="$NVCC -c conftest.cu -o conftest.o $NVCCFLAGS --dryrun"
     GPU_ARCH=""
     m4_foreach_w([compute_capability], [30 32 35 37 50 52 53 60 61 62 70 72 75],
       [
@@ -553,8 +563,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
           [
             AC_MSG_CHECKING([that nvcc know compute capability $testcc])
             NEW="--generate-code arch=compute_$testcc,code=sm_$testcc"
-            $NVCCTEST $NEW > /dev/null 2>&1
-            AS_IF([test "$?" -eq "0"], 
+            NVCC_CHECK_COMPILE([], [$NVCCFLAGS --dryrun $NEW],
               [
                 AC_MSG_RESULT([yes])
                 GPU_ARCH="$GPU_ARCH $NEW"
@@ -564,7 +573,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
               ])
           ])
       ])
- 
+
     # Use JIT compilation of GPU code for forward compatibility
     AC_MSG_NOTICE([Setting MIN_CC=$MIN_CC  GPU_ARCH=$GPU_ARCH])
 
@@ -572,15 +581,16 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
         [AC_MSG_ERROR([No supported compute capabilities found])])
 
     dnl check that nvcc know ptx instruction madc
-    echo "__global__ void test (int *a, int b) { 
-          asm(\"mad.lo.cc.u32 %0, %0, %1, %1;\": 
-          \"+r\"(*a) : \"r\"(b));} " > conftest.cu
     AC_MSG_CHECKING([if nvcc knows ptx instruction madc])
-    $NVCC -c conftest.cu -o conftest.o $NVCCFLAGS --generate-code arch=compute_${MIN_CC},code=compute_${MIN_CC} > /dev/null 2>&1
-    AS_IF([test "$?" -eq "0"], 
+    NVCC_CHECK_COMPILE(
       [
-        AC_MSG_RESULT([yes])
-      ], [
+         __global__ void test (int *a, int b) {
+         asm(\"mad.lo.cc.u32 %0, %0, %1, %1;\":
+         \"+r\"(*a) : \"r\"(b));}
+      ],
+      [$NVCCFLAGS --generate-code arch=compute_${MIN_CC},code=compute_${MIN_CC}],
+      [AC_MSG_RESULT([yes])],
+      [
         AC_MSG_RESULT([no])
         AC_MSG_ERROR([nvcc does not recognize ptx instruction madc, you should upgrade it])
       ])
@@ -593,14 +603,14 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
 
     LIBS="$LIBS_BACKUP"
     LDFLAGS="$LDFLAGS_BACKUP"
-    
+
     NVCCFLAGS="$NVCCFLAGS -DWITH_GPU $EGCBB $GPU_ARCH"
     CFLAGS="$CFLAGS -DWITH_GPU $EGCBB"
     CPPFLAGS="$CPPFLAGS -DWITH_GPU $EGCBB"
 
     NVCCFLAGS="$NVCCFLAGS --ptxas-options=-v"
     NVCCFLAGS="$NVCCFLAGS --compiler-options -fno-strict-aliasing"
-    # If debug flag is set apply debugging compilation flags, 
+    # If debug flag is set apply debugging compilation flags,
     # otherwise build compilation flags
     AS_IF([test "x$DEBUG" = "xtrue"],
       [
