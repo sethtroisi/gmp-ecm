@@ -595,6 +595,37 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
         AC_MSG_ERROR([nvcc does not recognize ptx instruction madc, you should upgrade it])
       ])
 
+    AC_ARG_WITH(cgbn_include,
+      AS_HELP_STRING([--with-cgbn-include=DIR], [CGBN include directory]),
+      [
+        cgbn_include=$withval
+        AC_MSG_NOTICE([Using CGBN from $cgbn_include])
+        AS_IF([test "x$with_cgbn_include" != "xno"],
+          [
+            AS_IF([test -d "$cgbn_include"],
+              [],
+              [AC_MSG_ERROR([Specified CGBN include directory "$cgbn_include" does not exist])])
+
+            AC_MSG_CHECKING([if CGBN is present])
+            NVCC_CHECK_COMPILE(
+              [
+                #include <gmp.h>
+                #include <cgbn.h>
+              ],
+              [-I$cgbn_include $GMPLIB],
+              [AC_MSG_RESULT([yes])],
+              [
+                AC_MSG_RESULT([no])
+                AC_MSG_ERROR([cgbn.h not found (check if /cgbn needed after <PATH>/include)])
+              ]
+            )
+            AC_DEFINE([HAVE_CGBN_H], [1], [Define to 1 if cgbn.h exists])
+            NVCCFLAGS="-I$with_cgbn_include $GMPLIB $NVCCFLAGS"
+            want_cgbn="yes"
+        ])
+      ])
+
+
     if test "$MIN_CC" -eq "20" ; then
        EGCBB="-DECM_GPU_CURVES_BY_BLOCK=16"
     else
@@ -624,6 +655,8 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
   ])
 #Set this conditional if cuda is wanted
 AM_CONDITIONAL([WANT_GPU], [test "x$enable_gpu" = "xyes" ])
+#Set this conditional if cuda & cgbn_include
+AM_CONDITIONAL([WANT_CGBN], [test "x$want_cgbn" = "xyes" ])
 
 AC_SUBST(NVCC)
 AC_SUBST(NVCCFLAGS)
