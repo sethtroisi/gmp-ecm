@@ -597,6 +597,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
   
   st = cputime ();
+
 #ifdef HAVE_CGBN_H
   if (use_cgbn) {
     youpi = cgbn_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves,

@@ -607,6 +607,8 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
               [AC_MSG_ERROR([Specified CGBN include directory "$cgbn_include" does not exist])])
 
             AC_MSG_CHECKING([if CGBN is present])
+
+            dnl AC_CHECK_HEADER can't verify NVCC compilability hence NVCC_CHECK_COMPILE
             NVCC_CHECK_COMPILE(
               [
                 #include <gmp.h>
