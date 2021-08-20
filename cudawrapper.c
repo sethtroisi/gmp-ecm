@@ -2,6 +2,7 @@
 
 #ifdef WITH_GPU
 
+// #ifdef WITH_CGBN TODO
 #include "cgbn_stage1.h"
 #include "cudakernel.h"
 
@@ -104,19 +105,13 @@ int cgbn_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
                     unsigned int number_of_curves, unsigned int firstsigma,
                     float *gputime, int verbose)
 {
-  int youpi = ECM_NO_FACTOR_FOUND;
-
-
+  /* Setup the CGBN params */
   ecm_params_t ecm_params;
   ecm_params.curves = number_of_curves;
   ecm_params.sigma = firstsigma;
 
-  // TODO get *gputime = ???
-  // TODO set factors, array_stage_found
-  /* Call the wrapper function that call the GPU */
-  run_cgbn(N, s, &ecm_params);
-
-  return youpi;
+  /* Call the wrapper function that call the CGBN/GPU */
+  return run_cgbn(factors, array_stage_found, N, s, gputime, &ecm_params);
 }
 
 int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s, 

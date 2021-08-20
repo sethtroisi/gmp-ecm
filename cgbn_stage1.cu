@@ -25,7 +25,6 @@ IN THE SOFTWARE.
 #include "cgbn_stage1.h"
 
 #include <cassert>
-#include <chrono>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -35,7 +34,7 @@ IN THE SOFTWARE.
 #include <cuda.h>
 
 //#include "config.h"
-//#include "ecm.h"
+#include "ecm.h"
 
 
 void cuda_check(cudaError_t status, const char *action=NULL, const char *file=NULL, int32_t line=0) {
@@ -479,8 +478,6 @@ __global__ void kernel_double_add(
         char* gpu_s_bits,
         typename curve_t<params>::instance_t *instances,
         uint32_t count) {
-  // TODO add cudaEvent start, stop for event timing
-
 
   // decode an instance_i number from the blockIdx and threadIdx
   int32_t instance_i=(blockIdx.x*blockDim.x + threadIdx.x)/params::TPI;
@@ -548,7 +545,31 @@ __global__ void kernel_double_add(
   }
 }
 
-void run_cgbn(mpz_t N, mpz_t s, ecm_params_t *ecm_params) {
+
+int findfactor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t y_final) {
+    // XXX: combine / refactor logic with cudawrapper.c findfactor
+
+    mpz_t temp;
+    mpz_init(temp);
+
+    // Check if factor found
+
+    bool inverted = mpz_invert(temp, y_final, N);    // aY ^ (N-2) % N
+    if (inverted) {
+        mpz_mul(temp, x_final, temp);         // aX * aY^-1
+        mpz_mod(factor, temp, N);             // "Residual"
+        mpz_clear(temp);
+        return ECM_NO_FACTOR_FOUND;
+    }
+    mpz_clear(temp);
+
+    mpz_gcd(factor, y_final, N);
+    return ECM_FACTOR_FOUND_STEP1;
+}
+
+int run_cgbn(mpz_t *factors, int *array_stage_found,
+             const mpz_t N, const mpz_t s, float *gputime,
+             ecm_params_t *ecm_params) {
   // TODO figure out how to configure this.
   /**
    * TPI and BITS have to be set at compile time.
@@ -577,7 +598,12 @@ void run_cgbn(mpz_t N, mpz_t s, ecm_params_t *ecm_params) {
                        IPB=TPB/TPI;                                 // IPB is instances per block
 
   // Keeps CPU from busy waiting during GPU execution.
-  CUDA_CHECK(cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync));
+  CUDA_CHECK(cudaSetDeviceFlags (cudaDeviceScheduleBlockingSync));
+  cudaEvent_t start, stop;
+  CUDA_CHECK(cudaEventCreate (&start));
+  CUDA_CHECK(cudaEventCreate (&stop));
+  CUDA_CHECK(cudaEventRecord (start, 0));
+
 
   // TODO can IPB / TPB be reduced when curves = 1 for faster execution?
   size_t gpu_block_count = (ecm_params->curves+IPB-1)/IPB;
@@ -599,7 +625,6 @@ void run_cgbn(mpz_t N, mpz_t s, ecm_params_t *ecm_params) {
   CUDA_CHECK(cgbn_error_report_alloc(&report));
 
   printf("Running GPU kernel<%ld,%d> ...\n", gpu_block_count, TPB);
-  auto start_t = std::chrono::high_resolution_clock::now();
   kernel_double_add<cgbn_params><<<gpu_block_count, TPB>>>(
     report, ecm_params->num_bits, gpu_s_bits, gpu_instances, ecm_params->curves);
 
@@ -618,68 +643,60 @@ void run_cgbn(mpz_t N, mpz_t s, ecm_params_t *ecm_params) {
   CUDA_CHECK(cudaFree(gpu_instances));
   CUDA_CHECK(cgbn_error_report_free(report));
 
-  auto end_t = std::chrono::high_resolution_clock::now();
-  double diff = std::chrono::duration<float>(end_t - start_t).count();
+  /* gputime is measured in ms */
+  CUDA_CHECK(cudaEventRecord (stop, 0));
+  CUDA_CHECK(cudaEventSynchronize (stop));
 
+  cudaEventElapsedTime (gputime, start, stop);
+  CUDA_CHECK(cudaEventDestroy (start));
+  CUDA_CHECK(cudaEventDestroy (stop));
+
+  int youpi = ECM_NO_FACTOR_FOUND;
   { // Process Results
-      mpz_t x, y, n;
-      mpz_init(x);
-      mpz_init(y);
-      mpz_init(n);
+    mpz_t x_final, y_final, modulo;
+    mpz_init(modulo);
+    mpz_init(x_final);
+    mpz_init(y_final);
 
-      bool no_factor = true;
+    // XXX: gmp-ecm returns results in reverse order
+    for(size_t i = 0; i < ecm_params->curves; i++) {
+      instance_t &instance = instances[i];
 
-      // XXX: gmp-ecm returns results in reverse order
-      for(int index=ecm_params->curves-1; index>=0; index--) {
-        instance_t &instance = instances[index];
+      if (PRINT_DEBUG && i == 0) {
+          to_mpz(x_final, instance.aX._limbs, cgbn_params::BITS/32);
+          to_mpz(y_final, instance.aY._limbs, cgbn_params::BITS/32);
+          gmp_printf("pA: (%Zd, %Zd)\n", x_final, y_final);
 
-        if (PRINT_DEBUG && index == 0) {
-            to_mpz(x, instance.aX._limbs, cgbn_params::BITS/32);
-            to_mpz(y, instance.aY._limbs, cgbn_params::BITS/32);
-            gmp_printf("pA: (%Zd, %Zd)\n", x, y);
-
-            to_mpz(x, instance.bX._limbs, cgbn_params::BITS/32);
-            to_mpz(y, instance.bY._limbs, cgbn_params::BITS/32);
-            gmp_printf("pB: (%Zd, %Zd)\n", x, y);
-        }
-
-        to_mpz(n, instance.modulus._limbs, cgbn_params::BITS/32);
-        to_mpz(x, instance.aX._limbs, cgbn_params::BITS/32);
-        to_mpz(y, instance.aY._limbs, cgbn_params::BITS/32);
-
-        // Check if factor found
-        bool inverted = mpz_invert(y, y, n);    // aY ^ (N-2) % N
-        if (!inverted) {
-            // Reload y just to be safe
-            to_mpz(y, instance.aY._limbs, cgbn_params::BITS/32);
-            mpz_gcd(y, y, n);
-            gmp_printf("Factor found: %Zd with curve %d (-sigma 3:%d)\n", y, index, instance.d);
-            no_factor = false;
-        }
-
-        to_mpz(x, instance.aX._limbs, cgbn_params::BITS/32);
-        mpz_mul(x, x, y);         // aX * aY^-1
-        mpz_mod(x, x, n);
-
-        if (no_factor) {
-            //gmp_printf("METHOD=ECM; PARAM=3; SIGMA=%d; B1=%d; N=%Zd; X=0x%Zx;\n",
-            //    instance.d, ecm_params->B1, n, x);
-        }
+          to_mpz(x_final, instance.bX._limbs, cgbn_params::BITS/32);
+          to_mpz(y_final, instance.bY._limbs, cgbn_params::BITS/32);
+          gmp_printf("pB: (%Zd, %Zd)\n", x_final, y_final);
       }
-      mpz_clear(x);
-      mpz_clear(y);
-      mpz_clear(n);
 
-      printf("Finished %d curves (%d/%d BITS) with %d double_adds in %.4f seconds\n",
-          ecm_params->curves, ecm_params->n_log2, cgbn_params::BITS, ecm_params->num_bits, diff);
-      printf("Throughput: %.1f curves per second (on average %.2fms per Step 1)\n",
-          ecm_params->curves / diff, 1000 * diff / ecm_params->curves);
-      printf("\n");
+      // Make sure we were testing the right number.
+      to_mpz(modulo, instance.modulus._limbs, cgbn_params::BITS/32);
+      assert(mpz_cmp(modulo, N) == 0);
 
-      // clean up
-      free(ecm_params->s_bits);
-      free(instances);
+      to_mpz(x_final, instance.aX._limbs, cgbn_params::BITS/32);
+      to_mpz(y_final, instance.aY._limbs, cgbn_params::BITS/32);
+
+      array_stage_found[i] = findfactor(factors[i], N, x_final, y_final);
+      if (array_stage_found[i] != ECM_NO_FACTOR_FOUND) {
+          youpi = array_stage_found[i];
+          gmp_printf("GPU: factor %Zd found in Stage 1 with curve %ld (-sigma %d:%d)\n",
+                  factors[i], i, ECM_PARAM_BATCH_32BITS_D, instance.d);
+      }
+    }
+    
+    mpz_init(modulo);
+    mpz_clear(x_final);
+    mpz_clear(y_final);
+
+    // clean up
+    free(ecm_params->s_bits);
+    free(instances);
   }
+
+  return youpi;
 }
 
 

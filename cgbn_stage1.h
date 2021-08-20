@@ -46,7 +46,9 @@ typedef struct {
 } ecm_params_t;
 
 
-void run_cgbn(mpz_t, mpz_t, ecm_params_t*);
+int run_cgbn(mpz_t *factors, int *array_stage_found,
+             const mpz_t N, const mpz_t s, float *gputime,
+             ecm_params_t *ecm_params);
 
 #ifdef __cplusplus
 }
