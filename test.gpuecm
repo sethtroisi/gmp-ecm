@@ -22,7 +22,7 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 
 ECM="${1:-./ecm} -gpu -gpucurves 32"
-ECMnoGPU="${1-./ecm}"
+ECMnoGPU=$(echo "${1-./ecm}" | sed -e "s/-gpu//" -e "s/-cgbn//")
 
 GMPECM_DATADIR=${GMPECM_DATADIR:-.}
 

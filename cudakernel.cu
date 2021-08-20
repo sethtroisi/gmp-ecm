@@ -44,7 +44,6 @@ __global__ void Cuda_Init_Device ()
 
 /* Given the compute compatibility (as major.minor), return the number of block
  * to be run on one multiprocessor. */
-extern "C"
 unsigned int
 getNumberOfBlockPerMultiProcessor (int major, int minor)
 {

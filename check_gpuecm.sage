@@ -294,7 +294,7 @@ def stage1Tests(N_size, prime_size, B1, param, num_curves, seed):
                 expected_curves)
     else:
         print('Wrong results for seed=%d' % seed)
-        print(cmd)
+        print('\t' + echo_cmd + ecm_cmd)
         sys.exit(1)
 
     if args.verbose:

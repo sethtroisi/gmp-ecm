@@ -2,12 +2,12 @@
 
 #ifdef WITH_GPU
 
-#define TWO32 4294967296 /* 2^32 */ 
+#ifdef HAVE_CGBN_H
+#include "cgbn_stage1.h"
+#endif /* HAVE_CGBN_H */
+#include "cudakernel.h"
 
-extern int select_and_init_GPU (int, unsigned int*, int);
-extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
-                        biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
-                        unsigned int, int);
+#define TWO32 4294967296 /* 2^32 */
 
 int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
 {
@@ -210,6 +210,48 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   }
 }
 
+static void
+A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
+{
+  mpz_t tmp;
+  int i;
+  mpz_init_set_ui (tmp, sigma);
+  /* Compute d = sigma/2^ECM_GPU_SIZE_DIGIT */
+  for (i = 0; i < ECM_GPU_SIZE_DIGIT; i++)
+    {
+      if (mpz_tstbit (tmp, 0) == 1)
+      mpz_add (tmp, tmp, n);
+      mpz_div_2exp (tmp, tmp, 1);
+    }
+  mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
+  mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
+
+  mpz_set (A, tmp);
+
+  mpz_clear (tmp);
+}
+
+
+#ifdef HAVE_CGBN_H
+/**
+ * Setup code needed to call cgbn_stage1.cu
+ */
+int cgbn_ecm_stage1 (mpz_t *factors, int *array_found, mpz_t N, mpz_t s,
+                    unsigned int number_of_curves, unsigned int firstsigma,
+                    float *gputime, int verbose)
+{
+  /* Setup the CGBN params */
+  ecm_params_t ecm_params;
+  ecm_params.curves = number_of_curves;
+  ecm_params.sigma = firstsigma;
+  ecm_params.verbose = verbose;
+
+  /* Call the wrapper function that call the CGBN/GPU */
+  return run_cgbn(factors, array_found, N, s, gputime, &ecm_params);
+}
+#endif /* HAVE_CGBN_H */
+
+
 int gpu_ecm_stage1 (mpz_t *factors, int *array_found, mpz_t N, mpz_t s,
                     unsigned int number_of_curves, unsigned int firstsigma, 
                     float *gputime, int verbose)
@@ -345,27 +387,6 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_found, mpz_t N, mpz_t s,
   return youpi;
 }
 
-static void
-A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
-{
-  mpz_t tmp;
-  int i;
-  mpz_init_set_ui (tmp, sigma);
-  /* Compute d = sigma/2^ECM_GPU_SIZE_DIGIT */
-  for (i = 0; i < ECM_GPU_SIZE_DIGIT; i++)
-    {
-      if (mpz_tstbit (tmp, 0) == 1)
-      mpz_add (tmp, tmp, n);
-      mpz_div_2exp (tmp, tmp, 1);
-    }
-  mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
-  mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
-      
-  mpz_set (A, tmp);
-
-  mpz_clear (tmp);
-}
-
 int
 gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
          double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
@@ -373,7 +394,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
          char *chkfilename ATTRIBUTE_UNUSED, char *TreeFilename, double maxmem,
          int (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used, 
-         int device, int *device_init, unsigned int *nb_curves)
+         int use_cgbn, int device, int *device_init, unsigned int *nb_curves)
 {
   unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -576,8 +597,17 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
   
   st = cputime ();
-  youpi = gpu_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves, 
-                          firstsigma_ui, &gputime, verbose);
+#ifdef HAVE_CGBN_H
+  if (use_cgbn) {
+    youpi = cgbn_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves,
+                             firstsigma_ui, &gputime, verbose);
+  } else {
+#else
+  {
+#endif /* HAVE_CGBN_H */
+    youpi = gpu_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves,
+                            firstsigma_ui, &gputime, verbose);
+  }
 
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n", *nb_curves, 
