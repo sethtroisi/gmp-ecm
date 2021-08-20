@@ -21,13 +21,32 @@
 #ifndef _CGBN_STAGE1_H
 #define _CGBN_STAGE1_H 1
 
+#include <stdint.h>
+
 #include <gmp.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void run_cgbn(mpz_t, mpz_t);
+// define the instance structure
+typedef struct {
+    int n_log2;
+
+    // Number of curves to run
+    uint32_t curves;
+
+    uint32_t num_bits;
+    // Bits (malloc'ed in generate_instance)
+    char    *s_bits;
+
+    // Sigma of first curve
+    uint64_t sigma;
+
+} ecm_params_t;
+
+
+void run_cgbn(mpz_t, mpz_t, ecm_params_t*);
 
 #ifdef __cplusplus
 }

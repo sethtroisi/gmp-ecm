@@ -7,13 +7,6 @@
 
 #define TWO32 4294967296 /* 2^32 */ 
 
-/*
-extern int select_and_init_GPU (int, unsigned int*, int);
-extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
-                        biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
-                        unsigned int, int);
-*/
-
 int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
 {
   int youpi;
@@ -113,8 +106,15 @@ int cgbn_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
 {
   int youpi = ECM_NO_FACTOR_FOUND;
 
+
+  ecm_params_t ecm_params;
+  ecm_params.curves = number_of_curves;
+  ecm_params.sigma = firstsigma;
+
+  // TODO get *gputime = ???
+  // TODO set factors, array_stage_found
   /* Call the wrapper function that call the GPU */
-  run_cgbn(N, s);
+  run_cgbn(N, s, &ecm_params);
 
   return youpi;
 }
