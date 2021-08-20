@@ -2,12 +2,17 @@
 
 #ifdef WITH_GPU
 
+#include "cgbn_stage1.h"
+#include "cudakernel.h"
+
 #define TWO32 4294967296 /* 2^32 */ 
 
+/*
 extern int select_and_init_GPU (int, unsigned int*, int);
 extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
                         unsigned int, int);
+*/
 
 int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
 {
@@ -76,6 +81,42 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
     mpz_mul_2exp (a, a, 32);
 	  mpz_add_ui (a , a, b[i]);
   }
+}
+
+static void
+A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
+{
+  mpz_t tmp;
+  int i;
+  mpz_init_set_ui (tmp, sigma);
+  /* Compute d = sigma/2^ECM_GPU_SIZE_DIGIT */
+  for (i = 0; i < ECM_GPU_SIZE_DIGIT; i++)
+    {
+      if (mpz_tstbit (tmp, 0) == 1)
+      mpz_add (tmp, tmp, n);
+      mpz_div_2exp (tmp, tmp, 1);
+    }
+  mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
+  mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
+
+  mpz_set (A, tmp);
+
+  mpz_clear (tmp);
+}
+
+/**
+ * Setup code needed to call cgbn_stage1.cu
+ */
+int cgbn_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
+                    unsigned int number_of_curves, unsigned int firstsigma,
+                    float *gputime, int verbose)
+{
+  int youpi = ECM_NO_FACTOR_FOUND;
+
+  /* Call the wrapper function that call the GPU */
+  run_cgbn(N, s);
+
+  return youpi;
 }
 
 int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s, 
@@ -211,27 +252,6 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
   free ((void *) h_z2array);
 
   return youpi;
-}
-
-static void
-A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
-{
-  mpz_t tmp;
-  int i;
-  mpz_init_set_ui (tmp, sigma);
-  /* Compute d = sigma/2^ECM_GPU_SIZE_DIGIT */
-  for (i = 0; i < ECM_GPU_SIZE_DIGIT; i++)
-    {
-      if (mpz_tstbit (tmp, 0) == 1)
-      mpz_add (tmp, tmp, n);
-      mpz_div_2exp (tmp, tmp, 1);
-    }
-  mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
-  mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
-      
-  mpz_set (A, tmp);
-
-  mpz_clear (tmp);
 }
 
 int
@@ -443,6 +463,9 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
   
   st = cputime ();
+  // Just a test
+  cgbn_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
+                          firstsigma_ui, &gputime, verbose);
   youpi = gpu_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
                           firstsigma_ui, &gputime, verbose);
 

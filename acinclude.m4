@@ -435,6 +435,7 @@ AC_ARG_WITH(cuda_compiler,
             [a directory that contains a C and C++ compiler compatible with the CUDA compiler nvcc. If given, the value is used as '--compiler-bindir' argument for nvcc ]),
   [ cuda_compiler=$withval ])
 
+
 AS_IF([test "x$enable_gpu" = "xyes" ],
   [
     AS_IF([test "x$cuda_include" != "x"],
