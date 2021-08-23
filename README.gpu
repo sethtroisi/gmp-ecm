@@ -5,9 +5,10 @@ than 2.0.
 Table of contents of this file
 
 1. How to enable GPU code in GMP-ECM
-2. Basic Usage
-3. Advanced Usage
-4. Known issues
+2. How to enable CGBN code in GMP-ECM
+3. Basic Usage
+4. Advanced Usage
+5. Known issues
 
 ##############################################################################
 
@@ -20,7 +21,11 @@ instructions of INSTALL-ecm until the 'configure' step. Then add the
   $ ./configure --enable-gpu [other options]
 
 This will configure the code for NVIDIA GPU for all compute capabilities
-between 2.0 and 5.3 known to the nvcc compiler.
+between 2.0 and 7.0 known to the nvcc compiler.
+
+To enable only a single compute capability you can set '--enable-gpu=XX'
+
+  $ ./configure --enable-gpu=61 [other options]
 
 By default, GMP-ECM will look for cuda.h in the default header directories,
 but you can specify another directory, such as /opt/cuda, with:
@@ -44,13 +49,13 @@ can specify another directory:
 Some versions of CUDA are not compatible with recent versions of gcc.
 To specify which C compiler is called by the CUDA compiler nvcc, type:
 
-  $ ./configure --enable-gpu --with-cuda-compiler=/PATH/DIR 
+  $ ./configure --enable-gpu --with-cuda-compiler=/PATH/DIR
 
 If you get errors about "cuda.h: present but cannot be compiled"
 Try using an older CC:
 
   $ ./configure --enable-gpu CC=gcc-8
-  
+
 The value of this parameter is directly passed to nvcc via the option
 "--compiler-bindir". By default, GMP-ECM lets nvcc choose what C compiler it
 uses.
@@ -63,9 +68,23 @@ And to check that the program works correctly, type:
 
   $ make check
 
+Additional randomized checks can be run with
+
+  $ sage check_gpuecm.sage ./ecm
+
 ##############################################################################
 
-2. Basic Usage
+2. How to enable CGBN code in GMP-ECM
+
+By default the CGBN code is not enabled during GPU builds, follow the
+instructions above but add the "-with-cgbn-include" argument to point at
+the CGBN include directory (.../CGBN/include/cgbn).
+
+  $ ./configure --enable-gpu --with-cgbn-include=/PATH/DIR/CGBN/include/cgbn
+
+##############################################################################
+
+3. Basic Usage
 
 To use your GPU for step 1, just add the -gpu option:
 
@@ -74,7 +93,13 @@ To use your GPU for step 1, just add the -gpu option:
 It will compute step 1 on the GPU, and then perform step 2 on the CPU (not in
 parallel).
 
-The only parametrization compatible with GPU code is "-param 3". 
+If you configured CGBN you can additionall pass the -cgbn option:
+
+  $ echo "(2^835+1)/33" | ./ecm -gpu -cgbn 1e4
+
+This is generally faster than the default CUDA code.
+
+The only parametrization compatible with GPU code is "-param 3".
 
 You can save the end of step 1 with "-save" and then load the file to execute
 step 2. But you cannot resume to continue step 1 with a bigger B1.
@@ -84,7 +109,7 @@ effect on step 1, if the "-gpu" option is activated, but will apply for step 2.
 
 ##############################################################################
 
-3. Advanced Usage
+4. Advanced Usage
 
 The option "-gpudevice n" forces the GPU code to be executed on device n. Nvidia
 tool "nvidia-smi" can be used to know to which number is associated a GPU.
@@ -104,7 +129,7 @@ from the GMP-ECM team will be very limited.
 
 ##############################################################################
 
-4. Known issues
+5. Known issues
 
 ##############################################################################
 
