@@ -64,7 +64,7 @@ args = parser.parse_args()
 GPU_PARAM = 3
 
 FACTOR_FOUND_RE = re.compile(
-    'factor ([0-9]*) found in Step 1.*-sigma [0-4]:([0-9]*)\)')
+    'factor ([0-9]*) found in (?:Step|Stage) 1.*-sigma [0-4]:([0-9]*)\)')
 
 
 def CurveParam0(p, sigma):
@@ -314,11 +314,11 @@ if __name__ == '__main__':
     found = 0
     for i in range(args.iterations):
         # Test smallish primes (40 bits = 12 digit) at B1=1e4
-        found += stage1Tests(args.nbits, 40, 10^4, GPU_PARAM, num_curves, seed)
+        found += stage1Tests(args.nbits, 40, 2*10^4, GPU_PARAM, num_curves, seed)
         seed += 1
 
         # Test larger primes at B1=1e5
-        found += stage1Tests(args.nbits, 60, 10^5, GPU_PARAM, num_curves, seed)
+        found += stage1Tests(args.nbits, 60, 2*10^5, GPU_PARAM, num_curves, seed)
         seed += 1
 
     print('Results matched in %d tests (%d curves found factors)' %
