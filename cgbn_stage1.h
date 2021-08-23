@@ -41,7 +41,7 @@ typedef struct {
     char    *s_bits;
 
     // Sigma of first curve
-    uint64_t sigma;
+    uint32_t sigma;
 
 } ecm_params_t;
 

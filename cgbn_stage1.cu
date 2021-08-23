@@ -33,17 +33,15 @@ IN THE SOFTWARE.
 #include <cgbn.h>
 #include <cuda.h>
 
-//#include "config.h"
 #include "ecm.h"
 
 
 void cuda_check(cudaError_t status, const char *action=NULL, const char *file=NULL, int32_t line=0) {
   // check for cuda errors
-
-  if(status!=cudaSuccess) {
-    printf("CUDA error occurred: %s\n", cudaGetErrorString(status));
-    if(action!=NULL)
-      printf("While running %s   (file %s, line %d)\n", action, file, line);
+  if (status!=cudaSuccess) {
+    fprintf (stderr, "CUDA error occurred: %s\n", cudaGetErrorString(status));
+    if (action!=NULL)
+      fprintf (stderr, "While running %s   (file %s, line %d)\n", action, file, line);
     exit(1);
   }
 }
@@ -53,25 +51,25 @@ void cgbn_check(cgbn_error_report_t *report, const char *file=NULL, int32_t line
   // check for cgbn errors
 
   if(cgbn_error_report_check(report)) {
-    printf("\n");
-    printf("CGBN error occurred: %s\n", cgbn_error_string(report));
+    fprintf (stderr, "\n");
+    fprintf (stderr, "CGBN error occurred: %s\n", cgbn_error_string(report));
 
     if(report->_instance!=0xFFFFFFFF) {
-      printf("Error reported by instance %d", report->_instance);
+      fprintf (stderr, "Error reported by instance %d", report->_instance);
       if(report->_blockIdx.x!=0xFFFFFFFF || report->_threadIdx.x!=0xFFFFFFFF)
-        printf(", ");
+        fprintf (stderr, ", ");
       if(report->_blockIdx.x!=0xFFFFFFFF)
-      printf("blockIdx=(%d, %d, %d) ", report->_blockIdx.x, report->_blockIdx.y, report->_blockIdx.z);
+      fprintf (stderr, "blockIdx=(%d, %d, %d) ", report->_blockIdx.x, report->_blockIdx.y, report->_blockIdx.z);
       if(report->_threadIdx.x!=0xFFFFFFFF)
-        printf("threadIdx=(%d, %d, %d)", report->_threadIdx.x, report->_threadIdx.y, report->_threadIdx.z);
-      printf("\n");
+        fprintf (stderr, "threadIdx=(%d, %d, %d)", report->_threadIdx.x, report->_threadIdx.y, report->_threadIdx.z);
+      fprintf (stderr, "\n");
     }
     else {
-      printf("Error reported by blockIdx=(%d %d %d)", report->_blockIdx.x, report->_blockIdx.y, report->_blockIdx.z);
-      printf("threadIdx=(%d %d %d)\n", report->_threadIdx.x, report->_threadIdx.y, report->_threadIdx.z);
+      fprintf (stderr, "Error reported by blockIdx=(%d %d %d)", report->_blockIdx.x, report->_blockIdx.y, report->_blockIdx.z);
+      fprintf (stderr, "threadIdx=(%d %d %d)\n", report->_threadIdx.x, report->_threadIdx.y, report->_threadIdx.z);
     }
     if(file!=NULL)
-      printf("file %s, line %d\n", file, line);
+      fprintf (stderr, "file %s, line %d\n", file, line);
     exit(1);
   }
 }
@@ -88,7 +86,7 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
   size_t words;
 
   if(mpz_sizeinbase(s, 2)>count*32) {
-    fprintf(stderr, "from_mpz failed -- result does not fit\n");
+    fprintf (stderr, "from_mpz failed -- result does not fit\n");
     exit(1);
   }
 
@@ -105,8 +103,6 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
 #define cgbn_normalized_error ((cgbn_error_t) 14)
 #define cgbn_positive_overflow ((cgbn_error_t) 15)
 #define cgbn_negative_overflow ((cgbn_error_t) 16)
-
-#define PRINT_DEBUG 0
 
 // Seems to adds very small overhead (1-10%)
 #define VERIFY_NORMALIZED 1
@@ -252,8 +248,10 @@ class curve_t {
     // w = xB = bX
     // v = zB = bY
 
-    // Doesn't seem to be a large cost to using many extra variables
+    /* Doesn't seem to be a large cost to using many extra variables */
     bn_t t, CB, DA, AA, BB, K, dK;
+
+    /* Can maybe use one more bit if cgbn_add subtracts when carry happens */
 
     cgbn_add(_env, t, v, w); // t = (bY + bX)
     normalize_addition(t, modulus);
@@ -273,14 +271,14 @@ class curve_t {
     }
 
     cgbn_mont_mul(_env, CB, t, u, modulus, np0); // C*B
-        normalize_addition(CB, modulus); // TODO: https://github.com/NVlabs/CGBN/issues/15
+        normalize_addition(CB, modulus);
     cgbn_mont_mul(_env, DA, v, w, modulus, np0); // D*A
-        normalize_addition(DA, modulus); // TODO: https://github.com/NVlabs/CGBN/issues/15
+        normalize_addition(DA, modulus);
 
     cgbn_mont_sqr(_env, AA, w, modulus, np0);    // AA
     cgbn_mont_sqr(_env, BB, u, modulus, np0);    // BB
-    normalize_addition(AA, modulus); // TODO: https://github.com/NVlabs/CGBN/issues/15
-    normalize_addition(BB, modulus); // TODO: https://github.com/NVlabs/CGBN/issues/15
+    normalize_addition(AA, modulus);
+    normalize_addition(BB, modulus);
     if (VERIFY_NORMALIZED) {
         assert_normalized(CB, modulus);
         assert_normalized(DA, modulus);
@@ -290,7 +288,7 @@ class curve_t {
 
     // q = aX is finalized
     cgbn_mont_mul(_env, q, AA, BB, modulus, np0); // AA*BB
-        normalize_addition(q, modulus); // TODO: https://github.com/NVlabs/CGBN/issues/15
+        normalize_addition(q, modulus);
         assert_normalized(q, modulus);
 
     if (cgbn_sub(_env, K, AA, BB)) // K = AA-BB
@@ -313,7 +311,7 @@ class curve_t {
 
     // u = aY is finalized
     cgbn_mont_mul(_env, u, K, u, modulus, np0); // K(BB+dK)
-        normalize_addition(u, modulus); // TODO: https://github.com/NVlabs/CGBN/issues/15
+        normalize_addition(u, modulus);
         assert_normalized(u, modulus);
 
     cgbn_add(_env, w, DA, CB); // DA + CB
@@ -327,74 +325,17 @@ class curve_t {
 
     // w = bX is finalized
     cgbn_mont_sqr(_env, w, w, modulus, np0); // (DA+CB)^2 mod N
-        normalize_addition(w, modulus); // TODO: https://github.com/NVlabs/CGBN/issues/15
+        normalize_addition(w, modulus);
         assert_normalized(w, modulus);
 
     cgbn_mont_sqr(_env, v, v, modulus, np0); // (DA-CB)^2 mod N
-        normalize_addition(v, modulus); // TODO: https://github.com/NVlabs/CGBN/issues/15
+        normalize_addition(v, modulus);
         assert_normalized(v, modulus);
 
     // v = bY is finalized
     cgbn_shift_left(_env, v, v, 1); // double
     normalize_addition(v, modulus);
         assert_normalized(v, modulus);
-  }
-
-  __host__ static void compute_s_bits(mpz_t &s, int B1) {
-      // Doesn't do even half of the smart things that compute_s does
-      const int ACCUM_SIZE = 30;
-      mpz_t prime, ppz, accum[ACCUM_SIZE];
-      mpz_init(prime);
-      mpz_init(ppz);
-      for (int i = 0; i < ACCUM_SIZE; i++) {
-          mpz_init_set_ui(accum[i], 1);
-      }
-
-
-      // Prime, prime power, max prime power;
-      uint32_t p, pp, maxpp;
-      // index
-      int pi = 0;
-
-      for (mpz_set_ui(prime, 2); (p = mpz_get_ui(prime)) <= B1; mpz_nextprime(prime, prime)) {
-        maxpp = B1 / p;
-        pp = p;
-        while (pp <= maxpp) {
-            pp *= p;
-        }
-
-        mpz_set_ui(ppz, pp);
-
-        // Product tree
-        if ((pi & 1) == 0) {
-            mpz_set(accum[0], ppz);
-        } else {
-            mpz_mul(accum[0], accum[0], ppz);
-        }
-
-        // printf("%d | %d | %d\n", pi, p, pp);
-
-        int j = 0;
-        while ((pi & (1 << j)) != 0) {
-            if ((pi & (1 << j + 1)) == 0) {
-                mpz_swap(accum[j+1], accum[j]);
-            } else {
-                mpz_mul(accum[j+1], accum[j+1], accum[j]);
-            }
-            mpz_set_ui(accum[j], 1);
-            j++;
-        }
-        pi++;
-      }
-
-      // Multiply all accumulators
-      mpz_set_ui(s, 1);
-      for (int i = 0; i < ACCUM_SIZE; i++) {
-        mpz_mul(s, s, accum[i]);
-        mpz_clear(accum[i]);
-      }
-      mpz_clear(prime);
-      mpz_clear(ppz);
   }
 
   __host__ static instance_t *generate_instances(const mpz_t N, const mpz_t s, ecm_params_t &ecm_params) {
@@ -417,7 +358,6 @@ class curve_t {
     }
 
     uint32_t num_bits = mpz_sizeinbase(s, 2) - 1;
-    //printf("B1=%lu S has %d bits\n", ecm_params.B1, num_bits);
 
     assert( 1 <= num_bits <= 1e8 );
     ecm_params.num_bits = num_bits;
@@ -460,8 +400,7 @@ class curve_t {
         mpz_add_ui(x, x, 8);
         mpz_mod(x, x, N);
 
-        // if (PRINT_DEBUG)
-        //    gmp_printf("%d => %Zd\n", instance.d, x);
+        outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", instance.d, x); 
         from_mpz(x, instance.bY._limbs, params::BITS/32);
     }
 
@@ -608,11 +547,9 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   // TODO can IPB / TPB be reduced when curves = 1 for faster execution?
   size_t gpu_block_count = (ecm_params->curves+IPB-1)/IPB;
 
-  //printf("Generating instances ...\n");
   instances = curve_t<cgbn_params>::generate_instances(N, s, *ecm_params);
   assert(ecm_params->s_bits != NULL);
 
-  //printf("Copying s_bits(%d) and instances(%d) to the GPU ...\n", ecm_params->num_bits, ecm_params->curves);
   CUDA_CHECK(cudaSetDevice(0));
   // Copy s_bits
   CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, sizeof(char) * ecm_params->num_bits));
@@ -624,19 +561,19 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   // create a cgbn_error_report for CGBN to report back errors
   CUDA_CHECK(cgbn_error_report_alloc(&report));
 
-  printf("Running GPU kernel<%ld,%d> ...\n", gpu_block_count, TPB);
+  outputf (OUTPUT_VERBOSE, "Running GPU kernel<%ld,%d> ...\n", gpu_block_count, TPB);
   kernel_double_add<cgbn_params><<<gpu_block_count, TPB>>>(
     report, ecm_params->num_bits, gpu_s_bits, gpu_instances, ecm_params->curves);
 
   // error report uses managed memory, so we sync the device (or stream) and check for cgbn errors
   CUDA_CHECK(cudaDeviceSynchronize());
   if (report->_error) {
-      printf("\n\nerror: %d\n", report->_error);
+      outputf (OUTPUT_ERROR, "\n\nerror: %d\n", report->_error);
   }
   CGBN_CHECK(report);
 
   // Copy the instances back from gpuMemory
-  printf("Copying results back to CPU ...\n");
+  outputf (OUTPUT_VERBOSE, "Copying results back to CPU ...\n");
   CUDA_CHECK(cudaMemcpy(instances, gpu_instances, instance_size, cudaMemcpyDeviceToHost));
 
   CUDA_CHECK(cudaFree(gpu_s_bits));
@@ -662,14 +599,14 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
     for(size_t i = 0; i < ecm_params->curves; i++) {
       instance_t &instance = instances[i];
 
-      if (PRINT_DEBUG && i == 0) {
+      if (test_verbose (OUTPUT_TRACE) && i == 0) {
           to_mpz(x_final, instance.aX._limbs, cgbn_params::BITS/32);
           to_mpz(y_final, instance.aY._limbs, cgbn_params::BITS/32);
-          gmp_printf("pA: (%Zd, %Zd)\n", x_final, y_final);
+          outputf (OUTPUT_TRACE, "index: 0 pA: (%Zd, %Zd)\n", x_final, y_final);
 
           to_mpz(x_final, instance.bX._limbs, cgbn_params::BITS/32);
           to_mpz(y_final, instance.bY._limbs, cgbn_params::BITS/32);
-          gmp_printf("pB: (%Zd, %Zd)\n", x_final, y_final);
+          outputf (OUTPUT_TRACE, "index: 0 pB: (%Zd, %Zd)\n", x_final, y_final);
       }
 
       // Make sure we were testing the right number.
@@ -682,7 +619,7 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
       array_stage_found[i] = findfactor(factors[i], N, x_final, y_final);
       if (array_stage_found[i] != ECM_NO_FACTOR_FOUND) {
           youpi = array_stage_found[i];
-          gmp_printf("GPU: factor %Zd found in Stage 1 with curve %ld (-sigma %d:%d)\n",
+          outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with curve %ld (-sigma %d:%d)\n",
                   factors[i], i, ECM_PARAM_BATCH_32BITS_D, instance.d);
       }
     }
@@ -698,32 +635,3 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
 
   return youpi;
 }
-
-
-//int main(int argc, char** argv) {
-//  if (argc != 4) {
-//      printf("Usage: ecm_s1 SIGMA B1 N 2>results.txt\n");
-//      exit(1);
-//  }
-//
-//  // Reduces cpu usage from 100% at small cost to latency.
-//  CUDA_CHECK(cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync));
-//
-//  ecm_params_t ecm_params;
-//  ecm_params.sigma = atol(argv[1]);
-//  ecm_params.B1 = atol(argv[2]);
-//  ecm_params.n = argv[3];
-//
-//  //ecm_params.curves = 1;
-//  ecm_params.curves = 28*64;
-//  run_cgbn(ecm_params);
-//
-//  /*
-//  // Try to find optimal curves / batch
-//  int tuning[] = {256, 16*63, 16*65, 16*100, 1790, 1792, 1794, 2000, 1780*2};
-//  for(int32_t curves : tuning) {
-//    ecm_params.curves = curves;
-//    run_cgbn(ecm_params);
-//  }
-//  // */
-//}
