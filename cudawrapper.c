@@ -2,8 +2,9 @@
 
 #ifdef WITH_GPU
 
-// #ifdef WITH_CGBN TODO
+#ifdef HAVE_CGBN_H
 #include "cgbn_stage1.h"
+#endif /* HAVE_CGBN_H */
 #include "cudakernel.h"
 
 #define TWO32 4294967296 /* 2^32 */ 
@@ -98,6 +99,8 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
   mpz_clear (tmp);
 }
 
+
+#ifdef HAVE_CGBN_H
 /**
  * Setup code needed to call cgbn_stage1.cu
  */
@@ -113,6 +116,8 @@ int cgbn_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
   /* Call the wrapper function that call the CGBN/GPU */
   return run_cgbn(factors, array_stage_found, N, s, gputime, &ecm_params);
 }
+#endif /* HAVE_CGBN_H */
+
 
 int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s, 
                     unsigned int number_of_curves, unsigned int firstsigma, 
@@ -256,7 +261,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
          char *chkfilename ATTRIBUTE_UNUSED, char *TreeFilename, double maxmem,
          int (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used, 
-         int device, int *device_init, unsigned int *nb_curves)
+         int use_cgbn, int device, int *device_init, unsigned int *nb_curves)
 {
   unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -458,11 +463,18 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
   
   st = cputime ();
-  // Just a test
-  cgbn_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
-                          firstsigma_ui, &gputime, verbose);
-  youpi = gpu_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
-                          firstsigma_ui, &gputime, verbose);
+
+#ifdef HAVE_CGBN_H
+  if (use_cgbn) {
+    youpi = cgbn_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
+                             firstsigma_ui, &gputime, verbose);
+  } else {
+#else 
+  {
+#endif /* HAVE_CGBN_H */
+    youpi = gpu_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
+                            firstsigma_ui, &gputime, verbose);
+  }
 
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n", *nb_curves, 

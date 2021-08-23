@@ -605,6 +605,8 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
               [AC_MSG_ERROR([Specified CGBN include directory "$cgbn_include" does not exist])])
 
             AC_MSG_CHECKING([if CGBN is present])
+
+            dnl AC_CHECK_HEADER can't verify NVCC compilability hence NVCC_CHECK_COMPILE
             NVCC_CHECK_COMPILE(
               [
                 #include <gmp.h>
@@ -617,7 +619,9 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
                 AC_MSG_ERROR([cgbn.h not found (check if /cgbn needed after /include)])
               ]
             )
+            AC_DEFINE([HAVE_CGBN_H], [1], [Define to 1 if cgbn.h exists])
             NVCCFLAGS="-I$with_cgbn_include -lgmp $NVCCFLAGS"
+            want_cgbn="yes"
         ])
       ])
 
@@ -651,6 +655,8 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
   ])
 #Set this conditional if cuda is wanted
 AM_CONDITIONAL([WANT_GPU], [test "x$enable_gpu" = "xyes" ])
+#Set this conditional if cuda & cgbn_include
+AM_CONDITIONAL([WANT_CGBN], [test "x$want_cgbn" = "xyes" ])
 
 AC_SUBST(NVCC)
 AC_SUBST(NVCCFLAGS)

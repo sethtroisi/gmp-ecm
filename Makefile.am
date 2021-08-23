@@ -53,7 +53,10 @@ libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
 libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 1:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 if WANT_GPU 
-  libecm_la_SOURCES += cudakernel.cu cgbn_stage1.cu
+  libecm_la_SOURCES += cudakernel.cu
+if WANT_CGBN
+  libecm_la_SOURCES += cgbn_stage1.cu
+endif
   libecm_la_LIBADD += $(CUDALIB)
   libecm_la_LDFLAGS += $(CUDALDFLAGS)
   ecm_LDFLAGS = $(CUDARPATH)
@@ -109,7 +112,7 @@ endif
 include_HEADERS = ecm.h
 noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h \
                  ecm-params.h mpmod.h ecm-gpu.h cudakernel.h cgbn_stage1.h \
-		 addlaws.h getprime_r.h ecm_int.h \
+                 addlaws.h getprime_r.h ecm_int.h \
                  aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
@@ -119,7 +122,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              hppa/params.h mips/params.h x86_64/corei7/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
              getprime_r.h cudakernel_default.cu cgbn_stage1.cu \
-	     test.gpuecm README.gpu c155 \
+             test.gpuecm README.gpu c155 \
              test_dummy2.save test_dummy.save test_prime95.save M877.save \
 	     M997.save test_Z2102.n
 
@@ -128,7 +131,7 @@ DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle build.vc12
 DISTCLEANFILES = config.m4
 
 if WANT_GPU
-.cu.lo: cudakernel.h cgbn_stage1.h
+.cu.lo:
 		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(NVCCFLAGS) --compiler-options -fPIC $(CPPFLAGS) -o $@ $^ -static
 endif
 
@@ -169,6 +172,9 @@ longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -redc"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -mpzmod"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
+if WANT_CGBN
+	$(srcdir)/test.gpuecm "$(VALGRIND) ./ecm$(EXEEXT) -cgbn"
+endif
 	$(srcdir)/testlong.pp1 "$(VALGRIND) ./ecm$(EXEEXT)"
 	$(srcdir)/testlong.pm1 "$(VALGRIND) ./ecm$(EXEEXT)"
 	$(srcdir)/testlong.ecm "$(VALGRIND) ./ecm$(EXEEXT)"
