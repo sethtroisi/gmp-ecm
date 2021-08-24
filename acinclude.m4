@@ -627,19 +627,13 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
         ])
       ])
 
-
-    if test "$MIN_CC" -eq "20" ; then
-       EGCBB="-DECM_GPU_CURVES_BY_BLOCK=16"
-    else
-       EGCBB="-DECM_GPU_CURVES_BY_BLOCK=32"
-    fi
-
     LIBS="$LIBS_BACKUP"
     LDFLAGS="$LDFLAGS_BACKUP"
 
-    NVCCFLAGS="$NVCCFLAGS -DWITH_GPU $EGCBB $GPU_ARCH"
-    CFLAGS="$CFLAGS -DWITH_GPU $EGCBB"
-    CPPFLAGS="$CPPFLAGS -DWITH_GPU $EGCBB"
+    EGCBB="-DECM_GPU_CURVES_BY_BLOCK=32"
+    NVCCFLAGS="$NVCCFLAGS $EGCBB $GPU_ARCH"
+    CFLAGS="$CFLAGS -DWITH_GPU"
+    CPPFLAGS="$CPPFLAGS -DWITH_GPU"
 
     NVCCFLAGS="$NVCCFLAGS --ptxas-options=-v"
     NVCCFLAGS="$NVCCFLAGS --compiler-options -fno-strict-aliasing"
