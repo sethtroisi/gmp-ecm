@@ -551,6 +551,16 @@ int process_results(mpz_t *factors, int *array_stage_found,
     to_mpz(x_final, datum + 1 * limbs_per, limbs_per);
     to_mpz(y_final, datum + 2 * limbs_per, limbs_per);
 
+    /* Very suspicious for (x_final, y_final) to match (x_0, y_0) == (2, 1)
+     * Can happen when
+     * 1. block calculation performed incorrectly (and some blocks not run)
+     * 2. Kernel didn't run because not enough register
+     * 3. nvcc links old version of kernel when something changed
+     */
+    if (mpz_cmp_ui (x_final, 2) == 0 && mpz_cmp_ui (y_final, 1) == 0) {
+      outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute?\n", i);
+    }
+
     array_stage_found[i] = findfactor(factors[i], N, x_final, y_final);
     if (array_stage_found[i] != ECM_NO_FACTOR_FOUND) {
       youpi = array_stage_found[i];
@@ -570,17 +580,10 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
              const mpz_t N, const mpz_t s, float *gputime,
              ecm_params_t *ecm_params) {
 
-  const size_t MAX_BITS = 1024;
 
   size_t curves = ecm_params->curves;
   assert( ecm_params->sigma > 0 );
   assert( ((uint64_t) ecm_params->sigma + curves) <= 0xFFFFFFFF ); // no overflow
-
-  /* Validate N's size */
-  int youpi = verify_size_of_n(N, MAX_BITS);
-  if (youpi != ECM_NO_FACTOR_FOUND) {
-    return youpi;
-  }
 
   int s_num_bits;
   char *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
@@ -613,11 +616,8 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   size_t    BLOCK_COUNT;     // How many blocks to cover all curves
 
   /**
-   * Smaller TPI (e.g. 8) is faster (TPI=4 seems worse than TPI=8).
-   * Larger TPI (e.g. 32) for running a single curve (or large N).
-   * TPI=8  is required for N > 512
-   * TPI=16 is required for N > 2048
-   * TPI=32 is required for N > 8192
+   * Smaller TPI is faster, Larger TPI is needed for large inputs.
+   * N > 512 TPI=8 | N > 2048 TPI=16 | N > 8192 TPI=32
    */
   /**
    * Larger takes longer to compile:
@@ -635,12 +635,11 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
    * route it would be helpful to do that only during release builds.
    */
 
+  typedef cgbn_params_t<4, 512>   cgbn_params_8_512;
   typedef cgbn_params_t<8, 1024>  cgbn_params_8_1024;
-  typedef cgbn_params_t<8, 512>   cgbn_params_8_512;
 #ifdef IS_DEV_BUILD
-  const std::vector<uint32_t> available_kernels = { 1024 };
+  const std::vector<uint32_t> available_kernels = { 512, 1024 };
 #else
-  typedef cgbn_params_t<8, 1024>  cgbn_params_8_1024;
   typedef cgbn_params_t<8, 1536>  cgbn_params_8_1536;
   typedef cgbn_params_t<8, 2048>  cgbn_params_8_2048;
   typedef cgbn_params_t<16, 3072> cgbn_params_16_3072;
@@ -651,19 +650,25 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
     if (kernel_bits >=  mpz_sizeinbase(N, 2) + CARRY_BITS) {
       BITS = kernel_bits;
       assert( BITS % 32 == 0 );
-      TPI = (BITS <= 2048) ? 8 : ((BITS <= 8192) ? 16 : 32);
+      TPI = (BITS <= 512) ? 4 : (BITS <= 2048) ? 8 : (BITS <= 8192) ? 16 : 32;
       IPB = TPB / TPI;
       BLOCK_COUNT = (curves + IPB - 1) / IPB;
       break;
     }
   }
+
   if (BITS == 0) {
     outputf (OUTPUT_ERROR, "No available CGBN Kernel large enough to process N(%d bits)\n",
         mpz_sizeinbase(N, 2));
     return ECM_ERROR;
   }
 
-  /** Relies on mem_t (AKA struct cgbn_mem_t) being byte aligned without extra fields. */
+  int youpi = verify_size_of_n(N, BITS);
+  if (youpi != ECM_NO_FACTOR_FOUND) {
+    return youpi;
+  }
+
+  /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
   assert( sizeof(curve_t<cgbn_params_8_512>::mem_t) == 512/8 );
   assert( sizeof(curve_t<cgbn_params_8_1024>::mem_t) == 1024/8 );
   data = set_p_2p(N, curves, ecm_params->sigma, BITS, &data_size);
