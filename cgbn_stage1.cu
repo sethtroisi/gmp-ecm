@@ -27,6 +27,7 @@ IN THE SOFTWARE.
 #include <cassert>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
 
 // GMP import must proceed cgbn.h
 #include <gmp.h>
@@ -129,11 +130,13 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
 //   TPI             - threads per instance
 //   BITS            - number of bits per instance
 
+const uint32_t TPB_DEFAULT = 128;
+
 template<uint32_t tpi, uint32_t bits>
 class cgbn_params_t {
   public:
   // parameters used by the CGBN context
-  static const uint32_t TPB=128;                   // Reasonable default
+  static const uint32_t TPB=TPB_DEFAULT;           // Reasonable default
   static const uint32_t MAX_ROTATION=4;            // good default value
   static const uint32_t SHM_LIMIT=0;               // no shared mem available
   static const bool     CONSTANT_TIME=false;       // not implemented
@@ -329,81 +332,89 @@ class curve_t {
     normalize_addition(v, modulus);
         assert_normalized(v, modulus);
   }
-
-  __host__ static mem_t* set_p_2p(const mpz_t N, const mpz_t s, uint32_t curves, uint32_t sigma) {
-    // P1_x, P1_y = (2,1)
-    // 2P_x, 2P_y = (9, 64 * d + 8)
-
-    /** Consider curve copies of N (AKA modulo) */
-    mem_t *data = (mem_t*) malloc(sizeof(mem_t) * 5 * curves);
-    mem_t *datum = data;
-
-    mpz_t x;
-    mpz_init(x);
-    for(int index = 0; index < curves; index++) {
-
-        // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
-        uint32_t d = sigma + index;
-
-        // mod
-        from_mpz(N, (datum++)->_limbs, params::BITS/32);
-
-        // P1 (X, Y)
-        mpz_set_ui(x, 2);
-        from_mpz(x, (datum++)->_limbs, params::BITS/32);
-        mpz_set_ui(x, 1);
-        from_mpz(x, (datum++)->_limbs, params::BITS/32);
-
-        // 2P = P2 (X, Y)
-        // P2_y = 64 * d + 8
-        mpz_set_ui(x, 9);
-        from_mpz(x, (datum++)->_limbs, params::BITS/32);
-
-        // d = sigma * mod_inverse(2 ** 32, N)
-        mpz_ui_pow_ui(x, 2, 32);
-        mpz_invert(x, x, N);
-        mpz_mul_ui(x, x, d);
-        // P2_y = 64 * d - 2;
-        mpz_mul_ui(x, x, 64);
-        mpz_add_ui(x, x, 8);
-        mpz_mod(x, x, N);
-
-        outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x); 
-        from_mpz(x, (datum++)->_limbs, params::BITS/32);
-    }
-
-    mpz_clear(x);
-    return data;
-  }
 };
+
+
+static
+uint32_t* set_p_2p(const mpz_t N, const mpz_t s,
+                   uint32_t curves, uint32_t sigma,
+                   uint32_t BITS, size_t *data_size) {
+  // P1_x, P1_y = (2,1)
+  // 2P_x, 2P_y = (9, 64 * d + 8)
+
+  /** Consider curve copies of N (AKA modulo) */
+  const size_t limbs_per = BITS/32;
+  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
+  uint32_t *data = (uint32_t*) malloc(*data_size);
+  uint32_t *datum = data;
+
+  mpz_t x;
+  mpz_init(x);
+  for(int index = 0; index < curves; index++) {
+      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
+      uint32_t d = sigma + index;
+
+      // mod
+      from_mpz(N, datum + 0 * limbs_per, BITS/32);
+
+      // P1 (X, Y)
+      mpz_set_ui(x, 2);
+      from_mpz(x, datum + 1 * limbs_per, BITS/32);
+      mpz_set_ui(x, 1);
+      from_mpz(x, datum + 2 * limbs_per, BITS/32);
+
+      // 2P = P2 (X, Y)
+      // P2_y = 64 * d + 8
+      mpz_set_ui(x, 9);
+      from_mpz(x, datum + 3 * limbs_per, BITS/32);
+
+      // d = sigma * mod_inverse(2 ** 32, N)
+      mpz_ui_pow_ui(x, 2, 32);
+      mpz_invert(x, x, N);
+      mpz_mul_ui(x, x, d);
+      // P2_y = 64 * d - 2;
+      mpz_mul_ui(x, x, 64);
+      mpz_add_ui(x, x, 8);
+      mpz_mod(x, x, N);
+
+      outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x); 
+      from_mpz(x, datum + 4 * limbs_per, BITS/32);
+      datum += 5 * limbs_per;
+  }
+  mpz_clear(x);
+  return data;
+}
+
 
 // kernel implementation using cgbn
 template<class params>
 __global__ void kernel_double_add(
         cgbn_error_report_t *report,
-        uint32_t num_bits,
+        uint32_t s_bits,
         char* gpu_s_bits,
-        typename curve_t<params>::mem_t *data,
+        uint32_t *data,
         uint32_t count,
         uint32_t sigma_0) {
-
   // decode an instance_i number from the blockIdx and threadIdx
   int32_t instance_i = (blockIdx.x*blockDim.x + threadIdx.x)/params::TPI;
   if(instance_i >= count)
     return;
 
+  /* Cast uint32_t array to mem_t */
+  typename curve_t<params>::mem_t *data_cast = (typename curve_t<params>::mem_t*) data;
+
   cgbn_monitor_t monitor = CHECK_ERROR ? cgbn_report_monitor : cgbn_no_checks;
 
   curve_t<params> curve(monitor, report, instance_i);
   typename curve_t<params>::bn_t  aX, aY, bX, bY, modulus;
-
+ 
   uint32_t np0;
   { // Setup
-      cgbn_load(curve._env, modulus, &data[5*instance_i+0]);
-      cgbn_load(curve._env, aX, &data[5*instance_i+1]);
-      cgbn_load(curve._env, aY, &data[5*instance_i+2]);
-      cgbn_load(curve._env, bX, &data[5*instance_i+3]);
-      cgbn_load(curve._env, bY, &data[5*instance_i+4]);
+      cgbn_load(curve._env, modulus, &data_cast[5*instance_i+0]);
+      cgbn_load(curve._env, aX, &data_cast[5*instance_i+1]);
+      cgbn_load(curve._env, aY, &data_cast[5*instance_i+2]);
+      cgbn_load(curve._env, bX, &data_cast[5*instance_i+3]);
+      cgbn_load(curve._env, bY, &data_cast[5*instance_i+4]);
 
       // Convert everything to mont
       np0 = cgbn_bn2mont(curve._env, aX, aX, modulus);
@@ -421,12 +432,12 @@ __global__ void kernel_double_add(
 
   uint32_t d = sigma_0 + instance_i;
 
-  for (int b = num_bits; b > 0; b--) {
+  for (int b = s_bits; b > 0; b--) {
     /**
      * TODO generates a lot of duplicate inlined code, not sure how to improve
      * Tried with swappings pointers (with a single call to double_add_v2)
      */
-    if (gpu_s_bits[num_bits - b] == 0) {
+    if (gpu_s_bits[s_bits - b] == 0) {
         curve.double_add_v2(aX, aY, bX, bY, d, b, modulus, np0);
     } else {
         curve.double_add_v2(bX, bY, aX, aY, d, b, modulus, np0);
@@ -445,10 +456,10 @@ __global__ void kernel_double_add(
       curve.assert_normalized(bX, modulus);
       curve.assert_normalized(bY, modulus);
     }
-    cgbn_store(curve._env, &data[5*instance_i+1], aX);
-    cgbn_store(curve._env, &data[5*instance_i+2], aY);
-    cgbn_store(curve._env, &data[5*instance_i+3], bX);
-    cgbn_store(curve._env, &data[5*instance_i+4], bY);
+    cgbn_store(curve._env, &data_cast[5*instance_i+1], aX);
+    cgbn_store(curve._env, &data_cast[5*instance_i+2], aY);
+    cgbn_store(curve._env, &data_cast[5*instance_i+3], bX);
+    cgbn_store(curve._env, &data_cast[5*instance_i+4], bY);
   }
 }
 
@@ -494,11 +505,10 @@ int verify_size_of_n(const mpz_t N, size_t max_bits) {
 
 
 static
-char* allocate_and_set_s_bits(const mpz_t s, int *nbits) {
-  uint32_t num_bits = *nbits = mpz_sizeinbase(s, 2) - 1;
+char* allocate_and_set_s_bits(const mpz_t s, int *sbits) {
+  uint32_t num_bits = *sbits = mpz_sizeinbase(s, 2) - 1;
   assert( 1 <= num_bits <= 100'000'000 );
 
-  num_bits = num_bits;
   // Use int* so that size can be stored in first element, could pass around extra size.
   char *s_bits = (char*) malloc(sizeof(char) * num_bits);
   for (int i = 0; i < num_bits; i++) {
@@ -574,9 +584,9 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
     return youpi;
   }
 
-  int num_bits;
-  char *s_bits = allocate_and_set_s_bits(s, &num_bits);
-  assert( 1 <= num_bits <= 100'000'000 );
+  int s_num_bits;
+  char *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
+  assert( 1 <= s_num_bits <= 100'000'000 );
   assert( s_bits != NULL );
 
   // Keeps CPU from busy waiting during GPU execution.
@@ -588,14 +598,23 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
 
   // Copy s_bits
   char     *gpu_s_bits;
-  CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, sizeof(char) * num_bits));
-  CUDA_CHECK(cudaMemcpy(gpu_s_bits, s_bits, sizeof(char) * num_bits, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, sizeof(char) * s_num_bits));
+  CUDA_CHECK(cudaMemcpy(gpu_s_bits, s_bits, sizeof(char) * s_num_bits, cudaMemcpyHostToDevice));
 
 
   cgbn_error_report_t *report;
   // create a cgbn_error_report for CGBN to report back errors
   CUDA_CHECK(cgbn_error_report_alloc(&report));
 
+
+  size_t    data_size;
+  uint32_t *data, *gpu_data;
+
+  uint32_t  BITS = 0;        // kernel bits
+  int32_t   TPB=TPB_DEFAULT; // Always the same default
+  int32_t   TPI;
+  int32_t   IPB;             // IPB = TPB / TPI, instances per block
+  size_t    BLOCK_COUNT;     // How many blocks to cover all curves
 
   /**
    * Smaller TPI (e.g. 8) is faster (TPI=4 seems worse than TPI=8).
@@ -619,48 +638,67 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
    * based on the size of N (e.g. N < 1024, N < 2048, N < 4096). If we go that
    * route it would be helpful to do that only during release builds.
    */
-  const vector<uint32_t> available_kernels = {512, 1024, 2048, 8192};
+
+  typedef cgbn_params_t<8, 1024>  cgbn_params_8_1024;
+  typedef cgbn_params_t<8, 512>   cgbn_params_8_512;
+#ifdef IS_DEV_BUILD
+  const std::vector<uint32_t> available_kernels = { 1024 };
+#else
+  typedef cgbn_params_t<8, 1024>  cgbn_params_8_1024;
+  typedef cgbn_params_t<8, 1536>  cgbn_params_8_1536;
+  typedef cgbn_params_t<8, 2048>  cgbn_params_8_2048;
+  typedef cgbn_params_t<16, 3072> cgbn_params_16_3072;
+  const std::vector<uint32_t> available_kernels = { 512, 1024, 1536, 2048, 3072 };
+#endif /* IS_DEV_BUILD */
+
   for (uint32_t kernel_bits : available_kernels) {
-    tpi = kernel_bits <= 2048 ? 8 :
-      kernel_bits <= 8192 ? 16 : 32;
+    if (kernel_bits + 6 >=  mpz_sizeinbase(N, 2)) {
+      BITS = kernel_bits;
+      assert( BITS % 32 == 0 );
+      TPI = (BITS <= 2048) ? 8 : ((BITS <= 8192) ? 16 : 32);
+      IPB = TPB / TPI;
+      BLOCK_COUNT = (curves + IPB - 1) / IPB;
+      break;
+    }
+  }
+  if (BITS == 0) {
+    outputf (OUTPUT_ERROR, "No available CGBN Kernel large enough to process N(%d bits)\n",
+        mpz_sizeinbase(N, 2));
+    return ECM_ERROR;
   }
 
-
-  //typedef cgbn_params_t<8, 512> cgbn_params_8_512;
-  typedef cgbn_params_t<8, 1024> cgbn_params_8_1024;
-
-  /**
-   * TODO see if this can be replaced with uint32_t[5 * count * (BITS+31/32)*32]
-   * then cast to mem_t in kernel to right type.
-   */
-  typedef typename curve_t<cgbn_params_8_1024>::mem_t mem_t;
-
-  size_t    data_size = sizeof(mem_t) * 5 * curves;
-  mem_t    *data, *gpu_data;
-
-  int32_t   TPB=cgbn_params_8_1024::TPB;
-  int32_t   TPI=cgbn_params_8_1024::TPI;
-  int32_t   IPB=TPB/TPI; // IPB is instances per block
-
-  size_t gpu_block_count = (curves+IPB-1)/IPB;
-
-  // TODO change to take BITS, and have return uint32_t*
-  data = curve_t<cgbn_params_8_1024>::set_p_2p(N, s, curves, ecm_params->sigma);
+  /** Relies on mem_t (AKA struct cgbn_mem_t) being byte aligned without extra fields. */
+  assert( sizeof(curve_t<cgbn_params_8_512>::mem_t) == 512/8 );
+  assert( sizeof(curve_t<cgbn_params_8_1024>::mem_t) == 1024/8 );
+  data = set_p_2p(N, s, curves, ecm_params->sigma, BITS, &data_size);
 
   // Copy data
   outputf (OUTPUT_VERBOSE, "Copying %d bits of data to GPU\n", data_size);
   CUDA_CHECK(cudaMalloc((void **)&gpu_data, data_size));
   CUDA_CHECK(cudaMemcpy(gpu_data, data, data_size, cudaMemcpyHostToDevice));
 
-  outputf (OUTPUT_VERBOSE, "Running GPU kernel<%ld,%d> TPI=%d...\n", gpu_block_count, TPB, TPI);
-  kernel_double_add<cgbn_params_8_1024><<<gpu_block_count, TPB>>>(
-      report, num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
+  outputf (OUTPUT_VERBOSE, "Running CGBN<%d,%d> kernel<%ld,%d>...\n", BITS, TPI, BLOCK_COUNT, TPB);
+  if (BITS == 512) {
+    kernel_double_add<cgbn_params_8_512><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
+  } else if (BITS == 1024) {
+    kernel_double_add<cgbn_params_8_1024><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
+#ifndef IS_DEV_BUILD
+  } else if (BITS == 1536) {
+    kernel_double_add<cgbn_params_8_1536><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
+  } else if (BITS == 2048) {
+    kernel_double_add<cgbn_params_8_2048><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
+  } else if (BITS == 3072) {
+    kernel_double_add<cgbn_params_16_3072><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
+#endif
+  } else {
+    outputf (OUTPUT_ERROR, "CGBN Kernel not found for %d bits\n", BITS);
+    return ECM_ERROR;
+  }
 
   /* error report uses managed memory, sync the device and check for cgbn errors */
   CUDA_CHECK(cudaDeviceSynchronize());
-  if (report->_error) {
+  if (report->_error)
     outputf (OUTPUT_ERROR, "\n\nerror: %d\n", report->_error);
-  }
   CGBN_CHECK(report);
 
   /* gputime is measured in ms */
@@ -673,14 +711,9 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
 
   cudaEventElapsedTime (gputime, start, stop);
 
-  /**
-   * This cast relies on mem_t (AKA struct cgbn_mem_t) being byte aligned without extra fields.
-   * but it enables moving process_results out of kernel loop, without another copy of data
-   */
-  assert( sizeof(mem_t) == (cgbn_params_8_1024::BITS / 4) );
   youpi = process_results(
       factors, array_stage_found, N,
-      (uint32_t *) data, cgbn_params_8_1024::BITS,
+      data, BITS,
       curves, ecm_params->sigma);
 
   // clean up

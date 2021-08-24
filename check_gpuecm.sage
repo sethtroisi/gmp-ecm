@@ -375,10 +375,14 @@ def timingTest(args, N_sizes):
     for size, prime in zip(N_sizes, primes):
         cmd = 'echo %s | %s -gpu -gpucurves %d -sigma %s %d 0' % (
             prime, args.ecm_cmd, args.gpucurves, sigma, args.B1)
-        output = subprocess.check_output(cmd, shell=True, universal_newlines=True)
-        timing = min(line for line in output.split('\n') if line.startswith("Computing "))
+        try:
+            output = subprocess.check_output(cmd, shell=True, universal_newlines=True)
+            timing = min(line for line in output.split('\n') if line.startswith("Computing "))
+            timing = timing[timing.index("took") + 4:].strip()
+        except subprocess.CalledProcessError as e:
+            timing = "error"
         debug = 'N=%d bits, B1=%d, curves=%d, ' % (size, args.B1, args.gpucurves)
-        print (debug, timing[timing.index("took") + 4:].strip())
+        print (debug, timing)
 
 
 if __name__ == '__main__':

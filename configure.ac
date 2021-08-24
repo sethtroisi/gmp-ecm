@@ -10,6 +10,8 @@ AC_CANONICAL_HOST
 
 AC_CONFIG_HEADERS([config.h ecm.h])
 AC_DEFINE([ECM_VERSION], ["ECM_VERSION_AC"], [The version of GMP-ECM])
+AS_CASE(ECM_VERSION_AC,
+        [*-dev], AC_DEFINE([IS_DEV_BUILD], [1], [Define to 1 in DEV builds]))
 
 dnl Copied from MPFR 2.4.2:
 unset GMP_CFLAGS GMP_CC user_redefine_cc
