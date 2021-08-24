@@ -29,10 +29,9 @@
 extern "C" {
 #endif
 
+// TODO delete this structure
 // define the instance structure
 typedef struct {
-    int n_log2;
-
     // Number of curves to run
     uint32_t curves;
 
