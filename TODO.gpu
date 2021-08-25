@@ -1,4 +1,8 @@
-Last Reviewed: Seth T. 2021-09-10
+Last Reviewed: Seth T. 2021-10-14
+
+Quality of Life
+
+1. Remove 100,000,000 bit limit on S (B1). Break large initial memcopy into chunks per batch.
 
 Big improvements
 

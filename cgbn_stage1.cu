@@ -37,6 +37,31 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-gpu.h"
 
 
+// See cgbn_error_t enum (cgbn.h:39)
+#define cgbn_normalized_error ((cgbn_error_t) 14)
+#define cgbn_positive_overflow ((cgbn_error_t) 15)
+#define cgbn_negative_overflow ((cgbn_error_t) 16)
+
+// Seems to adds very small overhead (1-10%)
+#define VERIFY_NORMALIZED 1
+// Adds even less overhead (<1%)
+#define CHECK_ERROR 1
+
+// Tested with check_gpuecm.sage
+#define CARRY_BITS 6
+
+// Can dramatically change compile time
+#if 1
+    #define FORCE_INLINE __forceinline__
+#else
+    #define FORCE_INLINE
+#endif
+
+/* TODO make this dynamic or configurable */
+#define S_BITS_PER_CALL 4000
+
+
+
 void cuda_check(cudaError_t status, const char *action=NULL, const char *file=NULL, int32_t line=0) {
   // check for cuda errors
   if (status!=cudaSuccess) {
@@ -98,27 +123,6 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
 
 
 // ---------------------------------------------------------------- //
-
-// See cgbn_error_t enum (cgbn.h:39)
-#define cgbn_normalized_error ((cgbn_error_t) 14)
-#define cgbn_positive_overflow ((cgbn_error_t) 15)
-#define cgbn_negative_overflow ((cgbn_error_t) 16)
-
-// Seems to adds very small overhead (1-10%)
-#define VERIFY_NORMALIZED 1
-// Adds even less overhead (<1%)
-#define CHECK_ERROR 1
-
-// Tested with check_gpuecm.sage
-#define CARRY_BITS 6
-
-// Can dramatically change compile time
-#if 1
-    #define FORCE_INLINE __forceinline__
-#else
-    #define FORCE_INLINE
-#endif
-
 
 // The CGBN context uses the following three parameters:
 //   TBP             - threads per block (zero means to use the blockDim.x)
@@ -234,7 +238,6 @@ class curve_t {
           bn_t &q, bn_t &u,
           bn_t &w, bn_t &v,
           uint32_t d,
-          uint32_t bit_number,
           const bn_t &modulus,
           const uint32_t np0) {
     // q = xA = aX
@@ -389,10 +392,14 @@ template<class params>
 __global__ void kernel_double_add(
         cgbn_error_report_t *report,
         uint32_t s_bits,
+        uint32_t s_bits_start,
+        uint32_t s_bits_interval,
         char* gpu_s_bits,
         uint32_t *data,
         uint32_t count,
-        uint32_t sigma_0) {
+        uint32_t sigma_0,
+        uint32_t np0
+        ) {
   // decode an instance_i number from the blockIdx and threadIdx
   int32_t instance_i = (blockIdx.x*blockDim.x + threadIdx.x)/params::TPI;
   if(instance_i >= count)
@@ -414,8 +421,10 @@ __global__ void kernel_double_add(
       cgbn_load(curve._env, bX, &data_cast[5*instance_i+3]);
       cgbn_load(curve._env, bY, &data_cast[5*instance_i+4]);
 
-      // Convert everything to mont
-      np0 = cgbn_bn2mont(curve._env, aX, aX, modulus);
+      /* Convert points to mont, has a miniscule bit of overhead with batching. */
+      uint32_t np0_test = cgbn_bn2mont(curve._env, aX, aX, modulus);
+      assert(np0 == np0_test);
+
       cgbn_bn2mont(curve._env, aY, aY, modulus);
       cgbn_bn2mont(curve._env, bX, bX, modulus);
       cgbn_bn2mont(curve._env, bY, bY, modulus);
@@ -430,15 +439,15 @@ __global__ void kernel_double_add(
 
   uint32_t d = sigma_0 + instance_i;
 
-  for (int b = s_bits; b > 0; b--) {
+  for (int b = 0; b < s_bits_interval; b++) {
     /**
      * TODO generates a lot of duplicate inlined code, not sure how to improve
      * Tried with swappings pointers (with a single call to double_add_v2)
      */
-    if (gpu_s_bits[s_bits - b] == 0) {
-        curve.double_add_v2(aX, aY, bX, bY, d, b, modulus, np0);
+    if (gpu_s_bits[s_bits_start + b] == 0) {
+        curve.double_add_v2(aX, aY, bX, bY, d, modulus, np0);
     } else {
-        curve.double_add_v2(bX, bY, aX, aY, d, b, modulus, np0);
+        curve.double_add_v2(bX, bY, aX, aY, d, modulus, np0);
     }
   }
 
@@ -448,6 +457,7 @@ __global__ void kernel_double_add(
     cgbn_mont2bn(curve._env, aY, aY, modulus, np0);
     cgbn_mont2bn(curve._env, bX, bX, modulus, np0);
     cgbn_mont2bn(curve._env, bY, bY, modulus, np0);
+
     {
       curve.assert_normalized(aX, modulus);
       curve.assert_normalized(aY, modulus);
@@ -640,9 +650,9 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   typedef cgbn_params_t<16, 3072> cgbn_params_16_3072;
   const std::vector<uint32_t> available_kernels = { 512, 1024, 1536, 2048, 3072 };
 #endif /* IS_DEV_BUILD */
-
-  for (uint32_t kernel_bits : available_kernels) {
-    if (kernel_bits >=  mpz_sizeinbase(N, 2) + CARRY_BITS) {
+  for (int k_i = 0; k_i < available_kernels.size(); k_i++) {
+    uint32_t kernel_bits = available_kernels[k_i];
+    if (kernel_bits >= mpz_sizeinbase(N, 2) + CARRY_BITS) {
       BITS = kernel_bits;
       assert( BITS % 32 == 0 );
       TPI = (BITS <= 512) ? 4 : (BITS <= 2048) ? 8 : (BITS <= 8192) ? 16 : 32;
@@ -668,34 +678,61 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   assert( sizeof(curve_t<cgbn_params_8_1024>::mem_t) == 1024/8 );
   data = set_p_2p(N, curves, ecm_params->sigma, BITS, &data_size);
 
+  /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
+  uint32_t np0;
+  {
+    mpz_t temp;
+    mpz_init(temp);
+    mpz_ui_pow_ui(temp, 2, 32);
+    assert(mpz_invert(temp, N, temp));
+    np0 = -mpz_get_ui(temp);
+    mpz_clear(temp);
+  }
+
   // Copy data
   outputf (OUTPUT_VERBOSE, "Copying %d bits of data to GPU\n", data_size);
   CUDA_CHECK(cudaMalloc((void **)&gpu_data, data_size));
   CUDA_CHECK(cudaMemcpy(gpu_data, data, data_size, cudaMemcpyHostToDevice));
 
-  outputf (OUTPUT_VERBOSE, "Running CGBN<%d,%d> kernel<%ld,%d>...\n", BITS, TPI, BLOCK_COUNT, TPB);
-  if (BITS == 512) {
-    kernel_double_add<cgbn_params_8_512><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
-  } else if (BITS == 1024) {
-    kernel_double_add<cgbn_params_8_1024><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
+  /* Break s_num_bits into chunks of 2000 (~200ms on my 1080ti) */
+  int s_partial = 0;
+
+  while (s_partial < s_num_bits) {
+    int batch_size = std::min(s_num_bits - s_partial, S_BITS_PER_CALL);
+    outputf (OUTPUT_VERBOSE, "Running CGBN<%d,%d> kernel<%ld,%d> at bit %d/%d (%.1f%%)...\n",
+        BITS, TPI, BLOCK_COUNT, TPB, s_partial, s_num_bits, 100.0 * s_partial / s_num_bits);
+
+    if (BITS == 512) {
+      kernel_double_add<cgbn_params_8_512><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+    } else if (BITS == 1024) {
+      kernel_double_add<cgbn_params_8_1024><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
 #ifndef IS_DEV_BUILD
-  } else if (BITS == 1536) {
-    kernel_double_add<cgbn_params_8_1536><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
-  } else if (BITS == 2048) {
-    kernel_double_add<cgbn_params_8_2048><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
-  } else if (BITS == 3072) {
-    kernel_double_add<cgbn_params_16_3072><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
+    } else if (BITS == 1536) {
+      kernel_double_add<cgbn_params_8_1536><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+    } else if (BITS == 2048) {
+      kernel_double_add<cgbn_params_8_2048><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+    } else if (BITS == 3072) {
+      kernel_double_add<cgbn_params_16_3072><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
 #endif
-  } else {
-    outputf (OUTPUT_ERROR, "CGBN Kernel not found for %d bits\n", BITS);
-    return ECM_ERROR;
+    } else {
+      outputf (OUTPUT_ERROR, "CGBN Kernel not found for %d bits\n", BITS);
+      return ECM_ERROR;
+    }
+
+    s_partial += batch_size;
+
+    /* error report uses managed memory, sync the device and check for cgbn errors */
+    CUDA_CHECK(cudaDeviceSynchronize());
+    if (report->_error)
+      outputf (OUTPUT_ERROR, "\n\nerror: %d\n", report->_error);
+    CGBN_CHECK(report);
   }
 
-  /* error report uses managed memory, sync the device and check for cgbn errors */
-  CUDA_CHECK(cudaDeviceSynchronize());
-  if (report->_error)
-    outputf (OUTPUT_ERROR, "\n\nerror: %d\n", report->_error);
-  CGBN_CHECK(report);
 
   /* gputime is measured in ms */
   CUDA_CHECK(cudaEventRecord (stop, 0));
