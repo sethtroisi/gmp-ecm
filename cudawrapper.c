@@ -39,7 +39,7 @@ int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
 /* Try to reduce all composite factors to primes.
  * This can be hard if factors overlap e.g. (a*b, a*c*d, b*c)
  */
-void reducefactors (mpz_t *factors, int *array_stage_found, unsigned int nb_curves)
+void reducefactors (mpz_t *factors, int *array_found, unsigned int nb_curves)
 {
   unsigned int i, j;
   int found;
@@ -54,7 +54,7 @@ void reducefactors (mpz_t *factors, int *array_stage_found, unsigned int nb_curv
   /* Add all unique factors to reduced */
   for (i = 0; i < nb_curves; i++)
     {
-      if (array_stage_found[i] == ECM_NO_FACTOR_FOUND)
+      if (array_found[i] == ECM_NO_FACTOR_FOUND)
         continue;
 
       /* Scan for match */
@@ -151,17 +151,17 @@ void reducefactors (mpz_t *factors, int *array_stage_found, unsigned int nb_curv
   } while (updates > 0);
 
   outputf (OUTPUT_DEVVERBOSE, "GPU: Reduced to %d factors\n", found);
-  /* write out reduced[i], update array_stage_found */
+  /* write out reduced[i], update array_found */
   for (i = 0; i < found; i++)
     {
       mpz_swap(factors[i], reduced[i]);
       mpz_clear(reduced[i]);
-      array_stage_found[i] = ECM_FACTOR_FOUND_STEP1;
+      array_found[i] = ECM_FACTOR_FOUND_STEP1;
       outputf (OUTPUT_DEVVERBOSE, "GPU: Reduced factor %d: %Zd\n", i+1, factors[i]);
     }
 
   for (i = found; i < nb_curves; i++)
-    array_stage_found[i] = ECM_NO_FACTOR_FOUND;
+    array_found[i] = ECM_NO_FACTOR_FOUND;
 
   mpz_clear (gcd);
   free(reduced);
@@ -210,7 +210,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   }
 }
 
-int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s, 
+int gpu_ecm_stage1 (mpz_t *factors, int *array_found, mpz_t N, mpz_t s,
                     unsigned int number_of_curves, unsigned int firstsigma, 
                     float *gputime, int verbose)
 {
@@ -316,15 +316,15 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
     from_mont_repr (xp, N, invB);
     from_mont_repr (zp, N, invB);
   
-    array_stage_found[i] = findfactor (factors[i], N, xp, zp);
+    array_found[i] = findfactor (factors[i], N, xp, zp);
 
-    if (array_stage_found[i] != ECM_NO_FACTOR_FOUND)
+    if (array_found[i] != ECM_NO_FACTOR_FOUND)
       {
-        youpi = array_stage_found[i];
+        youpi = array_found[i];
         outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with"
                 " curve %u (-sigma 3:%u)\n", factors[i], i, sigma);
       }
-    }
+  }
   
   mpz_clear (N3);
   mpz_clear (invN);
@@ -384,8 +384,8 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   float gputime = 0.0;
   mpz_t tmp_A;
   mpz_t *factors = NULL; /* Contains either a factor of n either end-of-stage-1
-                         residue (depending of the value of array_stage_found */
-  int *array_stage_found = NULL;
+                         residue (depending of the value of array_found */
+  int *array_found = NULL;
   /* Only for stage 2 */
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
   int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
@@ -510,13 +510,13 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   factors = (mpz_t *) malloc (*nb_curves * sizeof (mpz_t));
   ASSERT_ALWAYS (factors != NULL);
 
-  array_stage_found = (int *) malloc (*nb_curves * sizeof (int));
-  ASSERT_ALWAYS (array_stage_found != NULL);
+  array_found = (int *) malloc (*nb_curves * sizeof (int));
+  ASSERT_ALWAYS (array_found != NULL);
 
   for (i = 0; i < *nb_curves; i++)
     {
       mpz_init (factors[i]);
-      array_stage_found[i] = ECM_NO_FACTOR_FOUND;
+      array_found[i] = ECM_NO_FACTOR_FOUND;
     }
 
 
@@ -576,7 +576,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
   
   st = cputime ();
-  youpi = gpu_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
+  youpi = gpu_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves, 
                           firstsigma_ui, &gputime, verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
@@ -670,7 +670,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
       if (youpi != ECM_NO_FACTOR_FOUND)
         {
-          array_stage_found[i] = youpi;
+          array_found[i] = youpi;
           outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 2 with"
                 " curve %u (-sigma 3:%u)\n", factors[i], i, i+firstsigma_ui);
           /* factor_found corresponds to the first factor found */
@@ -708,7 +708,7 @@ end_gpu_ecm_rhotable:
     }
 
 
-  reducefactors(factors, array_stage_found, *nb_curves);
+  reducefactors(factors, array_found, *nb_curves);
 
   /* If f0, ,fk are the factors found (in stage 1 or 2) 
    * f = f0 + f1*n + .. + fk*n^k
@@ -719,7 +719,7 @@ end_gpu_ecm_rhotable:
   for (i = 0; i < *nb_curves; i++)
   {
     /* invert order of factors so they are processed in same order found */
-    if (array_stage_found[*nb_curves-1-i] != ECM_NO_FACTOR_FOUND)
+    if (array_found[*nb_curves-1-i] != ECM_NO_FACTOR_FOUND)
       {
         mpz_mul (f, f, n);
         mpz_add (f, f, factors[*nb_curves-1-i]);
@@ -734,7 +734,7 @@ end_gpu_ecm:
   for (i = 0; i < *nb_curves; i++)
       mpz_clear (factors[i]);
 
-  free (array_stage_found);
+  free (array_found);
   free (factors);
 
 end_gpu_ecm2:
