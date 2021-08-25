@@ -644,8 +644,8 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   typedef cgbn_params_t<16, 3072> cgbn_params_16_3072;
   const std::vector<uint32_t> available_kernels = { 512, 1024, 1536, 2048, 3072 };
 #endif /* IS_DEV_BUILD */
-
-  for (uint32_t kernel_bits : available_kernels) {
+  for (int k_i = 0; k_i < available_kernels.size(); k_i++) {
+    uint32_t kernel_bits = available_kernels[k_i];
     if (kernel_bits + 6 >=  mpz_sizeinbase(N, 2)) {
       BITS = kernel_bits;
       assert( BITS % 32 == 0 );
@@ -678,6 +678,9 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   CUDA_CHECK(cudaMemcpy(gpu_data, data, data_size, cudaMemcpyHostToDevice));
 
   outputf (OUTPUT_VERBOSE, "Running CGBN<%d,%d> kernel<%ld,%d>...\n", BITS, TPI, BLOCK_COUNT, TPB);
+  // TODO break each of these calls into a larger number of intervals so GPU doesn't hang.
+
+
   if (BITS == 512) {
     kernel_double_add<cgbn_params_8_512><<<BLOCK_COUNT, TPB>>>(report, s_num_bits, gpu_s_bits, gpu_data, curves, ecm_params->sigma);
   } else if (BITS == 1024) {
