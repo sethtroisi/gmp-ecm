@@ -612,7 +612,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
                 #include <gmp.h>
                 #include <cgbn.h>
               ],
-              [-I$cgbn_include -lgmp],
+              [-I$cgbn_include $GMPLIB],
               [AC_MSG_RESULT([yes])],
               [
                 AC_MSG_RESULT([no])
@@ -620,7 +620,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
               ]
             )
             AC_DEFINE([HAVE_CGBN_H], [1], [Define to 1 if cgbn.h exists])
-            NVCCFLAGS="-I$with_cgbn_include -lgmp $NVCCFLAGS"
+            NVCCFLAGS="-I$with_cgbn_include $GMPLIB $NVCCFLAGS"
             want_cgbn="yes"
         ])
       ])
