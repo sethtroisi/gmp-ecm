@@ -372,14 +372,23 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
                               TreeFilename, maxmem, Fermat, modulus);
   if (youpi == ECM_ERROR)
       goto end_gpu_ecm;
-  
+
+  int schedule = 0;
+  if (use_cgbn)
+    {
+#ifdef HAVE_CGBN_H
+    schedule = 1;
+#else 
+    outputf (OUTPUT_ERROR, "cgbn not included, using yield schedule");
+#endif /* HAVE_CGBN_H */
+    }
 
   /* Initialize the GPU if necessary */
   if (!*device_init)
     {
       st = cputime ();
       youpi = select_and_init_GPU (device, nb_curves,
-                                   test_verbose (OUTPUT_VERBOSE));
+                                   test_verbose (OUTPUT_VERBOSE), schedule);
 
       if (youpi != 0)
         {
