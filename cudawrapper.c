@@ -373,13 +373,8 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   if (youpi == ECM_ERROR)
       goto end_gpu_ecm;
 
-  int schedule = 0;
-  if (use_cgbn)
-    {
-#ifdef HAVE_CGBN_H
-    schedule = 1;
-#endif /* HAVE_CGBN_H */
-    }
+  /* Set cudaDeviceScheduleBlockingSync with -cgbn, else cudaDeviceScheduleYield */
+  int schedule = use_cgbn ? 1 : 0;
 
   /* Initialize the GPU if necessary */
   if (!*device_init)
