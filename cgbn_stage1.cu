@@ -40,7 +40,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 void cuda_check(cudaError_t status, const char *action=NULL, const char *file=NULL, int32_t line=0) {
   // check for cuda errors
   if (status!=cudaSuccess) {
-    fprintf (stderr, "CUDA error occurred: %s\n", cudaGetErrorString(status));
+    fprintf (stderr, "CUDA error (%d) occurred: %s\n", status, cudaGetErrorString(status));
     if (action!=NULL)
       fprintf (stderr, "While running %s   (file %s, line %d)\n", action, file, line);
     exit(1);
@@ -587,8 +587,6 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   assert( 1 <= s_num_bits && s_num_bits <= 100000000 );
   assert( s_bits != NULL );
 
-  // Keeps CPU from busy waiting during GPU execution.
-  CUDA_CHECK(cudaSetDeviceFlags (cudaDeviceScheduleBlockingSync));
   cudaEvent_t start, stop;
   CUDA_CHECK(cudaEventCreate (&start));
   CUDA_CHECK(cudaEventCreate (&stop));

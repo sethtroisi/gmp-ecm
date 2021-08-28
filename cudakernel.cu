@@ -68,7 +68,7 @@ getNumberOfBlockPerMultiProcessor (int major, int minor)
 
 extern "C" 
 int 
-select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
+select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose, int schedule)
 {
   cudaDeviceProp deviceProp;
   cudaError_t err;
@@ -131,7 +131,14 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
     }
 
   /* First call to a global function initialize the device */
-  errCheck (cudaSetDeviceFlags (cudaDeviceScheduleYield)); 
+  if (schedule == 1)
+    {
+      errCheck (cudaSetDeviceFlags (cudaDeviceScheduleBlockingSync));
+    }
+  else
+    {
+      errCheck (cudaSetDeviceFlags (cudaDeviceScheduleYield));
+    }
   Cuda_Init_Device<<<1, 1>>> ();
   errCheck (cudaGetLastError()); 
 

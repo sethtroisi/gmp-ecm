@@ -506,14 +506,16 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
                               TreeFilename, maxmem, Fermat, modulus);
   if (youpi == ECM_ERROR)
       goto end_gpu_ecm;
-  
+
+  /* Set cudaDeviceScheduleBlockingSync with -cgbn, else cudaDeviceScheduleYield */
+  int schedule = use_cgbn ? 1 : 0;
 
   /* Initialize the GPU if necessary */
   if (!*device_init)
     {
       st = cputime ();
       youpi = select_and_init_GPU (device, nb_curves,
-                                   test_verbose (OUTPUT_VERBOSE));
+                                   test_verbose (OUTPUT_VERBOSE), schedule);
 
       if (youpi != 0)
         {
