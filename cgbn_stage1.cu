@@ -63,7 +63,7 @@ IN THE SOFTWARE.
 void cuda_check(cudaError_t status, const char *action=NULL, const char *file=NULL, int32_t line=0) {
   // check for cuda errors
   if (status!=cudaSuccess) {
-    fprintf (stderr, "CUDA error occurred: %s\n", cudaGetErrorString(status));
+    fprintf (stderr, "CUDA error (%d) occurred: %s\n", status, cudaGetErrorString(status));
     if (action!=NULL)
       fprintf (stderr, "While running %s   (file %s, line %d)\n", action, file, line);
     exit(1);
