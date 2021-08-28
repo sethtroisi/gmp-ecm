@@ -378,8 +378,6 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     {
 #ifdef HAVE_CGBN_H
     schedule = 1;
-#else 
-    outputf (OUTPUT_ERROR, "cgbn not included, using yield schedule");
 #endif /* HAVE_CGBN_H */
     }
 
