@@ -516,7 +516,7 @@ int verify_size_of_n(const mpz_t N, size_t max_bits) {
 static
 char* allocate_and_set_s_bits(const mpz_t s, int *sbits) {
   uint32_t num_bits = *sbits = mpz_sizeinbase(s, 2) - 1;
-  assert( 1 <= num_bits <= 100'000'000 );
+  assert( 1 <= num_bits <= 100000000 );
 
   // Use int* so that size can be stored in first element, could pass around extra size.
   char *s_bits = (char*) malloc(sizeof(char) * num_bits);
@@ -593,11 +593,9 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
 
   int s_num_bits;
   char *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
-  assert( 1 <= s_num_bits <= 100'000'000 );
+  assert( 1 <= s_num_bits <= 100000000 );
   assert( s_bits != NULL );
 
-  // Keeps CPU from busy waiting during GPU execution.
-  CUDA_CHECK(cudaSetDeviceFlags (cudaDeviceScheduleBlockingSync));
   cudaEvent_t start, stop;
   CUDA_CHECK(cudaEventCreate (&start));
   CUDA_CHECK(cudaEventCreate (&stop));
