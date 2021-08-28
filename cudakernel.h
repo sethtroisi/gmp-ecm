@@ -11,7 +11,7 @@ __global__ void Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg,
 extern "C" {
 #endif
 
-int select_and_init_GPU (int, unsigned int*, int);
+int select_and_init_GPU (int, unsigned int*, int, int);
 float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*,
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int,
                         unsigned int, int);
