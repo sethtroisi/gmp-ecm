@@ -63,7 +63,6 @@ parser.add_argument('--quiet', '-q',
     action='store_const', const=0, dest='verbose',
     help='Suppress most output')
 
-args = parser.parse_args()
 
 
 # Currently GPU can only do param=3
@@ -176,10 +175,32 @@ def testInternal():
         print('Implementation successfully tested\n')
 
 
-def smallGroupOrders(prime, param, sigma_0, B1, num_curves):
-    ''' Find list of sigmas that will find prime at with B1 <= B1'''
-    found = []
+def smallestGroupOrder(prime, param, sigma_0, num_curves):
+    '''
+    Print smallest B1 (and B2) needed to find a curve from sigma_0 ... sigma_0 + curves
+    At the end return the smallest sigma
+    '''
+    # This is not used directly in check_gpuecm.sage, but is very useful for building tests
+    found_at = None
+    smallest = 10 ^ 100
+    for sigma in range(sigma_0, sigma_0 + num_curves):
+        order = GroupOrder(param, prime, sigma)
+        assert 1 <= order < 2 * prime, (prime, param, sigma, order)
 
+        f = factor(order)
+        # Largest prime
+        exp = sorted(p ** k for p, k in f)
+        # B1 to find this factor is 2nd smallest if B2 = 500 * B1 finds large factor
+        min_b1 = exp[-2] if len(exp) >= 2 and exp[-1] < exp[-2] * 500 else exp[-1]
+        if min_b1 <= smallest:
+            print ("\tFound by sigma: %d with B1=%d, B2=%d" % (sigma, min_b1, exp[-1]))
+            smallest = min_b1
+            found_at = sigma
+    return found_at
+
+
+def smallGroupOrders(prime, param, sigma_0, test_B1, num_curves):
+    '''Find list of sigmas that will find prime with B1 >= test_B1'''
     for sigma in range(sigma_0, sigma_0 + num_curves):
         order = GroupOrder(param, prime, sigma)
         assert 1 <= order < 2 * prime, (prime, param, sigma, order)
@@ -187,14 +208,11 @@ def smallGroupOrders(prime, param, sigma_0, B1, num_curves):
         f = factor(order)
         assert len(f) >= 1, (order, f)
 
-        for p, k in f[:-1]:
-            if p ^ k > B1 :
+        for p, k in f:
+            if p ^ k > test_B1:
                 break
         else:
-            if f[-1][0] ** f[-1][1] <= B1:
-                found.append(sigma)
-
-    return found
+            yield sigma
 
 
 def findPrimesOfSize(count, prime_size):
@@ -386,6 +404,8 @@ def timingTest(args, N_sizes):
 
 
 if __name__ == '__main__':
+    args = parser.parse_args()
+
     testInternal()
 
     seed = args.seed
