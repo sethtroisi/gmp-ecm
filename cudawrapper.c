@@ -2,10 +2,13 @@
 
 #ifdef WITH_GPU
 
+#include "cudacommon.h"
+#include "cudakernel.h"
+
 #ifdef HAVE_CGBN_H
 #include "cgbn_stage1.h"
 #endif /* HAVE_CGBN_H */
-#include "cudakernel.h"
+
 
 #define TWO32 4294967296 /* 2^32 */
 
@@ -490,7 +493,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   /* Set cudaDeviceScheduleBlockingSync with -cgbn, else cudaDeviceScheduleYield */
   int schedule = use_cgbn ? 1 : 0;
 
-  /* Initialize the GPU if necessary */
+  /* Initialize the GPU if necessary and determine nb_curves */
   if (!*device_init)
     {
       st = cputime ();
@@ -509,7 +512,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
       /* try running 'nvidia-smi -q -l' on the background .                 */
       *device_init = 1;
     }
-  
+
   /* Init arrays */
   factors = (mpz_t *) malloc (*nb_curves * sizeof (mpz_t));
   ASSERT_ALWAYS (factors != NULL);
@@ -578,7 +581,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
           print_expcurves (B1, B2, dF, k, root_params.S, param);
         }
     }
-  
+
   st = cputime ();
 
   if (use_cgbn) {
@@ -761,7 +764,5 @@ end_gpu_ecm2:
 
   return youpi;
 }
-#endif
 
-
-
+#endif /* HAVE_GPU */

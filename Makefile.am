@@ -53,7 +53,7 @@ libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
 libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 1:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 if WANT_GPU 
-  libecm_la_SOURCES += cudakernel.cu
+  libecm_la_SOURCES += cudakernel.cu cudacommon.cu
 if WANT_CGBN
   libecm_la_SOURCES += cgbn_stage1.cu
 endif
@@ -111,7 +111,8 @@ endif
 
 include_HEADERS = ecm.h
 noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h \
-                 ecm-params.h mpmod.h ecm-gpu.h cudakernel.h cgbn_stage1.h \
+                 ecm-params.h mpmod.h ecm-gpu.h \
+                 cudakernel.h cudacommon.h cgbn_stage1.h \
                  addlaws.h getprime_r.h ecm_int.h \
                  aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
 

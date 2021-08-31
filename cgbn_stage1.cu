@@ -21,6 +21,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #ifndef _CGBN_STAGE1_CU
 #define _CGBN_STAGE1_CU 1
 
+#ifndef __CUDACC__
+#error "This file should only be compiled with nvcc"
+#endif
+
 #include "cgbn_stage1.h"
 
 #include <cassert>
@@ -32,6 +36,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <gmp.h>
 #include <cgbn.h>
 #include <cuda.h>
+
+#include "cudacommon.h"
 
 #include "ecm.h"
 #include "ecm-gpu.h"
@@ -57,16 +63,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
     #define FORCE_INLINE
 #endif
 
-void cuda_check(cudaError_t status, const char *action=NULL, const char *file=NULL, int32_t line=0) {
-  // check for cuda errors
-  if (status!=cudaSuccess) {
-    fprintf (stderr, "CUDA error (%d) occurred: %s\n", status, cudaGetErrorString(status));
-    if (action!=NULL)
-      fprintf (stderr, "While running %s   (file %s, line %d)\n", action, file, line);
-    exit(1);
-  }
-}
-
+// support routine copied from  "CGBN/samples/utility/support.h"
 void cgbn_check(cgbn_error_report_t *report, const char *file=NULL, int32_t line=0) {
   // check for cgbn errors
 
@@ -92,8 +89,6 @@ void cgbn_check(cgbn_error_report_t *report, const char *file=NULL, int32_t line
   }
 }
 
-// Unify this with cudakernel.cu
-#define CUDA_CHECK(action) cuda_check(action, #action, __FILE__, __LINE__)
 #define CGBN_CHECK(report) cgbn_check(report, __FILE__, __LINE__)
 
 static
@@ -107,7 +102,7 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
 
   if(mpz_sizeinbase (s, 2) > count * 32) {
     fprintf (stderr, "from_mpz failed -- result does not fit\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   mpz_export (x, &words, -1, sizeof(uint32_t), 0, 0, s);
@@ -473,9 +468,9 @@ int findfactor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t y_f
     mpz_t temp;
     mpz_init(temp);
 
-    // Check if factor found
-
+    /* Check if factor found */
     bool inverted = mpz_invert(temp, y_final, N);    // aY ^ (N-2) % N
+
     if (inverted) {
         mpz_mul(temp, x_final, temp);         // aX * aY^-1
         mpz_mod(factor, temp, N);             // "Residual"
@@ -493,7 +488,7 @@ static
 int verify_size_of_n(const mpz_t N, size_t max_bits) {
   size_t n_log2 = mpz_sizeinbase(N, 2);
 
-  // using check_gpuecm.sage it looks like 4 bits would suffice
+  /* Using check_gpuecm.sage it looks like 4 bits would suffice. */
   size_t max_usable_bits = max_bits - CARRY_BITS;
 
   if (n_log2 <= max_usable_bits)
@@ -595,8 +590,9 @@ int process_results(mpz_t *factors, int *array_found,
 }
 
 int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
+             const mpz_t N, const mpz_t s,
              uint32_t curves, uint32_t sigma,
-             const mpz_t N, const mpz_t s, float *gputime)
+             float *gputime, int verbose)
 {
   assert( sigma > 0 );
   assert( ((uint64_t) sigma + curves) <= 0xFFFFFFFF ); // no overflow
@@ -685,6 +681,10 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       TPI = (BITS <= 512) ? 4 : (BITS <= 2048) ? 8 : (BITS <= 8192) ? 16 : 32;
       IPB = TPB / TPI;
       BLOCK_COUNT = (curves + IPB - 1) / IPB;
+
+      /* Print some debug info about kernel. */
+      kernel_info((const void*)kernel_double_add<cgbn_params_512>, verbose);
+
       break;
     }
   }
@@ -827,5 +827,11 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
   return youpi;
 }
+
+#ifdef __CUDA_ARCH__
+  #if __CUDA_ARCH__ < 300
+    #error "Unsupported architecture"
+  #endif
+#endif
 
 #endif  /* _CGBN_STAGE1_CU */
