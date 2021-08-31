@@ -1,9 +1,12 @@
 #ifndef _CUDAKERNEL_H
 #define _CUDAKERNEL_H 1
 
+#include <cuda.h>
+
 #ifdef __cplusplus
 __global__ void Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, 
                   biguint_t *x2arg, biguint_t *z2arg, unsigned int firstinvd);
+
 #endif
 
 
@@ -11,6 +14,7 @@ __global__ void Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg,
 extern "C" {
 #endif
 
+int get_device_prop(int device, struct cudaDeviceProp *deviceProp);
 int select_and_init_GPU (int, unsigned int*, int, int);
 float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*,
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int,
