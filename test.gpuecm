@@ -204,8 +204,6 @@ echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea t
 $ECMnoGPU -resume test.ecm.save 9000 1000000
 checkcode $? 14
 
-echo \" $ECM \"
-
 # find multiple factors in Step 1
 echo "(2^718+1)/5" | $ECM -sigma 3:2000 50 60 > test.output
 checkcode $? 2
@@ -234,4 +232,5 @@ checkfactorcount test.output 1024 0 6
 
 /bin/rm test_dummy2.save test.ecm.save test.output
 
+echo "$ECM"
 echo "All ECM tests with GPU are ok."
