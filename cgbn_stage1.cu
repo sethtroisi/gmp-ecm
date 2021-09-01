@@ -601,11 +601,9 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, sizeof(char) * s_num_bits));
   CUDA_CHECK(cudaMemcpy(gpu_s_bits, s_bits, sizeof(char) * s_num_bits, cudaMemcpyHostToDevice));
 
-
   cgbn_error_report_t *report;
   // create a cgbn_error_report for CGBN to report back errors
   CUDA_CHECK(cgbn_error_report_alloc(&report));
-
 
   size_t    data_size;
   uint32_t *data, *gpu_data;
@@ -619,38 +617,46 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   /**
    * Smaller TPI is faster, Larger TPI is needed for large inputs.
    * N > 512 TPI=8 | N > 2048 TPI=16 | N > 8192 TPI=32
-   */
-  /**
-   * Larger takes longer to compile:
-   * (32,32768) takes ~10 minutes (ecm was 6.0M)
-   * (32,16384) takes ~2  minutes (ecm was 4.3M)
-   * (16,8192) takes ~20 seconds (ecm was 4.3M)
-   * (8, 1024) takes ~10 seconds (ecm was 3.7M)
-   * GPU, No CGBN                (ecm was 3.5M)
+   *
+   * Larger takes longer to compile (and increases binary size)
    * No GPU, No CGBN             (ecm was 3.4M)
+   * GPU, No CGBN                (ecm was 3.5M)
+   * (8, 1024) takes ~10 seconds (ecm was 3.7M)
+   * (16,8192) takes ~20 seconds (ecm was 4.3M)
+   * (32,16384) takes ~2  minutes (ecm was 4.3M)
+   * (32,32768) takes ~10 minutes (ecm was 6.0M)
    */
-  /**
-   * TPI and BITS have to be set at compile time.
-   * Adding multiple cgbn_params (and kernals) allows for dynamic selection
-   * based on the size of N (e.g. N < 1024, N < 2048, N < 4096). If we go that
-   * route it would be helpful to do that only during release builds.
+  /* NOTE: Custom kernel changes here
+   * For "Compling custom kernel for %d bits should be XX% faster"
+   * Change the 512 in cgbn_params_t<4, 512> cgbn_params_512;
+   * to the suggested value (a multiple of 32 >= bits + 6).
+   * You may need to change the 4 to an 8 (or 16) if bits >512, >2048
    */
-
-  typedef cgbn_params_t<4, 512>   cgbn_params_4_512;
-  typedef cgbn_params_t<8, 1024>  cgbn_params_8_1024;
+  typedef cgbn_params_t<4, 512>   cgbn_params_512;
+  typedef cgbn_params_t<8, 1024>  cgbn_params_1024;
 #ifndef IS_DEV_BUILD
-  typedef cgbn_params_t<8, 1536>  cgbn_params_8_1536;
-  typedef cgbn_params_t<8, 2048>  cgbn_params_8_2048;
-  typedef cgbn_params_t<16, 3072> cgbn_params_16_3072;
+  /**
+   * TPI and BITS have to be set at compile time. Adding multiple cgbn_params
+   * (and their associated kernels) allows for dynamic selection based on the
+   * size of N (e.g. N < 1024, N < 2048, N < 4096) but increase compile time
+   * and binary time. A few reasonable sizes are included and a verbose warning
+   * is printed when a particular N might benefit from a custom kernel size.
+   */
+  typedef cgbn_params_t<8, 1536>  cgbn_params_1536;
+  typedef cgbn_params_t<8, 2048>  cgbn_params_2048;
+  typedef cgbn_params_t<16, 3072> cgbn_params_3072;
+  typedef cgbn_params_t<16, 4096> cgbn_params_4096;
 #endif
 
   const std::vector<uint32_t> available_kernels = {
-      cgbn_params_4_512::BITS,
-      cgbn_params_8_1024::BITS
+      cgbn_params_512::BITS,
+      cgbn_params_1024::BITS
 #ifndef IS_DEV_BUILD
-      ,cgbn_params_8_1536::BITS,
-      cgbn_params_8_2048::BITS,
-      cgbn_params_16_3072::BITS
+      ,
+      cgbn_params_1536::BITS,
+      cgbn_params_2048::BITS,
+      cgbn_params_3072::BITS
+      cgbn_params_4096::BITS
 #endif
   };
 
@@ -690,8 +696,8 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   }
 
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
-  assert( sizeof(curve_t<cgbn_params_4_512>::mem_t) == cgbn_params_4_512::BITS/8 );
-  assert( sizeof(curve_t<cgbn_params_8_1024>::mem_t) == cgbn_params_8_1024::BITS/8 );
+  assert( sizeof(curve_t<cgbn_params_512>::mem_t) == cgbn_params_512::BITS/8 );
+  assert( sizeof(curve_t<cgbn_params_1024>::mem_t) == cgbn_params_1024::BITS/8 );
   data = set_p_2p(N, curves, ecm_params->sigma, BITS, &data_size);
 
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
@@ -746,21 +752,24 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
 
     CUDA_CHECK(cudaEventRecord (batch_start));
 
-    if (BITS == cgbn_params_4_512::BITS) {
-      kernel_double_add<cgbn_params_4_512><<<BLOCK_COUNT, TPB>>>(
+    if (BITS == cgbn_params_512::BITS) {
+      kernel_double_add<cgbn_params_512><<<BLOCK_COUNT, TPB>>>(
           report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
-    } else if (BITS == cgbn_params_8_1024::BITS) {
-      kernel_double_add<cgbn_params_8_1024><<<BLOCK_COUNT, TPB>>>(
+    } else if (BITS == cgbn_params_1024::BITS) {
+      kernel_double_add<cgbn_params_1024><<<BLOCK_COUNT, TPB>>>(
           report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
 #ifndef IS_DEV_BUILD
-    } else if (BITS == cgbn_params_8_1536::BITS) {
-      kernel_double_add<cgbn_params_8_1536><<<BLOCK_COUNT, TPB>>>(
+    } else if (BITS == cgbn_params_1536::BITS) {
+      kernel_double_add<cgbn_params_1536><<<BLOCK_COUNT, TPB>>>(
           report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
-    } else if (BITS == cgbn_params_8_2048::BITS) {
-      kernel_double_add<cgbn_params_8_2048><<<BLOCK_COUNT, TPB>>>(
+    } else if (BITS == cgbn_params_2048::BITS) {
+      kernel_double_add<cgbn_params_2048><<<BLOCK_COUNT, TPB>>>(
           report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
-    } else if (BITS == cgbn_params_16_3072::BITS) {
-      kernel_double_add<cgbn_params_16_3072><<<BLOCK_COUNT, TPB>>>(
+    } else if (BITS == cgbn_params_3072::BITS) {
+      kernel_double_add<cgbn_params_3072><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+    } else if (BITS == cgbn_params_4096::BITS) {
+      kernel_double_add<cgbn_params_4096><<<BLOCK_COUNT, TPB>>>(
           report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
 #endif
     } else {
