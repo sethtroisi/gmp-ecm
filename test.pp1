@@ -109,8 +109,8 @@ echo 227718937509844817011855877544711725455111160554330403553675076250615854710
 checkcode $? 0
 $PP1 -resume $TEST 2337233 132554351
 C=$?
-checkcode $C 14
 /bin/rm -f $TEST
+checkcode $C 14
 
 # test -chkpnt
 TEST=test.pp1.chk$$
