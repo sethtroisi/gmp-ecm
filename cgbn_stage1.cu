@@ -402,7 +402,7 @@ __global__ void kernel_double_add(
   cgbn_monitor_t monitor = CHECK_ERROR ? cgbn_report_monitor : cgbn_no_checks;
 
   curve_t<params> curve(monitor, report, instance_i);
-  typename curve_t<params>::bn_t  aX, aY, bX, bY, modulus;
+  typename curve_t<params>::bn_t  aX, aY, bX, bY, modulus, temp;
 
   { // Setup
       cgbn_load(curve._env, modulus, &data_cast[5*instance_i+0]);
@@ -428,17 +428,19 @@ __global__ void kernel_double_add(
   }
 
   uint32_t d = sigma_0 + instance_i;
-
+  int swapped = 0;
   for (int b = 0; b < s_bits_interval; b++) {
-    /**
-     * TODO generates a lot of duplicate inlined code, not sure how to improve
-     * Tried with swappings pointers (with a single call to double_add_v2)
-     */
-    if (gpu_s_bits[s_bits_start + b] == 0) {
-        curve.double_add_v2(aX, aY, bX, bY, d, modulus, np0);
-    } else {
-        curve.double_add_v2(bX, bY, aX, aY, d, modulus, np0);
+    if (gpu_s_bits[s_bits_start + b] != swapped) {
+        swapped = !swapped;
+        cgbn_swap(curve._env, aX, bX);
+        cgbn_swap(curve._env, aY, bY);
     }
+    curve.double_add_v2(aX, aY, bX, bY, d, modulus, np0);
+  }
+
+  if (swapped) {
+    cgbn_swap(curve._env, aX, bX);
+    cgbn_swap(curve._env, aY, bY);
   }
 
   { // Final output
@@ -626,12 +628,12 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
    * N > 512 TPI=8 | N > 2048 TPI=16 | N > 8192 TPI=32
    *
    * Larger takes longer to compile (and increases binary size)
-   * No GPU, No CGBN             (ecm was 3.4M)
-   * GPU, No CGBN                (ecm was 3.5M)
-   * (8, 1024) takes ~10 seconds (ecm was 3.7M)
-   * (16,8192) takes ~20 seconds (ecm was 4.3M)
-   * (32,16384) takes ~2  minutes (ecm was 4.3M)
-   * (32,32768) takes ~10 minutes (ecm was 6.0M)
+   * No GPU, No CGBN | ecm 3.4M, 2 seconds to compile
+   * GPU, No CGBN    | ecm 3.5M, 3 seconds
+   * (8, 1024)       | ecm 3.8M, 12 seconds
+   * (16,8192)       | ecm 4.2M, 1 minute
+   * (32,16384)      | ecm 4.2M, 1 minute
+   * (32,32768)      | ecm 5.2M, 4.7 minutes
    */
   /* NOTE: Custom kernel changes here
    * For "Compling custom kernel for %d bits should be XX% faster"
