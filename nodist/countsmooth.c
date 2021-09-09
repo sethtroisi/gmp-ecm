@@ -19,21 +19,30 @@
   02111-1307, USA.
 */
 
+/**
+ * Compile with
+ * $ gcc -o countsmooth countsmooth.c  -lprimesieve -lgmp -lm
+ *
+ * Run with
+ * $ ./countsmooth
+ *   B1-smooth: 6, B2-smooth: 43, found by Brent-Suyama: 0.000000, Total: 49
+ * $ ./countsmooth -N 2147480647 -pm1 -B1 1000000 -B2 200000000
+ *   B1-smooth: 253, B2-smooth: 172, found by Brent-Suyama: 0.000000, Total: 425
+ *   Number of N that are a prime - 1: 477
+ * $ ./countsmooth -N 8333333333333333333333337676 -B1 10000 -B2 1000000 -tests 1 -D 6 -S 12 -v
+ *   B1=10000, B2=1000000, X^12, D=6, 1666<=G<=166666
+     N=8333333333333333333333337676
+     N+0: 1337527 (Brent-Suyama, divides (D*126446)^6-1^6)
+     B1-smooth: 0, B2-smooth: 0, found by Brent-Suyama: 1.000000, Total: 1
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <gmp.h>
 
-/* uncomment the following to use primegen,
-   cf http://cr.yp.to/primegen/primegen-0.97.tar.gz */
-/* #define PRIMEGEN */
-
-#ifdef PRIMEGEN
-#include <primegen.h>
-#else
-#include "ecm-impl.h" /* for getprime() */
-#endif
+#include <primesieve.h>
 
 #define mulmod(r,u,v,n) mpz_mul(r,u,v);mpz_mod(r,r,n);
 
@@ -460,7 +469,7 @@ brent_suyama_theo (mpz_t modulus, unsigned int S, unsigned int D,
 {
   unsigned int mod_S, gcd_S;
   double nr_points, p;
-  
+
   if (endG < startG || D <= 1 || S == 0 || S & 1)
     return 0.;
   
@@ -529,9 +538,7 @@ main(int argc, char **argv)
   unsigned int len_cofac;
   unsigned int p, B1=0, i, D, S, startG , endG, Nmod12, blocklen;
   unsigned int nr_tests = 0, nr_blocks = 1, blockstart = 0, nr_primes = 0;
-#ifdef PRIMEGEN
-  primegen pg[1];
-#endif
+  primesieve_iterator pg;
   double ppow, 
          B2=0., 
          maxBS = 0., /* Try Brent-Suyama only on cofactors <= maxBS */
@@ -663,12 +670,8 @@ main(int argc, char **argv)
         mpz_add_ui (cofac[i], N, i);
 
       /* Do the sieving */
-#ifdef PRIMEGEN
-      primegen_init (pg);
-      for (p = primegen_next (pg); p <= B1; p = primegen_next (pg))
-#else
-      for (p = 2; p <= B1; p = getprime ())
-#endif
+      primesieve_init (&pg);
+      for (p = primesieve_next_prime (&pg); p <= B1; p = primesieve_next_prime (&pg))
         {
           /* Compute first sieve location where p divides */
           i = mpz_fdiv_ui (N, p);
@@ -775,9 +778,6 @@ main(int argc, char **argv)
       nr_tests -= blocklen;
       blockstart += blocklen;
       mpz_add_ui (N, N, blocklen);
-#ifndef PRIMEGEN
-      getprime_clear ();
-#endif
     }
   
   for (i = 0; i < get_lenF (D); i++)
