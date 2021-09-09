@@ -26,6 +26,8 @@ Dave Newman <dragonmeat at gmail dot com>
 	and the NTT code.
 Jason S. Papadopoulos <jasonp at boo dot net> contributed optimizations 
         to the NTT code.
+Seth Troisi <sethtroisi at google dot com>
+        contributed to GPU code
 Paul Zimmermann <zimmerma at loria dot fr>
 	author of the first version of the program.
 
@@ -34,4 +36,4 @@ beta-versions: Allan Steel, Karim Belabas, Torbjörn Granlund,
 Japke Rosink, Bruce Dodson.
 
 If you want to contribute to GMP-ECM, you are welcome; the development
-version is available on <http://gforge.inria.fr/projects/ecm>.
+version is available on <https://gitlab.inria.fr/zimmerma/ecm/>.
