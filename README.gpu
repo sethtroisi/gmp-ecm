@@ -72,6 +72,10 @@ Additional randomized checks can be run with
 
   $ sage check_gpuecm.sage ./ecm
 
+For failing kernels some additional information may be present in cuda-memcheck
+
+  $ echo "(2^997-1)" | cuda-memcheck ./ecm -cgbn -gpucurves 4096 -v 16000 0
+
 ##############################################################################
 
 2. How to enable CGBN code in GMP-ECM
