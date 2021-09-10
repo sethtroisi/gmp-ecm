@@ -49,7 +49,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define cgbn_negative_overflow ((cgbn_error_t) 16)
 
 // Seems to adds very small overhead (1-10%)
-#define VERIFY_NORMALIZED 1
+#define VERIFY_NORMALIZED 0
 // Adds even less overhead (<1%)
 #define CHECK_ERROR 1
 
@@ -124,6 +124,7 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
 //   BITS            - number of bits per instance
 
 /* TODO test how this changes gpu_throughput_test */
+/* NOTE: >= 512 may not be supported for > 2048 bit kernels */
 const uint32_t TPB_DEFAULT = 256;
 
 template<uint32_t tpi, uint32_t bits>
@@ -263,6 +264,7 @@ class curve_t {
     cgbn_mont_mul(_env, DA, v, w, modulus, np0); // D*A
         normalize_addition(DA, modulus);
 
+    /* Roughly 40% of time is spent in these two calls */
     cgbn_mont_sqr(_env, AA, w, modulus, np0);    // AA
     cgbn_mont_sqr(_env, BB, u, modulus, np0);    // BB
     normalize_addition(AA, modulus);
@@ -543,6 +545,7 @@ int process_results(mpz_t *factors, int *array_found,
   const uint32_t limbs_per = cgbn_bits / 32;
 
   int youpi = ECM_NO_FACTOR_FOUND;
+  int errors = 0;
   for(size_t i = 0; i < curves; i++) {
     const uint32_t *datum = data + (5 * i * limbs_per);;
 
@@ -573,7 +576,9 @@ int process_results(mpz_t *factors, int *array_found,
      * 3. nvcc links old version of kernel when something changed
      */
     if (mpz_cmp_ui (x_final, 2) == 0 && mpz_cmp_ui (y_final, 1) == 0) {
-      outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute?\n", i);
+      errors += 1;
+      if (errors < 10 || errors % 100 == 1)
+        outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute?\n", i);
     }
 
     array_found[i] = findfactor(factors[i], N, x_final, y_final);
@@ -587,6 +592,15 @@ int process_results(mpz_t *factors, int *array_found,
   mpz_init(modulo);
   mpz_clear(x_final);
   mpz_clear(y_final);
+
+#ifdef IS_DEV_BUILD
+  if (errors)
+        outputf (OUTPUT_ERROR, "Had %d errors. Try `make clean; make` or reducing TPB_DEFAULT\n",
+            errors);
+#endif
+
+  if (errors > 2)
+      return ECM_ERROR;
 
   return youpi;
 }
@@ -682,6 +696,11 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       IPB = TPB / TPI;
       BLOCK_COUNT = (curves + IPB - 1) / IPB;
 
+      /**
+       * XXX: Could make a switch statement (or array of void* kernels) and
+       * check kernel_info.maxThreadsPerBlock <= TPB but code will just fail
+       * after call and print a moderately descriptive error.
+       */
       /* Print some debug info about kernel. */
       kernel_info((const void*)kernel_double_add<cgbn_params_512>, verbose);
 
