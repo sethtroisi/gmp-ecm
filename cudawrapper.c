@@ -268,6 +268,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
   ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
 
+  /* Set global VERBOSE to avoid the need to explicitly passing verbose */
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
   ECM_STDERR = (es == NULL) ? stdout : es;
@@ -492,6 +493,10 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   for (i = 0; i < *nb_curves; i++)
     {
+      /* hack to reduce verbose Step 2 */
+      if (verbose > 0)
+        set_verbose (verbose-1);
+
       if (test_verbose (OUTPUT_RESVERBOSE)) 
         outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", factors[i]);
 
@@ -524,16 +529,13 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
                        t);
           mpz_clear (t);
         }
-  
-      /* It is a hack to avoid very verbose Step 2 
-        (without it, stage2() prints a least a line by curves) */
-      if (!test_verbose (OUTPUT_VERBOSE)) 
-        set_verbose (0);
+ 
       youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, use_ntt, 
-                      TreeFilename, stop_asap);
+                      TreeFilename, i+1, stop_asap);
+      
+    next_curve:
       set_verbose (verbose);
 
-    next_curve:
       if (youpi != ECM_NO_FACTOR_FOUND)
         {
           array_stage_found[i] = youpi;
