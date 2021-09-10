@@ -34,7 +34,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <math.h>
 #if defined(TESTDRIVE)
 #include <string.h>
-#include "primegen.h"
+#include <primesieve.h>
 #endif
 #if defined(TESTDRIVE)
 #include <gsl/gsl_math.h>
@@ -171,13 +171,13 @@ eulerphi (unsigned long n)
 }
 
 
-/* The number of positive integers up to x that have no prime factor up to y,
+/* The number of positive integers up to x that have no prime factor <= y,
    for x >= y >= 2. Uses Buchstab's identity */
 unsigned long
 Buchstab_Phi(unsigned long x, unsigned long y) 
 {
   unsigned long p, s;
-  primegen pg[1];
+  primesieve_iterator pg[1];
 
   if (x < 1)
     return 0;
@@ -189,9 +189,9 @@ Buchstab_Phi(unsigned long x, unsigned long y)
 #endif
 
   s = 1;
-  primegen_init (pg);
-  primegen_skipto (pg, y + 1);
-  for (p = primegen_next(pg); p <= x; p = primegen_next(pg))
+  primesieve_init (pg);
+  primesieve_skipto (pg, y, x+1);
+  for (p = primesieve_next_prime (pg); p <= x; p = primesieve_next_prime (pg))
     s += Buchstab_Phi(x / p, p - 1);
   return (s);
 }
@@ -203,7 +203,7 @@ unsigned long
 Buchstab_Psi(const unsigned long x, const unsigned long y) 
 {
   unsigned long r, p;
-  primegen pg[1];
+  primesieve_iterator pg[1];
 
   if (x <= y)
     return (x);
@@ -234,8 +234,8 @@ Buchstab_Psi(const unsigned long x, const unsigned long y)
     }
 
   r = 1;
-  primegen_init (pg);
-  for (p = primegen_next(pg); p <= y; p = primegen_next(pg))
+  primesieve_init (pg);
+  for (p = primesieve_next_prime (pg); p <= y; p = primesieve_next_prime (pg))
     r += Buchstab_Psi (x / p, p);
   return (r);
 }
@@ -862,11 +862,11 @@ main (int argc, char **argv)
   double B1, B2, N, nr, r, m;
   int S;
   unsigned long p, i, pi;
-  primegen pg[1];
+  primesieve_iterator pg[1];
 
-  primegen_init (pg);
+  primesieve_init (pg);
   i = pi = 0;
-  for (p = primegen_next (pg); p <= PRIME_PI_MAX; p = primegen_next (pg))
+  for (p = primesieve_next_prime (pg); p <= PRIME_PI_MAX; p = primesieve_next_prime (pg))
     {
       for ( ; i < p; i++)
         prime_pi[PRIME_PI_MAP(i)] = pi;
