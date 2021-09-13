@@ -655,6 +655,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
    * to the suggested value (a multiple of 32 >= bits + 6).
    * You may need to change the 4 to an 8 (or 16) if bits >512, >2048
    */
+  /** TODO: try with const vector for BITs/TPI, see if compiler is happy */
   std::vector<uint32_t> available_kernels;
 
   typedef cgbn_params_t<4, 512>   cgbn_params_512;
@@ -687,17 +688,37 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
     if (kernel_bits >= n_log2 + CARRY_BITS) {
       BITS = kernel_bits;
       assert( BITS % 32 == 0 );
-      TPI = (BITS <= 512) ? 4 : (BITS <= 2048) ? 8 : (BITS <= 8192) ? 16 : 32;
+
+      /* Print some debug info about kernel. */
+      /* TODO: return kernelAttr and validate maxThreadsPerBlock. */
+      if (BITS == cgbn_params_512::BITS) {
+        TPI = cgbn_params_512::TPI;
+        kernel_info((const void*)kernel_double_add<cgbn_params_512>, verbose);
+      } else if (BITS == cgbn_params_1024::BITS) {
+        TPI = cgbn_params_1024::TPI;
+        kernel_info((const void*)kernel_double_add<cgbn_params_1024>, verbose);
+#ifndef IS_DEV_BUILD
+      } else if (BITS == cgbn_params_1536::BITS) {
+        TPI = cgbn_params_1536::TPI;
+        kernel_info((const void*)kernel_double_add<cgbn_params_1536>, verbose);
+      } else if (BITS == cgbn_params_2048::BITS) {
+        TPI = cgbn_params_2048::TPI;
+        kernel_info((const void*)kernel_double_add<cgbn_params_2048>, verbose);
+      } else if (BITS == cgbn_params_3072::BITS) {
+        TPI = cgbn_params_3072::TPI;
+        kernel_info((const void*)kernel_double_add<cgbn_params_3072>, verbose);
+      } else if (BITS == cgbn_params_4096::BITS) {
+        TPI = cgbn_params_4096::TPI;
+        kernel_info((const void*)kernel_double_add<cgbn_params_4096>, verbose);
+#endif
+      } else {
+        /* lowercase k to help differentiate this error from one below */
+        outputf (OUTPUT_ERROR, "CGBN kernel not found for %d bits\n", BITS);
+        return ECM_ERROR;
+      }
+
       IPB = TPB / TPI;
       BLOCK_COUNT = (curves + IPB - 1) / IPB;
-
-      /**
-       * XXX: Could make a switch statement (or array of void* kernels) and
-       * check kernel_info.maxThreadsPerBlock <= TPB but code will just fail
-       * after call and print a moderately descriptive error.
-       */
-      /* Print some debug info about kernel. */
-      kernel_info((const void*)kernel_double_add<cgbn_params_512>, verbose);
 
       break;
     }
@@ -738,8 +759,9 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   CUDA_CHECK(cudaMalloc((void **)&gpu_data, data_size));
   CUDA_CHECK(cudaMemcpy(gpu_data, data, data_size, cudaMemcpyHostToDevice));
 
-  outputf (OUTPUT_VERBOSE, "CGBN<%d, %d> running kernel<%d block x %d threads>\n",
-          BITS, TPI, BLOCK_COUNT, TPB);
+  outputf (OUTPUT_VERBOSE,
+          "CGBN<%d, %d> running kernel<%d block x %d threads> input number is %d bits\n",
+          BITS, TPI, BLOCK_COUNT, TPB, mpz_sizeinbase (N, 2));
 
   /* Break s_num_bits into smaller chunks */
   int s_partial = 0;
