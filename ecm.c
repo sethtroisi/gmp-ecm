@@ -1227,22 +1227,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
       return ECM_ERROR;
     }
 
-  /* Compute s for the batch mode */
-  if (IS_BATCH_MODE(param) && ECM_IS_DEFAULT_B1_DONE(*B1done) &&
-      (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
-    {
-      *batch_last_B1_used = B1;
-
-      st = cputime ();
-      /* construct the batch exponent */
-      compute_s (batch_s, B1, NULL);
-      outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
-                               " bits) of primes up to B1=%1.0f took %ldms\n",
-                               mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
-    }
-
-  st = cputime ();
-
   /* See what kind of number we have as that may influence optimal parameter 
      selection. Test for base 2 number. Note: this was already done by
      mpmod_init. */
@@ -1428,6 +1412,23 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
           print_expcurves (B1, B2, dF, k, root_params.S, param);
         }
     }
+
+  /* Compute s for the batch mode */
+  if (IS_BATCH_MODE(param) && ECM_IS_DEFAULT_B1_DONE(*B1done) &&
+      (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
+    {
+      *batch_last_B1_used = B1;
+
+      st = cputime ();
+      /* construct the batch exponent */
+      compute_s (batch_s, B1, NULL);
+      outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
+                               " bits) of primes up to B1=%1.0f took %ldms\n",
+                               mpz_sizeinbase (batch_s, 2), B1,
+                               elltime (st, cputime ()));
+    }
+
+  st = cputime ();
 
 #ifdef HAVE_GWNUM
   /* We will only use GWNUM for numbers of the form k*b^n+c */
