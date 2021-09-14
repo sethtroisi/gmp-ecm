@@ -1,0 +1,37 @@
+# Build artifacts
+*.o
+*.lo
+*.la
+*.in
+
+# Binaries
+aprcl
+bench_mulredc
+ecm
+ecmfactor
+manyecm
+rho
+test-driver
+tune
+nodist/countsmooth
+
+# Automake file
+aclocal.m4
+configure
+Makefile
+INSTALL
+ecm.h
+stamp-h1
+stamp-h2
+
+# Test longs
+test.*.log
+test.*.trs
+
+# Misc
+autom4te.cache/
+config.*
+x86_64/mulredc[2-9].asm
+x86_64/mulredc[12][0-9].asm
+x86_64/mulredc1_[2-9].asm
+x86_64/mulredc1_[12][0-9].asm
