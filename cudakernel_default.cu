@@ -7,7 +7,7 @@ __device__ void Cuda_Fully_Normalize (biguint_t A, bigint_t cy)
   carry_t cytemp;
   unsigned int thm1;
 
-  while(__any(cy[threadIdx.x])!=0)
+  while(__any_sync(__activemask(),cy[threadIdx.x])!=0)
   {
     thm1 = (threadIdx.x - 1) % ECM_GPU_NB_DIGITS;
     cytemp = cy[thm1];
