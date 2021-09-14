@@ -309,7 +309,7 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
 }
 
 /* Input:  X is the point at end of stage 1
-           n is the number to factor
+           modulus contains the number to factor
            B2min-B2 is the stage 2 range (we consider B2min is done)
            k0 is the number of blocks (if 0, use default)
            S is the exponent for Brent-Suyama's extension
@@ -325,8 +325,8 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k, 
-        root_params_t *root_params, int use_ntt, char *TreeFilename, 
-        int (*stop_asap)(void))
+        root_params_t *root_params, int use_ntt, char *TreeFilename,
+        unsigned int curve_number, int (*stop_asap)(void))
 {
   unsigned long i, sizeT;
   mpz_t n;
@@ -771,6 +771,9 @@ clear_T:
   if (stop_asap == NULL || !(*stop_asap)())
     {
       st0 = elltime (st0, cputime ());
+      if (curve_number > 0) {
+        outputf (OUTPUT_NORMAL, "Curve %d ", curve_number);
+      }
       outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", st0);
     }
 
