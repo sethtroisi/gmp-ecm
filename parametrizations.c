@@ -236,7 +236,6 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 int  
 get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
-  int i;
   mpz_t tmp;
   mpz_init (tmp);
 
@@ -385,7 +384,6 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 int  
 get_curve_from_param3 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
-  int i;
   mpz_t tmp;
   mpz_init (tmp);
 
