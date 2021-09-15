@@ -1527,6 +1527,7 @@ main (int argc, char *argv[])
           do 
             {
               if (params->gpu)
+                  /* gpu returns multiple factors as f = f0 + f1*n + ... + fk*n^k */
                   mpz_fdiv_qr (f, tmp_factor, f, tmp_n);
               else
                   mpz_set (tmp_factor, f);
