@@ -101,6 +101,11 @@ from the GMP-ECM team will be very limited.
 
 4. Known issues
 
+If you get "Error msg: forward compatibility was attempted on non supported HW"
+or "error: 'cuda.h' and 'cudart' library have different versions", then you
+can look at https://stackoverflow.com/questions/43022843/nvidia-nvml-driver-library-version-mismatch/45319156#45319156.
+In general the best solution is to restart the machine.
+
 ##############################################################################
 
 Please report to mail@cyrilbouvier.fr any problems, bugs, ...
