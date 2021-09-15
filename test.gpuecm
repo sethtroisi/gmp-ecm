@@ -182,19 +182,23 @@ $ECMnoGPU -resume test.ecm.save 1e3
 checkcode $? 6
 /bin/rm -f test.ecm.save
 
-echo -e "\n\r\n\r# this is a comment line and should be ignored" > test_dummy2.save
+echo "" > test_dummy2.save
+echo '\r' >> test_dummy2.save
+echo '\r# this is a comment line and should be ignored' >> test_dummy2.save
 
 # test -save/-resume
 /bin/rm -f test.ecm.save
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save test.ecm.save -param 3 -sigma 3781882524 9000 0
 $ECMnoGPU -resume test.ecm.save 9000 1000000
-checkcode $? 14
+C=$?
+checkcode $C 14
 
 # test savea
 cp test_dummy2.save test.ecm.save
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea test.ecm.save -param 3 -sigma 3781882524 9000 0
 $ECMnoGPU -resume test.ecm.save 9000 1000000
-checkcode $? 14
+C=$?
+checkcode $C 14
 
 echo \" $ECM \"
 
