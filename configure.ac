@@ -680,7 +680,6 @@ AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powe
 
 AC_SUBST([XSLDIR])
 AC_SUBST([ASMPATH])
-AC_SUBST([GSL_LD_FLAGS])
 
 COV_FRAG='
 # These options are used for coverage tests

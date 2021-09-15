@@ -91,7 +91,7 @@ aprcl_LDADD = $(GMPLIB)
 
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
-rho_LDADD = -lprimegen $(GMPLIB) $(GSL_LD_FLAGS)
+rho_LDADD = -lprimesieve -lgsl $(GMPLIB)
 
 if WITH_GWNUM
   gwdata.ld :
