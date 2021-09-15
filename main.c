@@ -807,10 +807,10 @@ main (int argc, char *argv[])
 	}
     }
 
-  /* check that S is even for old P-1 stage 2 */
-  if ((method == ECM_PM1) && (S != ECM_DEFAULT_S) && (S % 2 != 0))
+  if ((method == ECM_PM1 || method == ECM_PP1) && (S != ECM_DEFAULT_S && S != 1))
     {
-      fprintf (stderr, "Error, S should be even for P-1\n");
+      fprintf (stderr, "Error, %s not supported for %s\n",
+              S < 0 ? "-dickson" : "-power", method == ECM_PM1 ? "-pm1" : "-pp1" );
       exit (EXIT_FAILURE);
     }
 
