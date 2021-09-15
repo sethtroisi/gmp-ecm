@@ -878,7 +878,17 @@ main (int argc, char **argv)
 
   if (argc < 2)
     {
-      printf ("Usage: rho <B1> <B2> <N> <nr> <S> [<r> <m>]\n");
+      printf ("Usage: rho <B1> <B2> <N> <nr> <S> [<r> <m>]\n\n\n");
+      printf (" Calculate the probability of ECM/P-1 finding a factor near N\n"
+              " with B1/B2, evaluating nr random distinct points in stage 2,\n"
+              " with a degree -S Dickson polynomial (if S < 0) or\n"
+              " S'th power as the Brent-Suyama function\n\n");
+      printf (" <B1>        B1 limit.\n");
+      printf (" <B2>        B2 limit.\n");
+      printf (" <N>         N of similiar size, or number of bits in factor (if < 50).\n");
+      printf (" <nr>        Number of random points evaluated in stage 2.\n");
+      printf (" <S>         Degree of Brent-Suyama polynomial in stage 2.\n");
+      printf (" [<r> <m>]   Limit P-1 to primes p == r (mod m).\n");
       return 1;
     }
   
