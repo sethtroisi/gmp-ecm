@@ -190,23 +190,19 @@ $ECMnoGPU -resume test.ecm.save 1e3
 checkcode $? 6
 /bin/rm -f test.ecm.save
 
-echo "" > test_dummy2.save
-echo '\r' >> test_dummy2.save
-echo '\r# this is a comment line and should be ignored' >> test_dummy2.save
+printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > test_dummy2.save
 
 # test -save/-resume
 /bin/rm -f test.ecm.save
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save test.ecm.save -param 3 -sigma 3781882524 9000 0
 $ECMnoGPU -resume test.ecm.save 9000 1000000
-C=$?
-checkcode $C 14
+checkcode $? 14
 
 # test savea
 cp test_dummy2.save test.ecm.save
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea test.ecm.save -param 3 -sigma 3781882524 9000 0
 $ECMnoGPU -resume test.ecm.save 9000 1000000
-C=$?
-checkcode $C 14
+checkcode $? 14
 
 echo \" $ECM \"
 
@@ -218,7 +214,7 @@ checkfactorcount test.output 2 0 2
 # find multiple factors in Step 2
 echo "(2^718+1)/5" | $ECM -sigma 3:2000 40 60 > test.output
 checkcode $? 2
-checkfactorcount test.output 0 3 3
+checkfactorcount test.output 0 3 2
 
 # find multiple identical factors in Step 1
 echo "2^139-1" | $ECM -sigma 3:1600 7000 0 > test.output
