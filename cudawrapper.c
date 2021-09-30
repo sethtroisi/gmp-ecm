@@ -42,8 +42,8 @@ int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
 void reducefactors (mpz_t *factors, int *array_found, unsigned int nb_curves)
 {
   unsigned int i, j;
-  int found;
-  int updates;
+  unsigned int found;
+  unsigned int updates;
   mpz_t gcd;
   mpz_init (gcd);
 
