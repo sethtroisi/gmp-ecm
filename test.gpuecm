@@ -204,6 +204,19 @@ echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea t
 $ECMnoGPU -resume test.ecm.save 9000 1000000
 checkcode $? 14
 
+# verify gpu vs cpu save
+/bin/rm -f test.ecm.save test.ecm2.save
+for param in `seq 1031 -1 1000`
+do
+  echo "2^293-1" | $ECMnoGPU -q -savea test.ecm.save -sigma 3:$param 1e3 0 > test.output
+  checkcode $? 0
+done
+echo "2^293-1" | $ECM -savea test.ecm2.save -sigma 3:1000 1e3 0
+# truncate some trailing fields
+sed -i 's/ PROGRAM.*//' test.ecm.save test.ecm2.save
+diff test.ecm.save test.ecm2.save
+checkcode $? 0
+
 # find multiple factors in Step 1
 echo "(2^718+1)/5" | $ECM -sigma 3:2000 50 60 > test.output
 checkcode $? 2
@@ -230,7 +243,7 @@ checkcode $? 2
 # 101^2*1013 and 1000081^2 are always found together as composite factor
 checkfactorcount test.output 1024 0 6
 
-/bin/rm test_dummy2.save test.ecm.save test.output
+/bin/rm test_dummy2.save test.ecm.save test.ecm2.save test.output
 
 echo "$ECM"
 echo "All ECM tests with GPU are ok."
