@@ -522,7 +522,7 @@ char* allocate_and_set_s_bits(const mpz_t s, int *sbits) {
 }
 
 static
-int process_results(mpz_t *factors, int *array_stage_found,
+int process_results(mpz_t *factors, int *array_found,
                     const mpz_t N,
                     const uint32_t *data, uint32_t cgbn_bits,
                     int curves, uint32_t sigma) {
@@ -562,9 +562,9 @@ int process_results(mpz_t *factors, int *array_stage_found,
       outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute?\n", i);
     }
 
-    array_stage_found[i] = findfactor(factors[i], N, x_final, y_final);
-    if (array_stage_found[i] != ECM_NO_FACTOR_FOUND) {
-      youpi = array_stage_found[i];
+    array_found[i] = findfactor(factors[i], N, x_final, y_final);
+    if (array_found[i] != ECM_NO_FACTOR_FOUND) {
+      youpi = array_found[i];
       outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with curve %ld (-sigma %d:%d)\n",
           factors[i], i, ECM_PARAM_BATCH_32BITS_D, sigma + i);
     }
@@ -577,13 +577,12 @@ int process_results(mpz_t *factors, int *array_stage_found,
   return youpi;
 }
 
-int run_cgbn(mpz_t *factors, int *array_stage_found,
-             const mpz_t N, const mpz_t s, float *gputime,
-             ecm_params_t *ecm_params) {
-
-  size_t curves = ecm_params->curves;
-  assert( ecm_params->sigma > 0 );
-  assert( ((uint64_t) ecm_params->sigma + curves) <= 0xFFFFFFFF ); // no overflow
+int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
+             uint32_t curves, uint32_t sigma,
+             const mpz_t N, const mpz_t s, float *gputime)
+{
+  assert( sigma > 0 );
+  assert( ((uint64_t) sigma + curves) <= 0xFFFFFFFF ); // no overflow
 
   int s_num_bits;
   char *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
@@ -698,7 +697,7 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
   assert( sizeof(curve_t<cgbn_params_512>::mem_t) == cgbn_params_512::BITS/8 );
   assert( sizeof(curve_t<cgbn_params_1024>::mem_t) == cgbn_params_1024::BITS/8 );
-  data = set_p_2p(N, curves, ecm_params->sigma, BITS, &data_size);
+  data = set_p_2p(N, curves, sigma, BITS, &data_size);
 
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
   uint32_t np0;
@@ -754,23 +753,23 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
 
     if (BITS == cgbn_params_512::BITS) {
       kernel_double_add<cgbn_params_512><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
     } else if (BITS == cgbn_params_1024::BITS) {
       kernel_double_add<cgbn_params_1024><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
 #ifndef IS_DEV_BUILD
     } else if (BITS == cgbn_params_1536::BITS) {
       kernel_double_add<cgbn_params_1536><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
     } else if (BITS == cgbn_params_2048::BITS) {
       kernel_double_add<cgbn_params_2048><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
     } else if (BITS == cgbn_params_3072::BITS) {
       kernel_double_add<cgbn_params_3072><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
     } else if (BITS == cgbn_params_4096::BITS) {
       kernel_double_add<cgbn_params_4096><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, ecm_params->sigma, np0);
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
 #endif
     } else {
       outputf (OUTPUT_ERROR, "CGBN Kernel not found for %d bits\n", BITS);
@@ -804,10 +803,7 @@ int run_cgbn(mpz_t *factors, int *array_stage_found,
 
   cudaEventElapsedTime (gputime, global_start, stop);
 
-  youpi = process_results(
-      factors, array_stage_found, N,
-      data, BITS,
-      curves, ecm_params->sigma);
+  youpi = process_results(factors, array_found, N, data, BITS, curves, sigma);
 
   // clean up
   CUDA_CHECK(cudaFree(gpu_s_bits));

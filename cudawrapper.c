@@ -232,26 +232,6 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
 }
 
 
-#ifdef HAVE_CGBN_H
-/**
- * Setup code needed to call cgbn_stage1.cu
- */
-int cgbn_ecm_stage1 (mpz_t *factors, int *array_found, mpz_t N, mpz_t s,
-                    unsigned int number_of_curves, unsigned int firstsigma,
-                    float *gputime, int verbose)
-{
-  /* Setup the CGBN params */
-  ecm_params_t ecm_params;
-  ecm_params.curves = number_of_curves;
-  ecm_params.sigma = firstsigma;
-  ecm_params.verbose = verbose;
-
-  /* Call the wrapper function that call the CGBN/GPU */
-  return run_cgbn(factors, array_found, N, s, gputime, &ecm_params);
-}
-#endif /* HAVE_CGBN_H */
-
-
 int gpu_ecm_stage1 (mpz_t *factors, int *array_found, mpz_t N, mpz_t s,
                     unsigned int number_of_curves, unsigned int firstsigma, 
                     float *gputime, int verbose)

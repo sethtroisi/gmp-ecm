@@ -29,27 +29,9 @@
 extern "C" {
 #endif
 
-// TODO delete this structure
-// define the instance structure
-typedef struct {
-    // Number of curves to run
-    uint32_t curves;
-
-    uint32_t num_bits;
-    // Bits (malloc'ed in generate_instance)
-    char    *s_bits;
-
-    // Sigma of first curve
-    uint32_t sigma;
-
-    int verbose;
-
-} ecm_params_t;
-
-
-int run_cgbn(mpz_t *factors, int *array_stage_found,
-             const mpz_t N, const mpz_t s, float *gputime,
-             ecm_params_t *ecm_params);
+int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
+             uint32_t curves, uint32_t sigma,
+             const mpz_t N, const mpz_t s, float *gputime);
 
 #ifdef __cplusplus
 }
