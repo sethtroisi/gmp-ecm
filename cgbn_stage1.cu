@@ -35,6 +35,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm.h"
 #include "ecm-gpu.h"
 
+
 void cuda_check(cudaError_t status, const char *action=NULL, const char *file=NULL, int32_t line=0) {
   // check for cuda errors
   if (status!=cudaSuccess) {
@@ -104,6 +105,9 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
 #define VERIFY_NORMALIZED 1
 // Adds even less overhead (<1%)
 #define CHECK_ERROR 1
+
+// Tested with check_gpuecm.sage
+#define CARRY_BITS 6
 
 // Can dramatically change compile time
 #if 1
@@ -341,15 +345,14 @@ class curve_t {
     assert(ecm_params.sigma > 0);
 
     ecm_params.n_log2 = mpz_sizeinbase(N, 2);
-    if (ecm_params.n_log2 + 2 >= params::BITS) {
-        printf("N(%d bits)+carry >= BITS %d\n", ecm_params.n_log2, params::BITS);
-        exit(1);
-    }
 
-    if (ecm_params.n_log2 + 6 > params::BITS) {
-        printf("N(%d bits)+carry ~ BITS %d\n", ecm_params.n_log2, params::BITS);
-        printf("being caution, feel free to disable this check\n");
-        printf("if you do disable, probably should verify a result against gmp-ecm\n");
+    // using check_gpuecm.sage it looks like 4 bits would suffice
+    size_t max_bits = params::BITS - CARRY_BITS;
+    if (ecm_params.n_log2 > max_bits) {
+        outputf (OUTPUT_ERROR, "GPU: N(%d bits) + carry(%d bits) > BITS(%d)\n",
+            ecm_params.n_log2, CARRY_BITS, params::BITS);
+        outputf (OUTPUT_ERROR, "GPU: Error, input number should be stricly lower than 2^%d\n",
+            max_bits);
         exit(1);
     }
 
