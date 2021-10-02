@@ -508,6 +508,19 @@ int verify_size_of_n(const mpz_t N, size_t max_bits) {
 
 
 static
+uint32_t find_np0(const mpz_t N) {
+  uint32_t np0;
+  mpz_t temp;
+  mpz_init(temp);
+  mpz_ui_pow_ui(temp, 2, 32);
+  assert(mpz_invert(temp, N, temp));
+  np0 = -mpz_get_ui(temp);
+  mpz_clear(temp);
+  return np0;
+}
+
+
+static
 char* allocate_and_set_s_bits(const mpz_t s, int *nbits) {
   uint32_t num_bits = *nbits = mpz_sizeinbase(s, 2) - 1;
   /* XXX: Remove arbitrary limit on S (based on B1) */
@@ -704,15 +717,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   data = set_p_2p(N, curves, sigma, BITS, &data_size);
 
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
-  uint32_t np0;
-  {
-    mpz_t temp;
-    mpz_init(temp);
-    mpz_ui_pow_ui(temp, 2, 32);
-    assert(mpz_invert(temp, N, temp));
-    np0 = -mpz_get_ui(temp);
-    mpz_clear(temp);
-  }
+  uint32_t np0 = find_np0(N);
 
   // Copy data
   outputf (OUTPUT_VERBOSE, "Copying %d bits of data to GPU\n", data_size);
