@@ -7,8 +7,8 @@ static char *champion_keeper[3] =
   "Paul Zimmermann <zimmerma@loria.fr>",
   "Paul Zimmermann <zimmerma@loria.fr>"};
 static char *champion_url[3] =
-{"http://wwwmaths.anu.edu.au/~brent/ftp/champs.txt",
+{"http://maths-people.anu.edu.au/~brent/ftp/champs.txt",
  "http://www.loria.fr/~zimmerma/records/Pminus1.html",
  "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
 /* minimal number of digits to enter the champions table for ECM, P-1, P+1 */
-static unsigned int champion_digits[3] = { 73, 54, 48 };
+static unsigned int champion_digits[3] = { 74, 54, 48 };
