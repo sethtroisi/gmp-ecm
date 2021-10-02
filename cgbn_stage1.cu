@@ -409,7 +409,6 @@ __global__ void kernel_double_add(
   curve_t<params> curve(monitor, report, instance_i);
   typename curve_t<params>::bn_t  aX, aY, bX, bY, modulus;
 
-  uint32_t np0;
   { // Setup
       cgbn_load(curve._env, modulus, &data_cast[5*instance_i+0]);
       cgbn_load(curve._env, aX, &data_cast[5*instance_i+1]);
@@ -505,6 +504,19 @@ int verify_size_of_n(const mpz_t N, size_t max_bits) {
   outputf (OUTPUT_ERROR, "GPU: Error, input number should be stricly lower than 2^%d\n",
       max_usable_bits);
   return ECM_ERROR;
+}
+
+
+static
+uint32_t find_np0(const mpz_t N) {
+  uint32_t np0;
+  mpz_t temp;
+  mpz_init(temp);
+  mpz_ui_pow_ui(temp, 2, 32);
+  assert(mpz_invert(temp, N, temp));
+  np0 = -mpz_get_ui(temp);
+  mpz_clear(temp);
+  return np0;
 }
 
 
@@ -700,15 +712,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   data = set_p_2p(N, curves, sigma, BITS, &data_size);
 
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
-  uint32_t np0;
-  {
-    mpz_t temp;
-    mpz_init(temp);
-    mpz_ui_pow_ui(temp, 2, 32);
-    assert(mpz_invert(temp, N, temp));
-    np0 = -mpz_get_ui(temp);
-    mpz_clear(temp);
-  }
+  uint32_t np0 = find_np0(N);
 
   // Copy data
   outputf (OUTPUT_VERBOSE, "Copying %d bits of data to GPU\n", data_size);
