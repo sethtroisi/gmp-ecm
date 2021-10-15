@@ -21,6 +21,8 @@ Big improvements
 Testing
 
 1. Improve carry bit testing (see overflow test in check_gpuecm.sage)
+2. Ask a C++ person and verify that GPU and CPU both use same endianness
+   This could affect `to_mpz`, `from_mpz`, `allocate_and_set_s_bits`, and `set_p_2p`
 
 Several things have been tried to improve performance that didn't turn out. These are recorded
 so we don't forget.
