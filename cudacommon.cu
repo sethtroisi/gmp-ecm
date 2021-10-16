@@ -16,30 +16,6 @@ __global__ void Cuda_Init_Device ()
 {
 }
 
-/* Given the compute compatibility (as major.minor), return the number of block
- * to be run on one multiprocessor. */
-static unsigned int
-getNumberOfBlockPerMultiProcessor (int major, int minor)
-{
-  /* For 2.0 and 2.1, limited by the maximum number of threads per MP and the
-   * number of available registrer (need 23 registers per threads).
-   */
-  if (major == 2)
-    return 1;
-  /* For 3.0, 3.2, 3.5 and 3.7 limited by the maximum number of threads per MP.
-   */
-  else if (major == 3)
-    return 2;
-  /* For 5.0, 5.2, and 5.3 limited by the maximum number of threads per MP. */
-  else if (major == 5)
-    return 2;
-  /* We assume that for newer compute capability the properties of the GPU won't
-   * decrease.
-   */
-  else
-    return 2;
-}
-
 extern "C"
 int
 get_device_prop(int device, cudaDeviceProp *deviceProp)
@@ -100,9 +76,10 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose, in
 
   if (*number_of_curves == 0) /* if choose the number of curves */
     {
-      unsigned int n, m = ECM_GPU_CURVES_BY_BLOCK;
-      n = getNumberOfBlockPerMultiProcessor (deviceProp.major, deviceProp.minor);
-      *number_of_curves = n * deviceProp.multiProcessorCount * m;
+      /* Limited by the maximum number of threads per MP */
+      unsigned int blocks_per_multiprocessor = 2;
+      *number_of_curves = blocks_per_multiprocessor * deviceProp.multiProcessorCount
+          * ECM_GPU_CURVES_BY_BLOCK;
     }
   else if (*number_of_curves % ECM_GPU_CURVES_BY_BLOCK != 0)
     {
