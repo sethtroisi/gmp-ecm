@@ -2,8 +2,8 @@ Last Reviewed: Seth T. 2021-10-14
 
 Quality of Life
 
-1. Remove 100,000,000 bit limit on S (B1). Break large initial memcopy into chunks per batch.
-2. Verify kernel_info.maxThreadsPerBlock <= TPB_DEFAULT in BIT select loop.
+1. Verify kernel_info.maxThreadsPerBlock <= TPB_DEFAULT in BIT select loop.
+2. Add info on what GPU kernels are available.
 
 Big improvements
 
@@ -23,6 +23,7 @@ Testing
 1. Improve carry bit testing (see overflow test in check_gpuecm.sage)
 2. Ask a C++ person and verify that GPU and CPU both use same endianness
    This could affect `to_mpz`, `from_mpz`, `allocate_and_set_s_bits`, and `set_p_2p`
+   This is possibly handled by `endian` parameter in mpz_export
 
 Several things have been tried to improve performance that didn't turn out. These are recorded
 so we don't forget.

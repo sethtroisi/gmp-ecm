@@ -384,10 +384,10 @@ uint32_t* set_p_2p(const mpz_t N,
 template<class params>
 __global__ void kernel_double_add(
         cgbn_error_report_t *report,
-        uint32_t s_bits,
-        uint32_t s_bits_start,
-        uint32_t s_bits_interval,
-        char* gpu_s_bits,
+        uint64_t s_bits,
+        uint64_t s_bits_start,
+        uint64_t s_bits_interval,
+        uint32_t* gpu_s_bits,
         uint32_t *data,
         uint32_t count,
         uint32_t sigma_0,
@@ -431,8 +431,12 @@ __global__ void kernel_double_add(
 
   uint32_t d = sigma_0 + instance_i;
   int swapped = 0;
-  for (int b = 0; b < s_bits_interval; b++) {
-    if (gpu_s_bits[s_bits_start + b] != swapped) {
+  for (uint32_t b = s_bits_start; b < s_bits_start + s_bits_interval; b++) {
+    /* Process bits from MSB to LSB, last index to first index
+     * b counts from 0 to s_num_bits */
+    int nth = s_bits - 1 - b;
+    int bit = (gpu_s_bits[nth/32] >> (nth&31)) & 1;
+    if (bit != swapped) {
         swapped = !swapped;
         cgbn_swap(curve._env, aX, bX);
         cgbn_swap(curve._env, aY, bY);
@@ -520,15 +524,16 @@ uint32_t find_np0(const mpz_t N) {
 
 
 static
-char* allocate_and_set_s_bits(const mpz_t s, int *nbits) {
-  uint32_t num_bits = *nbits = mpz_sizeinbase(s, 2) - 1;
-  /* XXX: Remove arbitrary limit on S (based on B1) */
-  assert( 1 <= num_bits && num_bits <= 100000000 );
+uint32_t* allocate_and_set_s_bits(const mpz_t s, uint64_t *nbits) {
+  uint64_t num_bits = *nbits = mpz_sizeinbase (s, 2);
 
-  char *s_bits = (char*) malloc(sizeof(char) * num_bits);
-  for (int i = 0; i < num_bits; i++) {
-      s_bits[i] = mpz_tstbit (s, num_bits - 1 - i);
-  }
+  uint64_t allocated = (num_bits + 31) / 32;
+  uint32_t *s_bits = (uint32_t*) malloc (sizeof(uint32_t) * allocated);
+
+  uint64_t countp;
+  mpz_export (s_bits, &countp, -1, sizeof(uint32_t), 0, 0, s);
+  assert (countp == allocated);
+
   return s_bits;
 }
 
@@ -613,10 +618,12 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   assert( sigma > 0 );
   assert( ((uint64_t) sigma + curves) <= 0xFFFFFFFF ); // no overflow
 
-  int s_num_bits;
-  char *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
-  assert( 1 <= s_num_bits && s_num_bits <= 100000000 );
+  uint64_t s_num_bits;
+  uint32_t *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
   assert( s_bits != NULL );
+  if (s_num_bits >= 100000000)
+      outputf (OUTPUT_NORMAL, "GPU: Large B1, S = %'d bits = %d MB\n",
+               s_num_bits, s_num_bits >> 20);
 
   cudaEvent_t global_start, batch_start, stop;
   CUDA_CHECK(cudaEventCreate (&global_start));
@@ -625,9 +632,10 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   CUDA_CHECK(cudaEventRecord (global_start));
 
   // Copy s_bits
-  char     *gpu_s_bits;
-  CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, sizeof(char) * s_num_bits));
-  CUDA_CHECK(cudaMemcpy(gpu_s_bits, s_bits, sizeof(char) * s_num_bits, cudaMemcpyHostToDevice));
+  uint32_t *gpu_s_bits;
+  uint32_t s_words = (s_num_bits + 31) / 32;
+  CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, sizeof(uint32_t) * s_words));
+  CUDA_CHECK(cudaMemcpy(gpu_s_bits, s_bits, sizeof(uint32_t) * s_words, cudaMemcpyHostToDevice));
 
   cgbn_error_report_t *report;
   // create a cgbn_error_report for CGBN to report back errors
@@ -768,12 +776,14 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
           "CGBN<%d, %d> running kernel<%d block x %d threads> input number is %d bits\n",
           BITS, TPI, BLOCK_COUNT, TPB, n_log2);
 
-  /* Break s_num_bits into smaller chunks */
-  int s_partial = 0;
-  int batches_complete = 0;
+  /* First bit (doubling) is handled in set_p_2p */
+  uint64_t s_partial = 1;
+
   /* Start with small batches and increase till timing is ~100ms */
-  int batch_size = 100;
-  /* gputime/batch_time are measured in ms */
+  uint64_t batch_size = 100;
+
+  int batches_complete = 0;
+  /* gputime and batch_time are measured in ms */
   float batch_time = 0;
 
   while (s_partial < s_num_bits) {
@@ -843,7 +853,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
     if (batch_time < 80) {
       batch_size = 11*batch_size/10;
     } else if (batch_time > 120) {
-      batch_size = max(100, 9*batch_size / 10);
+      batch_size = max(100ul, 9*batch_size / 10);
     }
   }
 
