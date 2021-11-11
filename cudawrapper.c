@@ -608,7 +608,11 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   *B1done=B1;
 
-  /* Save stage 1 residues */
+  /* Save stage 1 residues
+   * Needed for write_resumefile
+   * This can be slow if nb_curves is very large.
+   * Consider changing to base 2^mpz_sizeinbase(n, 2)
+   */
   mpz_set_ui (x, 0);
   for (i = 0; i < *nb_curves; i++)
     {
