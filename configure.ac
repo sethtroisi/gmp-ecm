@@ -10,12 +10,23 @@ AC_CANONICAL_HOST
 
 AC_CONFIG_HEADERS([config.h ecm.h])
 AC_DEFINE([ECM_VERSION], ["ECM_VERSION_AC"], [The version of GMP-ECM])
+AS_CASE(ECM_VERSION_AC,
+        [*-dev], AC_DEFINE([IS_DEV_BUILD], [1], [Define to 1 in DEV builds]))
 
-dnl Copied from MPFR 2.4.2:
-unset GMP_CFLAGS GMP_CC user_redefine_cc
+dnl Originally copied from MPFR 2.4.2:
+unset GMP_CFLAGS GMP_CC user_redefine_cc user_redefine_cflags
 dnl Check if user request his CC and CFLAGS
-if test -n "$CFLAGS" || test -n "$CC" ; then
-  user_redefine_cc=yes
+dnl Check is disabled if cc is a gcc variant
+dnl Because this happens before AC_PROG_CC $GCC isn't set
+if test -n "$CFLAGS"; then
+  user_redefine_cflags=yes
+fi
+if test -n "$CC" ; then
+  case $CC in
+    gcc*) check_use_defined_cc_is_gcc=yes ;;
+    clang*) check_use_defined_cc_is_gcc=yes ;;
+    *) user_redefine_cc=yes ;;
+  esac
 fi
 
 dnl the following is required to compile auxi.c according to autoconf 2.61
@@ -98,7 +109,7 @@ dnl options); if the compiler changes due to __GMP_CC in gmp.h, one
 dnl would have incorrect settings.
 dnl FIXME: Move this in aclocal ?
 
-if test "x$user_redefine_cc" = x && test "x$enable_gmp_cflags" = xyes && test "x$cross_compiling" != xyes; then
+if test "x$user_redefine_cc$user_redefine_cflags" = x && test "x$enable_gmp_cflags" = xyes && test "x$cross_compiling" != xyes; then
 if test "x$GMP_CC$GMP_CFLAGS" = x; then
    AC_MSG_CHECKING([for CC and CFLAGS in gmp.h])
    GMP_CC=__GMP_CC
@@ -142,6 +153,11 @@ fi
 dnl But these variables may be invalid, so we must check them first.
 dnl Note: we do not use AC_RUN_IFELSE, as it implies AC_PROG_CC.
 if test "x$GMP_CC$GMP_CFLAGS" != x; then
+   if test "x$CC" != x && test "x$CC" != "x$GMP_CC" ; then
+     AC_MSG_NOTICE([overriding GMP_CC=$GMP_CC with CC=$CC])
+     GMP_CC=$CC
+   fi
+
    AC_MSG_CHECKING([whether CC=$GMP_CC and CFLAGS=$GMP_CFLAGS works])
    AC_LANG_CONFTEST([AC_LANG_SOURCE([int main (void) { return 0; }])])
    if $GMP_CC $GMP_CFLAGS -o conftest conftest.$ac_ext 2> /dev/null ; then
@@ -162,6 +178,10 @@ AC_PROG_CC_C99
 AM_PROG_AS
 AM_PROG_CC_C_O
 
+dnl If CC was user defined but looked like gcc, check that AC agrees.
+if test "x$check_use_defined_cc_is_gcc" != "x" && test "x$GCC" != "xyes"; then
+  AC_MSG_ERROR([User specified CC=$CC looked like gcc but wasn't])
+fi
 
 # Now that we have decided on CC and CFLAGS, init libtool
 # Don't make a shared library by default. Enable building a shared library
@@ -405,7 +425,7 @@ AC_CHECK_FUNCS([malloc_usable_size])
 
 dnl If we use GCC and user has not specified his own CFLAGS, 
 dnl add some warning flags, avoiding duplication
-if test "x$GCC" = xyes && test "x$user_redefine_cc" != xyes; then
+if test "x$GCC" = xyes && test "x$user_redefine_cflags" != xyes; then
   case $CFLAGS in
     "-pedantic "* | *" -pedantic "* | *" -pedantic") ;;
     *) CFLAGS="-pedantic $CFLAGS"
@@ -620,7 +640,6 @@ error
   fi
   ;;
 esac
-CL_AS_NOEXECSTACK
 AC_SUBST([LIBECM_LDFLAGS])
 
 
@@ -681,7 +700,6 @@ AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powe
 
 AC_SUBST([XSLDIR])
 AC_SUBST([ASMPATH])
-AC_SUBST([GSL_LD_FLAGS])
 
 COV_FRAG='
 # These options are used for coverage tests

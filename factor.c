@@ -174,7 +174,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
                          p->use_ntt, p->sigma_is_A, p->os, p->es,
                          p->chkfilename, p->TreeFilename, p->maxmem,
                          p->stop_asap, p->batch_s, &(p->batch_last_B1_used),
-                         p->gpu_device, &(p->gpu_device_init),
+                         p->gpu_cgbn, p->gpu_device, &(p->gpu_device_init),
                          &(p->gpu_number_of_curves));
         }
 #endif

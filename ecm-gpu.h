@@ -7,6 +7,9 @@
 
 #ifdef WITH_GPU
 
+// Absolute limit of CGBN support
+#define ECM_GPU_CGBN_MAX_BITS 32*1024
+
 #ifndef ECM_GPU_NB_DIGITS
   #define ECM_GPU_NB_DIGITS 32 //by default
 #endif
@@ -25,7 +28,7 @@
 //#define VOL
 
 #ifndef ECM_GPU_CURVES_BY_BLOCK
-#define ECM_GPU_CURVES_BY_BLOCK 32
+  #define ECM_GPU_CURVES_BY_BLOCK 32
 #endif
 
 #define ECM_GPU_MAX_BITS ECM_GPU_SIZE_DIGIT * ECM_GPU_NB_DIGITS
@@ -44,7 +47,7 @@ typedef carry_t VOL bigint_t[ECM_GPU_NB_DIGITS];
 int gpu_ecm (mpz_t, mpz_t, int, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
              mpz_t, unsigned long, const int, int, int, int, int, int,
              FILE*, FILE*, char*, char *, double, int (*)(void), mpz_t, 
-             double *, int, int*, unsigned int*);
+             double *, int, int, int*, unsigned int*);
 #else
 int gpu_ecm ();
 #endif

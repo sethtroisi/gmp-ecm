@@ -60,10 +60,6 @@ echo 2050449218179969792522461197 | $PP1 -x0 6 -k 1 20 0-1e6; checkcode $? 14
 
 echo 6215074747201 | $PP1 -x0 5 630 199729; checkcode $? 8
 
-# bug in 6.1.3
-echo 6215074747201 | $PP1 -power 2 -x0 5 630 199729; checkcode $? 8
-echo 6215074747201 | $PP1 -dickson 3 -x0 5 630 199729; checkcode $? 8
-
 echo 8857714771093 | $PP1 -x0 3 23251 49207; checkcode $? 8
 
 echo 236344687097 | $PP1 -x0 3 619 55001; checkcode $? 8
@@ -109,8 +105,8 @@ echo 227718937509844817011855877544711725455111160554330403553675076250615854710
 checkcode $? 0
 $PP1 -resume $TEST 2337233 132554351
 C=$?
-checkcode $C 14
 /bin/rm -f $TEST
+checkcode $C 14
 
 # test -chkpnt
 TEST=test.pp1.chk$$

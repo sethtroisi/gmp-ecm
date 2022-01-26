@@ -3,6 +3,7 @@
 #include "ecm-gpu.h"
 #include <gmp.h>
 #include "cudakernel.h"
+#include "cudacommon.h"
 
 #ifndef __CUDACC__
 #error "This file should only be compiled with nvcc"
@@ -14,145 +15,13 @@ __device__ biguint_t d_3Ncst;
 __device__ biguint_t d_Mcst;
 
 
-#define errCheck(err) cuda_errCheck (err, __FILE__, __LINE__)
-#define cudaMalloc(d, size) errCheck (cudaMalloc (d, size))
-#define cudaMemcpyHtoD(d, h, size) errCheck (cudaMemcpy ((void *) d, \
+#define cudaMalloc(d, size) cuda_check (cudaMalloc (d, size))
+#define cudaMemcpyHtoD(d, h, size) cuda_check (cudaMemcpy ((void *) d, \
                                     (void *) h, size, cudaMemcpyHostToDevice))
-#define cudaMemcpyDtoH(h, d, size) errCheck (cudaMemcpy ((void *) h, \
+#define cudaMemcpyDtoH(h, d, size) cuda_check (cudaMemcpy ((void *) h, \
                                     (void *) d, size, cudaMemcpyDeviceToHost))
-#define cudaMemcpyCst(d, h, size) errCheck (cudaMemcpyToSymbol (d, h, size))
+#define cudaMemcpyCst(d, h, size) cuda_check (cudaMemcpyToSymbol (d, h, size))
 
-
-/******************************/
-/* Host code handling the GPU */
-/******************************/
-
-inline void cuda_errCheck (cudaError err, const char *file, const int line)
-{
-  if( err != cudaSuccess ) 
-  {
-    fprintf(stderr, "%s(%i) : Error cuda : %s.\n",
-              file, line, cudaGetErrorString( err) );
-    exit(EXIT_FAILURE);
-  }
-}
-
-/* First call to a global function initialize the device */
-__global__ void Cuda_Init_Device ()
-{
-}
-
-/* Given the compute compatibility (as major.minor), return the number of block
- * to be run on one multiprocessor. */
-extern "C"
-unsigned int
-getNumberOfBlockPerMultiProcessor (int major, int minor)
-{
-  /* For 2.0 and 2.1, limited by the maximum number of threads per MP and the
-   * number of available registrer (need 23 registers per threads).
-   */
-  if (major == 2)
-    return 1;
-  /* For 3.0, 3.2, 3.5 and 3.7 limited by the maximum number of threads per MP.
-   */
-  else if (major == 3)
-    return 2;
-  /* For 5.0, 5.2, and 5.3 limited by the maximum number of threads per MP. */
-  else if (major == 5)
-    return 2;
-  /* We assume that for newer compute capability the properties of the GPU won't
-   * decrease.
-   */
-  else
-    return 2;
-}
-
-extern "C" 
-int 
-select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
-{
-  cudaDeviceProp deviceProp;
-  cudaError_t err;
-        
-  if (device!=-1)
-    {
-      if (verbose)
-          fprintf (stdout, "GPU: device %d is required.\n", device);
-
-      err = cudaSetDevice(device);
-      if (err != cudaSuccess)
-        {
-          fprintf (stderr, "GPU: Error: Could not use device %d\n", device);
-          fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
-          return -1;
-        }
-    }
-  
-  err = cudaGetDevice (&device);
-  if (err != cudaSuccess)
-    {
-      fprintf (stderr, "GPU: Error: no active device.\n");
-      fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
-      return -1;
-    }
-
-  err = cudaGetDeviceProperties (&deviceProp, device);
-  if (err != cudaSuccess)
-    {
-      fprintf (stderr, "GPU: Error while getting device's properties.\n");
-      fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
-      return -1;
-    }
-
-  if (verbose)
-    {
-      printf ("GPU: will use device %d: %s, compute capability %d.%d, %d MPs.\n"
-              "GPU: maxSharedPerBlock = %zu maxThreadsPerBlock = %d "
-              "maxRegsPerBlock = %d\n", device, deviceProp.name,
-              deviceProp.major, deviceProp.minor,
-              deviceProp.multiProcessorCount, deviceProp.sharedMemPerBlock,
-              deviceProp.maxThreadsPerBlock, deviceProp.regsPerBlock);
-    }
-
-
-  if (*number_of_curves == 0) /* if choose the number of curves */
-    {
-      unsigned int n, m = ECM_GPU_CURVES_BY_BLOCK;
-      n = getNumberOfBlockPerMultiProcessor (deviceProp.major, deviceProp.minor);
-      *number_of_curves = n * deviceProp.multiProcessorCount * m;
-    }
-  else if (*number_of_curves % ECM_GPU_CURVES_BY_BLOCK != 0)
-    {
-      /* number_of_curves should be a multiple of ECM_GPU_CURVES_BY_BLOCK */
-      *number_of_curves = (*number_of_curves / ECM_GPU_CURVES_BY_BLOCK + 1) * 
-                                                        ECM_GPU_CURVES_BY_BLOCK;
-      if (verbose)
-          fprintf(stderr, "GPU: the requested number of curves has been "
-                          "modified to %u\n", *number_of_curves);
-    }
-
-  /* First call to a global function initialize the device */
-  errCheck (cudaSetDeviceFlags (cudaDeviceScheduleYield)); 
-  Cuda_Init_Device<<<1, 1>>> ();
-  errCheck (cudaGetLastError()); 
-
-  if (verbose)
-  {
-    struct cudaFuncAttributes kernelAttr;
-    err = cudaFuncGetAttributes (&kernelAttr, Cuda_Ell_DblAdd);
-    if (err == cudaSuccess)
-    {
-      printf ("GPU: Using device code targeted for architecture compile_%d\n"
-              "GPU: Ptx version is %d\nGPU: maxThreadsPerBlock = %d\n"
-              "GPU: numRegsPerThread = %d sharedMemPerBlock = %zu bytes\n",
-              kernelAttr.binaryVersion, kernelAttr.ptxVersion,
-              kernelAttr.maxThreadsPerBlock, kernelAttr.numRegs,
-              kernelAttr.sharedSizeBytes);
-    }
-  }
-
-  return 0;
-}
 
 extern "C"
 float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
@@ -161,6 +30,10 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
                  unsigned int firstinvd, unsigned int number_of_curves,
                  int verbose)
 {
+  /* Print some debug info about the kernel */
+  kernel_info((const void*) Cuda_Ell_DblAdd, verbose);
+
+
   cudaEvent_t start, stop;
   cudaEventCreate (&start);
   cudaEventCreate (&stop);
@@ -191,7 +64,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 
   /* Create a pair of events to pace ourselves */
   for (i=0; i<MAXEVENTS; i++)
-    errCheck (cudaEventCreateWithFlags (&event[i], 
+    cuda_check (cudaEventCreateWithFlags (&event[i],
                               cudaEventBlockingSync|cudaEventDisableTiming));
 
   cudaMalloc (&d_xA, array_size);
@@ -253,7 +126,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
   }
 
   /* If an error occurs during the kernel calls in the loop */
-  errCheck (cudaGetLastError()); 
+  cuda_check (cudaGetLastError());
 
   /* Await for last recorded events */
   while (nEventsRecorded != 0) 
@@ -269,7 +142,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 
   /* Clean up our events and our stream handle */
   for (i=0; i<MAXEVENTS; i++)
-    errCheck (cudaEventDestroy(event[i]));
+    cuda_check (cudaEventDestroy(event[i]));
 
 
   cudaFree ((void *) d_xA);
@@ -282,8 +155,8 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 
   cudaEventElapsedTime (&elltime, start, stop);
 
-  errCheck (cudaEventDestroy (start));
-  errCheck (cudaEventDestroy (stop));
+  cuda_check (cudaEventDestroy (start));
+  cuda_check (cudaEventDestroy (stop));
 
   return elltime;
 }

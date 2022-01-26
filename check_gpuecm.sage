@@ -10,7 +10,7 @@
 #  $ sage check_gpuecm.sage --iterations 1 ./ecm
 #
 # to test with ECM_GPU_NB_DIGITS=16 and extra verbose output
-#  $ sage check_gpuecm.sage --nbits 500 -v -v ./ecm
+#  $ sage check_gpuecm.sage --nbits 512 -v -v ./ecm
 # 
 # to test more iterations (~12 minutes) or more curves per iteration
 #  $ sage check_gpuecm.sage --iterations 20 ./ecm
@@ -36,7 +36,7 @@ import sys
 
 parser = argparse.ArgumentParser(description='Spot check for ecm -gpu stage1')
 
-parser.add_argument('ecm_cmd', type=str, 
+parser.add_argument('ecm_cmd', type=str,
     help='which ecm (e.g. ecm, ./ecm) to run')
 
 parser.add_argument('--iterations', type=int, default=5,
@@ -45,15 +45,21 @@ parser.add_argument('--iterations', type=int, default=5,
 parser.add_argument('-c', '--gpucurves', type=int, default=32,
     help='number of curves to test in a batch [default: 32]')
 
+parser.add_argument('--B1', type=int, default=10000,
+    help='B1 to test at [default: 10,000]')
+
 parser.add_argument('--seed', type=int, default=None,
     help='Random seed')
 
-parser.add_argument('--nbits', '-n', type=int, default=1000,
+parser.add_argument('--nbits', '-n', type=int, default=1024,
     help='Only needed if ECM_GPU_NB_DIGITS was adjusted')
+
+parser.add_argument('--timing', action='store_true',
+    help='Producing timing information')
 
 parser.add_argument('--verbose', '-v', action='count', default=1,
     help='Print more output (pass -v -v for even more)')
-parser.add_argument('--quiet', '-q', 
+parser.add_argument('--quiet', '-q',
     action='store_const', const=0, dest='verbose',
     help='Suppress most output')
 
@@ -191,64 +197,58 @@ def smallGroupOrders(prime, param, sigma_0, B1, num_curves):
     return found
 
 
-def stage1Tests(N_size, prime_size, B1, param, num_curves, seed):
-    '''
-    Generate N such that many sigmas (sigma_0:sigma_0+num_curves) have factors
-    Verify sigmas found factor in stage 1.
-    '''
-    assert param == GPU_PARAM, ('GPU only supports param=%d' % GPU_PARAM)
-    assert prime_size < N_size
-    assert N_size <= 1020
-    assert prime_size > 20
-
-    prime_count = N_size // prime_size
-    if args.verbose:
-        print('Testing GPU stage1: N = %d x %d bits primes @ B1=%d ' % (
-            prime_count, prime_size, B1))
-
-    if args.verbose > 1:
-        print('\tusing seed: %s' % seed)
-
-    random.seed(seed)
-    sigma_0 = random.randrange(1000, 2^31)
-
-    N = []
-    factor_by_sigma = {}
-    for pi in range(prime_count):
+def findPrimesOfSize(count, prime_size):
+    '''Find count primes with prime_size bits'''
+    primes = set()
+    for pi in range(count):
         for test in range(100):
             r = ZZ(random.randint(2 ^ (prime_size-1), 2 ^ prime_size))
             prime = Primes().next(r)
-            if prime not in N:
-                N.append(prime)
+            if prime not in primes:
+                primes.add(prime)
                 break
         else:
             raise ValueError("Can't find enought primes at prime_size=%d" %
                 prime_size)
+    return sorted(primes)
 
-        sigmas = smallGroupOrders(prime, param, sigma_0, B1, num_curves)
+
+def expectedFactorsBySigma(args, primes, param, sigma_0, B1):
+    '''Calculate which primes will be found by which curves'''
+    factor_by_sigma = {}
+    for i, prime in enumerate(primes):
+        # This can be slower than the actual ECM!
+        sigmas = smallGroupOrders(prime, param, sigma_0, B1, args.gpucurves)
         if args.verbose > 2:
-            print('\t%2d: %20d found @ B1=%d by %s' % (pi, prime, B1, sigmas))
+            print('\t%2d: %20d found @ B1=%d by %s' % (i, prime, B1, sigmas))
         for sigma in sigmas:
             if sigma not in factor_by_sigma:
                 factor_by_sigma[sigma] = 1
             factor_by_sigma[sigma] *= prime
+    return factor_by_sigma
 
-    if len(factor_by_sigma) == 0:
+
+def verifyFactorsFoundBySigma(
+        args, primes, param, sigma_0, B1, factor_by_sigma):
+    '''Verify the expected factors where found by ECM'''
+
+    if not any(found for found in factor_by_sigma.values() if found > 1):
         raise ValueError(
             'No primes would be found in stage 1, '
-            'lower prime_size(%d) or increase B1(%d)' % (prime_size, B1))
+            'lower prime_size or increase B1(%d)' % B1)
 
-    N_log2 = log(prod(N), 2).n()
-    assert N_log2 < N_size, (N_size, N_log2, prime_size, pprime_count)
+    N_log2 = log(prod(primes), 2).n()
+    assert N_log2 < args.nbits, (args.nbits, N_log2)
 
-    N_str = '*'.join(map(str, N))
+    N_str = '*'.join(map(str, primes))
     if args.verbose > 1:
         sigma_str = ', '.join(map(str, sorted(factor_by_sigma)))
         print('\tSigmas with factors: %s' % sigma_str)
 
     echo_cmd = 'echo %s | ' % N_str
     ecm_cmd = '%s -gpu -gpucurves %d -sigma %d:%d %d 0' % (
-        args.ecm_cmd, num_curves, param, sigma_0, B1)
+        args.ecm_cmd, args.gpucurves, param, sigma_0, B1)
+
 
     if args.verbose > 2:
         print('\t' + echo_cmd + ecm_cmd)
@@ -271,36 +271,118 @@ def stage1Tests(N_size, prime_size, B1, param, num_curves, seed):
             assert sigma not in found_factors
             found_factors[sigma] = f
 
-    perfect_match = factor_by_sigma == found_factors
-
     all_sigmas = set(factor_by_sigma.keys()) | set(found_factors.keys())
     for sigma in sorted(all_sigmas):
         theory = factor_by_sigma.get(sigma, 1)
         practice = found_factors.get(sigma, 1)
         if theory != practice:
-            if practice < theory:
+            if theory % practice == 0:
                 print('sigma=%d Expected to find %d, found %d' %
                     (sigma, theory, practice))
-            if practice % theory == 0:
+            elif practice % theory == 0:
                 extra = practice / theory
                 f = factor(GroupOrder(param, extra, sigma))
                 print('\tExtra factor (%d) found by sigma=%d '
                       'expected order=%s' % (extra, sigma, f))
+            else:
+                print('MAJOR MISMATCH: %d vs %d' % (
+                    factor(theory), factor(practice)))
 
     expected_curves = len(factor_by_sigma)
+    perfect_match = factor_by_sigma == found_factors
     if perfect_match:
         if args.verbose:
-            print('Results matched extra (%d curves found factors)' %
+            print('Results matched exactly (%d curves found factors)' %
                 expected_curves)
     else:
         print('Wrong results for seed=%d' % seed)
-        print(cmd)
+        print('\t' + echo_cmd + ecm_cmd)
         sys.exit(1)
 
     if args.verbose:
         print('')
 
     return len(found_factors)
+
+
+def stage1Tests(args, prime_size, B1, param, seed):
+    '''
+    Generate N such that many sigmas (sigma_0:sigma_0+args.gpucurves) have factors
+    Verify sigmas found factor in stage 1.
+    '''
+    assert param == GPU_PARAM, ('GPU only supports param=%d' % GPU_PARAM)
+    assert prime_size < args.nbits
+    assert args.nbits <= 1020
+    assert prime_size > 20
+
+    prime_count = args.nbits // prime_size
+    if args.verbose:
+        print('Testing GPU stage1: N = %d x %d bits primes @ B1=%d ' % (
+            prime_count, prime_size, B1))
+
+    if args.verbose > 1:
+        print('\tusing seed: %s' % seed)
+
+    random.seed(seed)
+    sigma_0 = random.randrange(1000, 2^31)
+
+    primes = findPrimesOfSize(prime_count, prime_size)
+    factor_by_sigma = expectedFactorsBySigma(args, primes, param, sigma_0, B1)
+
+    return verifyFactorsFoundBySigma(
+        args, primes, param, sigma_0, B1, factor_by_sigma)
+
+
+def overflowTest(args, param, seed):
+    '''
+    Generate N such that N is VERY close to nbits
+    Verify small factors found
+    '''
+
+    random.seed(seed)
+    sigma_0 = random.randrange(1000, 2^31)
+
+    # Multiply a handful of small primes that "should" be found by each sigma
+    # Then pad out N with a giant prime
+    primes = findPrimesOfSize(count=256//12, prime_size=12)
+    expected = prod(primes)
+
+    pad_limit = 2 ** args.nbits// expected
+    large_prime = Primes().next(ZZ(random.randint(pad_limit // 2, pad_limit)))
+
+    N_log2 = log(expected * large_prime, 2).n()
+    # within 1 bits of the limit
+    assert 0 < args.nbits - N_log2 < 1, (args.nbits, N_log2)
+    if args.verbose:
+        print ("Checking overflow with log2(N) = %.2f" % N_log2)
+
+    # Expect all the small primes to be found by all sigmas
+    factor_by_sigma = {}
+    for sigma in range(sigma_0, sigma_0 + args.gpucurves):
+        factor_by_sigma[sigma] = expected
+
+    return verifyFactorsFoundBySigma(
+        args, primes + [large_prime], param, sigma_0, args.B1, factor_by_sigma)
+
+
+def timingTest(args, N_sizes):
+    '''Produce some timing information on ecm'''
+    primes = [Primes().next(ZZ(int(2 ** (n - 0.5)))) for n in N_sizes]
+
+    # Doesn't matter
+    sigma = "%d:%d" % (GPU_PARAM, 12)
+
+    for size, prime in zip(N_sizes, primes):
+        cmd = 'echo %s | %s -gpu -gpucurves %d -sigma %s %d 0' % (
+            prime, args.ecm_cmd, args.gpucurves, sigma, args.B1)
+        try:
+            output = subprocess.check_output(cmd, shell=True, universal_newlines=True)
+            timing = min(line for line in output.split('\n') if line.startswith("Computing "))
+            timing = timing[timing.index("took") + 4:].strip()
+        except subprocess.CalledProcessError as e:
+            timing = "error"
+        debug = 'N=%d bits, B1=%d, curves=%d, ' % (size, args.B1, args.gpucurves)
+        print (debug, timing)
 
 
 if __name__ == '__main__':
@@ -310,17 +392,24 @@ if __name__ == '__main__':
     if seed is None:
         seed = random.randrange(2 ^ 32)
 
-    num_curves = args.gpucurves
-    found = 0
-    for i in range(args.iterations):
-        # Test smallish primes (40 bits = 12 digit) at B1=1e4
-        found += stage1Tests(args.nbits, 40, 10^4, GPU_PARAM, num_curves, seed)
-        seed += 1
+    if args.timing:
+        timingTest(args, [250, 500, 1000, 1500, 2000])
+        exit()
 
-        # Test larger primes at B1=1e5
-        found += stage1Tests(args.nbits, 60, 10^5, GPU_PARAM, num_curves, seed)
-        seed += 1
+    # GPU needs 6 bits for carry / temp results
+    args.nbits -= 6
+    overflowTest(args, GPU_PARAM, seed)
 
-    print('Results matched in %d tests (%d curves found factors)' %
-        (2*args.iterations, found))
+    if args.iterations:
+        found = 0
+        for i in range(args.iterations):
+            # Test smallish primes (40 bits = 12 digit) at B1 (default: 10^4)
+            found += stage1Tests(args, 40, args.B1, GPU_PARAM, seed)
+            seed += 1
 
+            # Test larger primes at 10xB1
+            found += stage1Tests(args, 60, 10*args.B1, GPU_PARAM, seed)
+            seed += 1
+
+        print('Results matched in %d tests (%d curves found factors)' %
+            (2*args.iterations, found))

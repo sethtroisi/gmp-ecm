@@ -115,6 +115,7 @@ typedef struct
   int gpu;  /* do we use the GPU for stage 1. */
             /* If different from 0, the GPU is used */
             /* Else, the parameters beginning by gpu_* have no meaning */
+  int gpu_cgbn;  /* If CGBN should be used for GPU stage 1 computation */
   int gpu_device; /* Which device do we use */
   int gpu_device_init; /* Is the device initialized?*/
   unsigned int gpu_number_of_curves; 
