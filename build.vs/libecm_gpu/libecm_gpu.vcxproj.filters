@@ -181,6 +181,9 @@
     <CudaCompile Include="..\..\cudakernel.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
+    <CudaCompile Include="..\..\cudacommon.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <YASM Include="..\assembler\mulredc.asm">

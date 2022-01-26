@@ -4,6 +4,9 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <stdio.h>
+#ifdef _MSC_VER
+#include <stdint.h>
+#endif
 
 #ifdef __cplusplus
 /* cpp + CUDA only code */
