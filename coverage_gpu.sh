@@ -4,7 +4,7 @@
 t=$1 # target directory for the html files
 d=`mktemp -d /tmp/ecmXXX`
 cd $d
-svn checkout svn://scm.gforge.inria.fr/svnroot/ecm/trunk ecm
+git clone https://gitlab.inria.fr/zimmerma/ecm.git
 cd ecm
 autoreconf -i
 # ./configure --enable-gpu=sm_30 --with-gmp=/users/caramel/logiciels/gmp-6.0.0/core2/ --with-cuda=/usr/local/cuda-5.0.old/ --with-cc-for-cuda=/users/caramel/logiciels/gcc-4.3.6/x86_64/bin/

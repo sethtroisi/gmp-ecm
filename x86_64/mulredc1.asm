@@ -53,6 +53,10 @@ GSYM_PREFIX`'mulredc1:
 	adcq	$0, %rax
 	ret
 
+ifdef(`WINDOWS64_ABI',
+,
+`
 `#'if defined(__linux__) && defined(__ELF__)
 .section .note.GNU-stack,"",%progbits
 `#'endif
+') dnl

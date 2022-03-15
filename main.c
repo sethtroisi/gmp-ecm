@@ -30,6 +30,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-impl.h"
 #include "ecm-ecm.h"
 
+#include "config.h"
+
 #ifdef HAVE_UNISTD_H /* for access() */
 # include <unistd.h>
 #else
@@ -54,6 +56,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #ifdef HAVE_TORSION
 #include "torsions.h" /* to benefit from more torsion groups */
 #endif
+
 
 /* #define DEBUG */
 
@@ -135,11 +138,14 @@ usage (void)
     printf ("  -bloads file With -param 1-3, load stage 1 exponent from file.\n");
 #ifdef WITH_GPU
     printf ("  -gpu         Use GPU-ECM for stage 1.\n");
+#if HAVE_CGBN_H
+    printf ("  -cgbn        Use CGBN for GPU-ECM stage 1 computation.\n");
+#endif /* HAVE_CGBN_H */
     printf ("  -gpudevice n Use device n to execute GPU code (by default, "
                                                           "CUDA chooses)\n");
     printf ("  -gpucurves n Compute on n curves in parallel on the GPU (by "
                                                   "default, CUDA chooses)\n");
-#endif
+#endif /* WITH_GPU */
     printf ("  -h, --help   Prints this help and exit.\n");
 }
 
@@ -399,6 +405,7 @@ main (int argc, char *argv[])
   signed long gw_c = 0;    /* set default values for gwnum poly k*b^n+c */
 #endif
   int use_gpu = 0; /* Do we use the GPU for stage 1 (by default no) */
+  int gpucgbn = 0; /* Do we use CGBN for stage 1 GPU computation (by default no) */
   int gpudevice = -1; /* Which device do we use for GPU code (by default CUDA */
                       /* chooses)                                             */
   unsigned int gpucurves = 0; /* How many curves do we want for GPU code */ 
@@ -784,8 +791,19 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-gpu") == 0)
         {
           use_gpu = 1;
-	        argv++;
-	        argc--;
+          argv++;
+          argc--;
+        }
+      else if (strcmp (argv[1], "-cgbn") == 0)
+        {
+          use_gpu = 1;
+          gpucgbn = 1;
+#ifndef HAVE_CGBN_H
+          fprintf (stderr, "CGBN not present; configure with --with-cgbn-include\n");
+          exit (EXIT_FAILURE);
+#endif /* !HAVE_CGBN_H */
+          argv++;
+          argc--;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-gpudevice") == 0))
         {
@@ -807,10 +825,10 @@ main (int argc, char *argv[])
 	}
     }
 
-  /* check that S is even for old P-1 stage 2 */
-  if ((method == ECM_PM1) && (S != ECM_DEFAULT_S) && (S % 2 != 0))
+  if ((method == ECM_PM1 || method == ECM_PP1) && (S != ECM_DEFAULT_S && S != 1))
     {
-      fprintf (stderr, "Error, S should be even for P-1\n");
+      fprintf (stderr, "Error, %s not supported for %s\n",
+              S < 0 ? "-dickson" : "-power", method == ECM_PM1 ? "-pm1" : "-pp1" );
       exit (EXIT_FAILURE);
     }
 
@@ -1027,7 +1045,8 @@ main (int argc, char *argv[])
   params->TreeFilename = TreeFilename;
   params->maxmem = maxmem;
   params->stage1time = stage1time;
-  params->gpu = use_gpu; /* If WITH_GPU is not defined it will always be 0 */
+  params->gpu = use_gpu;   /* If WITH_GPU is not defined it will always be 0 */
+  params->gpu_cgbn = gpucgbn; /* If !HAVE_CGBN_H will always be 0 */
   params->gpu_device = gpudevice; /* If WITH_GPU is not defined or    */
                                   /* use_gpu = 0, it has no meaning   */
   params->gpu_number_of_curves = gpucurves; /* If WITH_GPU is not defined or */
@@ -1527,6 +1546,7 @@ main (int argc, char *argv[])
           do 
             {
               if (params->gpu)
+                  /* gpu returns multiple factors as f = f0 + f1*n + ... + fk*n^k */
                   mpz_fdiv_qr (f, tmp_factor, f, tmp_n);
               else
                   mpz_set (tmp_factor, f);

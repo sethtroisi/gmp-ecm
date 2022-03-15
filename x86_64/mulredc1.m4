@@ -175,6 +175,10 @@ define(`JM8', `eval(J - 8)')dnl
 	popq	%rbx
 	ret
 
-``#''if defined(__linux__) && defined(__ELF__)
+`ifdef(`WINDOWS64_ABI',
+,
+`
+`#'if defined(__linux__) && defined(__ELF__)
 .section .note.GNU-stack,"",%progbits
-``#''endif
+`#'endif
+') dnl'

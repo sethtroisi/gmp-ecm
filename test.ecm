@@ -265,10 +265,14 @@ echo "2^1123-1" | $ECM -c 2 -param 0 -x0 1 11000; checkcode $? 1
 echo "2^1123-1" | $ECM -param 0 -pm1 11000; checkcode $? 1
 
 # exercise "Could not open file <file> for reading" error message
-$ECM -bloads sfile.txt 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+$ECM -param 1 -bloads sfile.txt 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+$ECM -param 1 -bloads sfile.txt 1e6 < ${GMPECM_DATADIR}/c155 2>&1 | grep "Could not open file sfile.txt"; checkcode $? 0
 
 # exercise "read_s_from_file: 0 bytes read from <file>" error message
-$ECM -bloads ${GMPECM_DATADIR}/test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > test_dummy2.save
+$ECM -param 1 -bloads test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+$ECM -param 1 -bloads test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155 2>&1 | grep "0 bytes read from test_dummy2.save"; checkcode $? 0
+/bin/rm -f test_dummy2.save
 
 # exercise batch error messages...
 TEST=test.ecm.s$$
@@ -347,75 +351,63 @@ TEST=test.ecm.save$$
 /bin/rm -f $TEST
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save $TEST -param 0 -sigma 585928442 174000 0
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 14
+checkcode $? 14
 
-# test savea
-cp ${GMPECM_DATADIR}/test_dummy2.save $TEST
+# test savea with existing file
+printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > $TEST
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea $TEST -param 0 -sigma 585928442 174000 0
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 14
+checkcode $? 14
 
 # test unknown method
 echo "METHOD=FOO" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 0
+checkcode $? 0
 
 # test invalid checksum
 echo "CHECKSUM=xxx" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 0
+checkcode $? 0
 
 # test comment
 echo "METHOD=P-1;X=1;N=17;B1=2;COMMENT=this is a comment;" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 8
+checkcode $? 8
 
 # test invalid param
 echo "PARAM=xxx" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 0
+checkcode $? 0
 
 # test invalid etype
 echo "ETYPE=xxx" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 0
+checkcode $? 0
 
 # test invalid B1
 echo "B1=xxx" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 0
+checkcode $? 0
 
 # test unknown tag
 echo "FOO=xxx" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 0
+checkcode $? 0
 
 # test semicolon after tags
 echo "METHOD=P-1;X=1;N=17;B1=2" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 0
+checkcode $? 0
 
 # test QX tag without sigma
 echo "METHOD=ECM;QX=1;N=17;B1=2;" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 0
+checkcode $? 0
 
 # test missing fields
 echo "METHOD=ECM;QX=1;N=17;" > $TEST
 $ECM -resume $TEST 174000 85880350
-C=$?
-checkcode $C 0
+checkcode $? 0
 
 /bin/rm -f $TEST
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save $TEST -A 22/7 -x0 1/3 -y0 2/7 1e3

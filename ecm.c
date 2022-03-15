@@ -956,13 +956,11 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
 
 /* y should be NULL for P+1, and P-1, it contains the y coordinate for the
    Weierstrass form for ECM (when sigma_is_A = -1). */
-/* if gpu != 0 then it contains the number of curves that will be computed on
-   the GPU */
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
 		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t sigma,
 		  int sigma_is_A, int Etype, 
-		  mpz_t y, int param, unsigned int gpu)
+		  mpz_t y, int param, unsigned int nb_curves)
 {
   ASSERT ((method == ECM_ECM) || (y == NULL));
   ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
@@ -992,13 +990,13 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 		outputf (verbosity, ", A=%Zd", sigma);
 	    else if (sigma_is_A == 0)
 	      {
-		if (gpu) /* if not 0, contains number_of_curves */
+		if (nb_curves > 1) 
 		  {
 		    outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
-		    mpz_add_ui (sigma, sigma, gpu-1);
+		    mpz_add_ui (sigma, sigma, nb_curves-1);
 		    outputf (verbosity, "-%d:%Zd", param, sigma);
-		    mpz_sub_ui (sigma, sigma, gpu-1);
-		    outputf (verbosity, " (%u curves)", gpu);
+		    mpz_sub_ui (sigma, sigma, nb_curves-1);
+		    outputf (verbosity, " (%u curves)", nb_curves);
 		  }
 		else
 		    outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
@@ -1229,22 +1227,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
       return ECM_ERROR;
     }
 
-  /* Compute s for the batch mode */
-  if (IS_BATCH_MODE(param) && ECM_IS_DEFAULT_B1_DONE(*B1done) &&
-      (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
-    {
-      *batch_last_B1_used = B1;
-
-      st = cputime ();
-      /* construct the batch exponent */
-      compute_s (batch_s, B1, NULL);
-      outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
-                               " bits) of primes up to B1=%1.0f took %ldms\n",
-                               mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
-    }
-
-  st = cputime ();
-
   /* See what kind of number we have as that may influence optimal parameter 
      selection. Test for base 2 number. Note: this was already done by
      mpmod_init. */
@@ -1431,6 +1413,23 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
         }
     }
 
+  /* Compute s for the batch mode */
+  if (IS_BATCH_MODE(param) && ECM_IS_DEFAULT_B1_DONE(*B1done) &&
+      (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
+    {
+      *batch_last_B1_used = B1;
+
+      st = cputime ();
+      /* construct the batch exponent */
+      compute_s (batch_s, B1, NULL);
+      outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
+                               " bits) of primes up to B1=%1.0f took %ldms\n",
+                               mpz_sizeinbase (batch_s, 2), B1,
+                               elltime (st, cputime ()));
+    }
+
+  st = cputime ();
+
 #ifdef HAVE_GWNUM
   /* We will only use GWNUM for numbers of the form k*b^n+c */
 
@@ -1607,7 +1606,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, use_ntt, 
-                    TreeFilename, stop_asap);
+                    TreeFilename, 0, stop_asap);
 #ifdef TIMING_CRT
   printf ("mpzspv_from_mpzv_slow: %dms\n", mpzspv_from_mpzv_slow_time);
   printf ("mpzspv_to_mpzv: %dms\n", mpzspv_to_mpzv_time);
