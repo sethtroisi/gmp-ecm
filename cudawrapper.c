@@ -608,16 +608,15 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   *B1done=B1;
 
-  /* Save stage 1 residues
-   * Needed for write_resumefile
-   * This can be slow if nb_curves is very large.
-   * Consider changing to base 2^mpz_sizeinbase(n, 2)
-   */
+  /* GMP documentation says mpz_sizeinbase(op, 2) is always the exact value. */
+  size_t n_bits = mpz_sizeinbase(n, 2);
+
+  /* Save stage 1 residues as x = x0 + x1 * 2^bits + ... + xk * 2^(bits*k) */
   mpz_set_ui (x, 0);
   for (i = 0; i < *nb_curves; i++)
     {
-      mpz_mul (x, x, n);
-      mpz_add (x, x, factors[i]);
+      mpz_mul_2exp (x, x, n_bits);
+      mpz_add (x, x, factors[*nb_curves - 1 - i]);
     }
 
   /* was a factor found in stage 1 ? */

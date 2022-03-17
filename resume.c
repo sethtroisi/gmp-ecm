@@ -532,11 +532,7 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
 }
 
 /* Call write_resumefile_line for each residue in x.
-   x = x0 + x1*N + ... + xk*N^k, xi are the residues (this is a hack for GPU)
-   FIXME : x0 corresponds to sigma + gpu_curves-1
-           xk corresponds to sigma
-             should be the other way around
-
+   x = x0 + x1*2^(bits) + ... + xk*2^(bits*k), xi are the residues (this is a hack for GPU)
    Returns 1 on success, 0 on error */
 int  
 write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
@@ -623,11 +619,11 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
     }
   else /* gpu case */
     {
-      mpz_add_ui (params->sigma, params->sigma, params->gpu_number_of_curves);
+      size_t n_bits = mpz_sizeinbase(N, 2);
       for (i = 0; i < params->gpu_number_of_curves; i++)
         {
-          mpz_sub_ui (params->sigma, params->sigma, 1);
-          mpz_fdiv_qr (params->x, tmp_x, params->x, N); 
+          mpz_fdiv_r_2exp (tmp_x, params->x, n_bits);
+          mpz_fdiv_q_2exp (params->x, params->x, n_bits);
           mpz_mod (tmp_x, tmp_x, n->n);
           write_resumefile_line (file, method, params->B1done, params->sigma,
 				 params->sigma_is_A, params->E->type,
@@ -636,6 +632,7 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
 				 ECM_PARAM_BATCH_32BITS_D,
 				 tmp_x, NULL, n, orig_x0, orig_y0, 
 				 comment);
+          mpz_add_ui (params->sigma, params->sigma, 1);
         }
     }
 

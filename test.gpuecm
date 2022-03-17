@@ -206,7 +206,7 @@ checkcode $? 14
 
 # verify gpu vs cpu save
 /bin/rm -f test.ecm.save test.ecm2.save
-for param in `seq 1031 -1 1000`
+for param in `seq 1000 1031`
 do
   echo "2^293-1" | $ECMnoGPU -q -savea test.ecm.save -sigma 3:$param 1e3 0 > test.output
   checkcode $? 0
