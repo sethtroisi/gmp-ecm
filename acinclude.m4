@@ -556,7 +556,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
       
     dnl Check which GPU architecture nvcc knows
     GPU_ARCH=""
-    m4_foreach_w([compute_capability], [30 32 35 37 50 52 53 60 61 62 70 72 75],
+    m4_foreach_w([compute_capability], [30 32 35 37 50 52 53 60 61 62 70 72 75 80 86 87 90],
       [
         testcc=compute_capability
         AS_IF([test -z "$WANTED_GPU_ARCH" -o "$WANTED_GPU_ARCH" = "$testcc"],
