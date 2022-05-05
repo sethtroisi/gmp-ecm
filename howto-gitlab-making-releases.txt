@@ -1,0 +1,32 @@
+How to create a gitlab release from an existing tar.gz
+======================================================
+
+Assume the existing tar.gz is ecm-6.0.1.tar.gz.
+
+On gitlab, click on "New release"
+
+Enter as tag name something like git-6.0.1. Indeed, git will automatically
+create a tarball from the given commit, the "git-" prefix is there to avoid
+having the same name as the existing tar.gz.
+
+Release title: 6.0.1
+
+In the "Release notes" window, click on attach a file.
+
+In "Release asset", enter the url of the file
+
+https://gitlab.inria.fr/zimmerma/ecm/uploads/70afcfac2a7a6a762a08eda0c551fafd/ecm-6.0.1.tar.gz
+
+and as "Link title" enter "release tarball".
+
+Click on create release.
+
+The date of the release will be "now". To change it:
+
+* create an API token (gitlab account -> settings -> access tokens -> API)
+
+* copy the token, for example yMgyt9EgfAmbpiCscL-S
+
+* curl -X PUT --header 'Content-Type: application/json' --header "PRIVATE-TOKEN: yMgyt9EgfAmbpiCscL-S" "https://gitlab.inria.fr/api/v4/projects/zimmerma%2Fecm/releases/git-6.0.1" --data '{ "tag_name": "git-6.0.1", "released_at": "2005-03-31T13:56:04+02:00", "name": "6.0.1" }'  | jq
+
+(jq is just a json pretty-printer, no big deal if you don't have it)
