@@ -120,3 +120,5 @@ To make a new release:
 To see the differences between a given tag and the current version:
 
 $ git diff 7.0.4
+
+To put the release on gitlab, see howto-gitlab-making-releases.txt.
