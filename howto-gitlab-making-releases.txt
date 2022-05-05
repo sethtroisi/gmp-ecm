@@ -3,7 +3,7 @@ How to create a gitlab release from an existing tar.gz
 
 Assume the existing tar.gz is ecm-6.0.1.tar.gz.
 
-On gitlab, click on "New release"
+On gitlab, release page, click on "New release"
 
 Enter as tag name something like git-6.0.1. Indeed, git will automatically
 create a tarball from the given commit, the "git-" prefix is there to avoid
