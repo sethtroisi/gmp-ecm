@@ -286,6 +286,7 @@ $ECM -bsaves test.s -param 0 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 # exercise "Error, -bloads makes sense in batch mode only" error message
 $ECM -bsaves test.s -param 1 11e3 < ${GMPECM_DATADIR}/c155
 $ECM -bloads test.s -param 0 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+/bin/rm -f test.s
 
 # exercise "Error, invalid parametrization." error message
 $ECM -param 5-3 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1

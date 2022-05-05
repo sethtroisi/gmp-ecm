@@ -10,7 +10,6 @@
 t=$1 # target directory for the html files
 d=`mktemp -d /tmp/ecmXXX`
 cd $d
-# svn checkout svn://scm.gforge.inria.fr/svnroot/ecm/trunk ecm
 git clone https://gitlab.inria.fr/zimmerma/ecm
 cd ecm
 autoreconf -i

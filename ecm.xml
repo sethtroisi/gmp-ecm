@@ -687,9 +687,7 @@ specifically:
 
 <refsect1 id='bugs'><title>BUGS</title>
 <para>
-Report bugs to &lt;ecm-discuss@lists.gforge.inria.fr&gt;, after checking
-&lt;http://www.loria.fr/~zimmerma/records/ecmnet.html&gt; for bug fixes
-or new versions.
+Report bugs on &lt;https://gitlab.inria.fr/zimmerma/ecm/&gt;.
 </para>
 </refsect1>
 

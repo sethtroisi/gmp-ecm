@@ -1,3 +1,1769 @@
+commit 8b63ba3270020908ff2c605f00ac95a541340367
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu May 5 11:35:58 2022 +0200
+
+    fixed compiler warnings
+
+commit 1afb36ebf693014eb62e7c21590c0f29afd57e0f
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Mar 17 02:01:48 2022 -0700
+
+    Expand list of CUDA cc codes to include 80 and 90 series
+
+commit f2aec916ffcde2dd0e388ce1897ced7d094259e7
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Mar 17 01:30:58 2022 -0700
+
+    Faster -save with large gpu curve count
+
+commit c56cfceb4ed6ef7711bb59655b37735b8041db7d
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Sep 9 13:52:53 2021 -0700
+
+    Add Seth Troisi to authors
+
+commit 9d5b903396bb24ae73fad7106de71153bad4d6a3
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Nov 10 17:59:27 2021 -0800
+
+    Add comment explaining extra GPU time after curves are done
+
+commit d013c5018f2db5a3fd5e89551d4575749b587324
+Merge: d8f7afc 0ad8a8c
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Mar 15 10:54:21 2022 +0100
+
+    Merge branch 'gpu_tests' of gitlab.inria.fr:zimmerma/ecm into gpu_tests
+
+commit 0ad8a8c8a0ff17c4b54a9df63d37119a780bd09e
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Mon Aug 30 19:35:33 2021 -0700
+
+    check_gpuecm.sage add smallestGroupOrder
+    
+    This allows for
+    $ sage --preparse check_gpuecm.sage
+    $ mv -f check_gpuecm.sage.py check_gpuecm.py
+    $ python -c "import check_gpuecm; check_gpuecm.smallestGroupOrder(594538100848945223169882301931953, 3, 10, 1000)"
+    
+    Which can help find B1/B2 limits for tests where prime will be found.
+
+commit 923c9415152afc74f6a59fe32a4eb95fbb19c9a9
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Mon Jan 17 15:21:50 2022 +0000
+
+    Update configure.ac - Fix WINDOWS64_ABI for mingw64 targets
+
+commit 09f4c42e8a2237657194ff06b82f780d7b278a51
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Mon Jan 17 03:08:05 2022 +0000
+
+    Add mulredc1.asm for Linux and Win64
+
+commit b44037d4b74f960da3bd3c0b1babdbec69011f58
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Mon Jan 17 01:56:40 2022 +0000
+
+    Update mulredc1.m4 - fix mulredc1_xx for win64
+
+commit bff07a7ff416b324656936753679327ec207485e
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Mon Jan 17 01:55:40 2022 +0000
+
+    Update mulredc.m4 - fix k=3 to k=20 for win64
+
+commit 3f083d03ed8894a6339454500e97b7f4a2fc49cc
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Mon Jan 17 01:54:43 2022 +0000
+
+    Update autogen.py - fix k=1 and k=2 for win64
+
+commit f83edb3cf665af92663baac0610644b67156da4a
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Mon Jan 17 01:52:17 2022 +0000
+
+    Delete mulredc1.asm - has code that breaks win64 builds
+
+commit cfa3304dd2abd0604bcc4da2f16e63d76063e0a1
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Wed Jan 26 22:44:18 2022 +0000
+
+    Update Visual Studio build to use CUDA v11.5
+    Conditional MSVC addition in cudacommon.h for definition of int32_t
+
+commit 42e02b964accf4d7b3bbea099e91ef8e4678d0b5
+Merge: 4013d15 0e97deb
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Wed Jan 26 19:50:12 2022 +0000
+
+    Merge branch 'master' of gitlab.inria.fr:zimmerma/ecm
+
+commit 0e97deb611f15e2547cb46f6cd6216a31e434433
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Wed Dec 1 14:56:43 2021 +0100
+
+    added section about GMP-ECM packages
+
+commit 3f8604b2974ba59fdf0a3a534782ba87abfc79ef
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Wed Dec 1 14:50:51 2021 +0100
+
+    renamed back
+
+commit a67270777c6ad582fe9c8c3b9580189ce8d705f3
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Wed Dec 1 14:49:29 2021 +0100
+
+    renamed README to README.md
+
+commit 4b8d0bf2462c5741d0ba407d7deb0be7dce87c6c
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Sun Oct 24 00:14:01 2021 -0700
+
+    cgbn_stage1: Remove B1 limit, Reduce GPU memory 8x
+
+commit f7bcd6750aad10c2515e6b7f0d5093b29a530c68
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Sat Oct 16 05:25:52 2021 -0700
+
+    Remove getNumberOfBlockPerMultiProcessor
+    
+    2.0 and 2.1 are no longer
+    getNumberOfBlockPerMultiProcessor returns a static 2
+
+commit 258c076ec164181ffba72890800654e744db1b11
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Oct 15 02:51:17 2021 -0700
+
+    Add note about endianness
+
+commit 6dddca4a2301e4be753bebc1d10f06cd85e4a4fb
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Mon Sep 13 12:37:42 2021 -0700
+
+    cgbn_stage1: Hack fix for custom kernel TPI
+
+commit 980d80e79c9be830bc79fab7e1a2b9afb8cad0e4
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Sep 10 13:39:09 2021 -0700
+
+    cgbn_stage1: Tuning
+
+commit 5680a7ae3a9624045a7f456dacbc01206f2a192f
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Sep 2 00:09:37 2021 -0700
+
+    cgbn_stage1: Reduce duplicated inlined double_add_v2 code
+
+commit 10029404df1db7d64bc523ec02b88932a8c3001f
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 1 14:57:44 2021 -0700
+
+    Remove c++11 const vector init
+
+commit 38dba282bf020ee07692c4b8041b47adce4c6cda
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Tue Aug 31 00:45:39 2021 -0700
+
+    cuda: Refactor some common code to cudacommon.h
+    
+    Extract get_device_prob from select_and_init_GPU
+
+commit c1aa300fbe4401e7bc3ed582456d191d5a07670d
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Oct 1 22:22:41 2021 -0700
+
+    cgbn_stage1: Extract find_np0
+
+commit 77948f945a4614e9eb2a82e088e8664fffd9342b
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Oct 1 21:44:08 2021 -0700
+
+    cgbn_stage1: remove ecm_param scruct
+
+commit ed13a84671c8b3e3eba01af14e24d461048e270a
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Tue Aug 31 21:46:44 2021 -0700
+
+    cgbn_stage1: Improve kernel names add comment about custom kernels
+
+commit b18d27a7c76a2f19ccecc55d5048fe885f6ea547
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Mon Aug 30 19:42:18 2021 -0700
+
+    cgbn_stage1: Make bits_per_batch dynamic, add ETA
+
+commit 75672c65b54082f37be35767dde674ad2f32a4b0
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Aug 25 11:40:06 2021 -0700
+
+    cgbn_stage1: break kernel calls into intervals
+    
+    Helps with system responsiveness
+
+commit 37cba2bc710d6f03184bfba99e1b0febc1ab39dc
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Tue Aug 24 16:29:28 2021 -0700
+
+    cgbn_stage1: tune for <512 bits
+
+commit 6e4c1aece2c62215459d63a7dfa806cc8e0dc794
+Author: wraythex <59678213+wraythex@users.noreply.github.com>
+Date:   Sat Aug 28 16:23:03 2021 -0500
+
+    Move cudaDeviceSchedule* to device init (#3)
+    
+    * Add schedule option
+    * Move schedule call to device initialization
+    * Update cuda_check to print the error number
+    * Remove un-needed error output
+
+commit c2f89580ab20c51256178e2a20633830f27e91df
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Tue Aug 24 15:33:43 2021 -0700
+
+    cgbn_stage1: dynamic bit level part 2
+
+commit e8ef8f9e4e4ee93e5e31a008a722824ba72707b8
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Tue Aug 24 13:23:56 2021 -0700
+
+    cgbn_stage1: dynamic bit level part 1
+    
+    Refactor out some param & bit logic
+
+commit ebf1d479c1d104fe674976843b5c166398fa0205
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Oct 1 20:26:55 2021 -0700
+
+    Improve GPU input overflow detection
+
+commit f41e1fee4b8b69f5d6163f06aa19ec6872e9343b
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 1 14:46:03 2021 -0700
+
+    Added automake process files to .gitignore
+
+commit b6edc67096dccda55abe52afd990e5f7336f9706
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Mon Aug 23 22:40:13 2021 -0700
+
+    Cleanup GPU flags in acinclude.m4
+
+commit df7b3762e34492234d09640509df1f53b1a16c0c
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Aug 20 14:32:10 2021 -0700
+
+    Minor cleanups to makefile, acinclude, spacing in cgbn code
+
+commit 9d2484195442acb31e58ee780c469285be860a3b
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Sat Oct 2 00:23:03 2021 -0700
+
+    Update ecm champion url
+
+commit 26aacfa7e6d1e86c8596cf96b3f07ee7915816ff
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu Oct 14 17:09:08 2021 +0200
+
+    patch from Jerome BENOIT <calculus@rezozer.net>
+
+commit 237f3567bb75be9023e4fd636a32819abfc45238
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu Oct 14 17:05:22 2021 +0200
+
+    update after migration to gitlab
+
+commit 3631a253bf614b53473c34f1305929b42545f5ff
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Oct 1 20:25:50 2021 -0700
+
+    Refactor check_gpuecm.sage
+    
+    Add overflowTest and timingTest
+
+commit 26211282d679c1980565ff8f7275305540e47185
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 1 17:08:34 2021 -0700
+
+    gpu_throughput_test.sh
+
+commit 95ac93301e7679cd47aee3cada76a24db0b9d664
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 29 22:33:01 2021 -0700
+
+    test.gpuecm: Verify GPU residuals with CPU
+
+commit de92909baaa6f6881291cf6a1c6a43d3c4499b65
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 1 02:11:01 2021 -0700
+
+    Added test.cgbnecm to run test.gpuecm with -cgbn
+
+commit e9c197e37dc5ad0d6e20a17cbe22eae3dac89b11
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Sep 10 16:43:41 2021 -0700
+
+    Removed two very old TODO files, added TODO.gpu
+
+commit 8f826e82035baa5361ec3a902aadad1bed16ab71
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Aug 18 19:02:20 2021 -0700
+
+    Update README.gpu
+    
+    Add details on CGBN
+    Add common fix for cuda present error
+
+commit fa61067e038f494986698e65cd0cd11ae70845f6
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Sat Oct 2 00:01:01 2021 -0700
+
+    Add missing commented example to testlong.ecm
+
+commit 2d2e2e637afe4510f4e7f68b153fdb2880e10c78
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Aug 19 18:38:50 2021 -0700
+
+    Added example CGBN GPU code
+    
+    This will be followed by a new stage 1 implementation.
+    The new implementation is both 2-3x faster and supports a large range of
+    inputs (512-32K bits).
+
+commit 186d4f2906cdc54099054fb262ec5cecff07e758
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Aug 20 02:44:19 2021 -0700
+
+    with_cgbn_include for new CGBN gpu code
+
+commit 3c3d468c7cc6d140564c6188a9d961648bbca75c
+Merge: 261fdbb f03297b
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Sep 30 18:43:11 2021 +0000
+
+    Merge branch 'user_redefine_cc' into 'master'
+    
+    disable user_redefine_cc when CC is $GCC
+    
+    Closes #21859
+    
+    See merge request zimmerma/ecm!23
+
+commit 261fdbbd8fcab38ffae9a87e019bf2e548dc1906
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Sep 30 03:13:02 2021 -0700
+
+    fix two warnings from !17 (see #21859)
+
+commit f03297b27db6a8aff4b4d5062b955a1d8e5120a5
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Sep 30 02:18:35 2021 -0700
+
+    disable user_redefine_cc when CC is $GCC
+
+commit 3d37c3906b1141faa746d83f301bd5381b2c16cd
+Merge: 563495a 245af7b
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Sep 23 09:25:08 2021 +0000
+
+    Merge branch 'gpu_configure' into 'master'
+    
+    Improve --enable-gpu
+    
+    See merge request zimmerma/ecm!19
+
+commit 563495ae3dfc8b09dff08478ea01691d71c178ff
+Merge: 0b6d645 2f50b8a
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Thu Sep 16 09:35:57 2021 +0000
+
+    Merge branch 'improve_tests_v2' into 'master'
+    
+    Improve tests
+    
+    See merge request zimmerma/ecm!21
+
+commit 2f50b8a4182538e211df0bb98f1ca38b67b216ec
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 15 12:35:06 2021 -0700
+
+        Improve tests
+    
+        (2nd attempt and 65be45e8 was reverted in 15ef0cbc)
+    
+        Cleanup checkcode $C
+        Verify some error strings
+        Create test_dummy2.save in tests (and remove from repo)
+
+commit 0b6d6456c7f22da593a6e6e288341ec6e5de0e7d
+Merge: 0d4db6e 1fed9c9
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 15 20:03:54 2021 +0000
+
+    Merge branch 'rho_fix' into 'master'
+    
+    Update standalone rho to use primesieve & improve help
+    
+    See merge request zimmerma/ecm!18
+
+commit 1fed9c9eef5fc2979715c91516e5e9800b0b1944
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 15 12:51:28 2021 -0700
+
+    Add more usage details to rho when called without arg
+
+commit 07f6805b03af0b0b3a533ee8c9c0b6ee06a0e63e
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Sep 9 19:05:10 2021 -0700
+
+    Update standalone rho to use primesieve
+    
+    Only one small update to match functionality
+    
+    primesieve_skipto(11); primesieve_next() == 13
+    primegen_skipto(11); primegen_next() == 11
+
+commit 0d4db6ec345b87dba58a7285f02a2cc0944331bc
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 15 12:21:51 2021 -0700
+
+    cleanup two warnings from !16 (see #21859)
+
+commit 0101f5be206e2074c5bc168cfa9237e2f86f08c4
+Merge: 3dba32a 3dca1e4
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Wed Sep 15 12:57:11 2021 +0000
+
+    Merge branch 'step1_multiple_factors_final' into 'master'
+    
+    Add reducefactors to find primes from many composites in stage1 GPU code
+    
+    See merge request zimmerma/ecm!17
+
+commit 3dba32a4e8e375f5b160379d644d7f52297d86cd
+Merge: fa5525c 24a544f
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Wed Sep 15 12:50:17 2021 +0000
+
+    Merge branch 'param_cleanup' into 'master'
+    
+    Simplify get_curve_from_param[13] with mpz_invert
+    
+    See merge request zimmerma/ecm!16
+
+commit fa5525c297175d86ee9fda3b7774893df60f9b87
+Merge: f2c8661 15ef0cb
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Wed Sep 15 12:47:22 2021 +0000
+
+    Merge branch 'revert-f398b6b5' into 'master'
+    
+    Revert "Merge branch 'improve_tests' into 'master'"
+    
+    See merge request zimmerma/ecm!20
+
+commit 15ef0cbc56cc9675cc9259b9147ad9cf86db5fe7
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Wed Sep 15 12:44:59 2021 +0000
+
+    Revert "Merge branch 'improve_tests' into 'master'"
+    
+    This reverts merge request !15
+
+commit f2c86613381eb0b83854d2acb11c14f56289b1b8
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Wed Sep 15 11:12:25 2021 +0200
+
+    added known issue
+
+commit f398b6b57af06b48761bb7d3caabf7e0761c911f
+Merge: 9f837eb 65be45e
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Wed Sep 15 08:35:31 2021 +0000
+
+    Merge branch 'improve_tests' into 'master'
+    
+    Improve tests
+    
+    See merge request zimmerma/ecm!15
+
+commit 9f837eb04aac7be2868ce5f72cdd43afe0977b48
+Merge: dfd8046 5b6825c
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Wed Sep 15 08:30:30 2021 +0000
+
+    Merge branch 'doc_power_pm1' into 'master'
+    
+    exit if -power or -dickson is used with P-1/P+1
+    
+    See merge request zimmerma/ecm!10
+
+commit 245af7b180ce803e2c90379210c3462b332d39ad
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Aug 20 02:27:55 2021 -0700
+
+    Added NVCC_CHECK_COMPILE to simplify gpu checks
+
+commit b97a2c1021a8250d2b1767f895692610f7138712
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Aug 19 05:54:52 2021 -0700
+
+    Add back support for --enable-gpu=62
+
+commit 3dca1e467f9c790f2cab2878054890d3b4c24a6d
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Aug 25 16:45:06 2021 -0700
+
+    array_stage_found -> array_found
+    
+    The code notices what stage the factor was found in and never mixes
+    stage 1 and stage 2 factors so array_found is a better name.
+
+commit 1529a4d648bd2978ada4da20322bebf1caf22ace
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Aug 25 16:27:41 2021 -0700
+
+    Add reducefactors to find primes from many composites in stage1 GPU code
+
+commit 65be45e89810c6367eaff018bf0ed45bb064e6c8
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Sep 1 13:39:10 2021 -0700
+
+    Improve tests
+    
+    Cleanup checkcode $C
+    Verify some error strings
+    Create test_dummy2.save in tests (and remove from repo)
+
+commit 24a544fb4ece8da20ef94a990c1211409b2ca29b
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Sat Aug 7 01:25:15 2021 -0700
+
+    Simplify get_curve_from_param[13] with mpz_invert
+
+commit dfd8046b32041a102fe15ad07a5a54e8aaff3f92
+Merge: 2c057e2 bb00c05
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Tue Sep 14 14:41:17 2021 +0000
+
+    Merge branch 'execstack_otherintel' into 'master'
+    
+    Execstack otherintel
+    
+    See merge request zimmerma/ecm!7
+
+commit 2c057e23c8f162a21f9015e2a83ec00b417278eb
+Merge: 968cb8f e32a867
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Tue Sep 14 14:39:27 2021 +0000
+
+    Merge branch 'git_ignore' into 'master'
+    
+    Moderately complete .gitignore
+    
+    See merge request zimmerma/ecm!12
+
+commit 968cb8f72f8c7e2d0cfbee07f9334b22ce7918cd
+Merge: 7157d2e ea3d295
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Tue Sep 14 14:38:14 2021 +0000
+
+    Merge branch 'faster_expected_curves' into 'master'
+    
+    Faster expected curves
+    
+    See merge request zimmerma/ecm!13
+
+commit 7157d2e7161f25d2d9b2d1509ed83ceb1729fc1a
+Merge: 793dd86 b018e41
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Tue Sep 14 14:35:45 2021 +0000
+
+    Merge branch 'sm_70_fix' into 'master'
+    
+    Fix cuda error in SM_70 for __any
+    
+    See merge request zimmerma/ecm!8
+
+commit 793dd860e2f5d65bc949dee5974204e669bd3e5b
+Merge: b3f5661 6c2e1db
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Tue Sep 14 14:32:13 2021 +0000
+
+    Merge branch 'gpu_verbose_tweak' into 'master'
+    
+    Better verbosity control for -gpu
+    
+    See merge request zimmerma/ecm!14
+
+commit 6c2e1db93851690b6239bbc38b668ef7820e38f6
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Fri Sep 10 00:33:38 2021 -0700
+
+    Better verbosity control for -gpu
+    
+    `ecm -gpu -v` now prints
+    
+    Expected number of curves
+    Block size
+    Stage 1 time
+    Stage 1 throughput
+    Curve <X> Step 2 took <Z>ms
+    Stage 2 time
+    Stage 2 throughput
+    Expected time to find a factor
+    
+    this removes the ~20 lines per stage2 that would otherwise print at -v
+
+commit ea3d2958a825413720213605e348ebe3a008cca9
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Sep 9 19:45:03 2021 -0700
+
+    Move compute_s to after print_expcurves
+
+commit e32a867bb0788204c1fbf2af543a1e0a80eab16b
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Aug 19 07:50:54 2021 -0700
+
+    Moderately complete .gitignore
+
+commit 5b6825c537a55e79adc3eeaca3e7cae2c68b194a
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Thu Sep 9 17:27:14 2021 -0700
+
+    exit if -power or -dickson is used with P-1/P+1
+    
+    This has been broken since 2013 when the old PM1 stage 1
+    was removed in git commit 36108424
+
+commit d8f7afca3c0c1d4c21763dc086bb7dfed8cec243
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Mon Aug 30 19:35:33 2021 -0700
+
+    check_gpuecm.sage add smallestGroupOrder
+    
+    This allows for
+    $ sage --preparse check_gpuecm.sage
+    $ mv -f check_gpuecm.sage.py check_gpuecm.py
+    $ python -c "import check_gpuecm; check_gpuecm.smallestGroupOrder(594538100848945223169882301931953, 3, 1000, 10 ** 12, 1000)"
+    
+    Which can help find B1/B2 limits for tests where prime will be found.
+
+commit b018e41fd32c005b03771a452ac43d25802b187e
+Author: Seth Troisi <sethtroisi@google.com>
+Date:   Wed Aug 25 16:27:04 2021 -0700
+
+    Fix cuda error in SM_70 for __any
+
+commit b3f5661cc60db68580aa29b4a9b95dae9962607d
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Fri Aug 6 15:08:53 2021 +0000
+
+    Update README - Add details about constraints on sigma.
+
+commit bb00c05b7f3e21a8eaaef1ce9e5dff96b8e7fe8f
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Thu Jun 17 10:22:16 2021 +1200
+
+    Regenerate pentium4 asm files
+
+commit 69e38b5533cca1b02c13b276710a54122b42f2c1
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Thu Jun 17 10:21:12 2021 +1200
+
+    replace enumeration by sequence (pentium4)
+
+commit fea0e3a33573e03c9b8e1f3cefecbc055c67d637
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Thu Jun 17 10:07:55 2021 +1200
+
+    Add a no execstack block to generated asm files (pentium4)
+
+commit 7108cf5ed35f36a244964d74c4eb27fe55e64502
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Thu Jun 17 09:50:40 2021 +1200
+
+    fix autogen for py3
+
+commit 981a332ef39c1530a22dac9528b31da0613daff8
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Thu Jun 17 09:48:42 2021 +1200
+
+    Regenerate all asm files
+
+commit fb41ea295ba00e6bb29db96e0bf10dad8516baa7
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Thu Jun 17 09:47:43 2021 +1200
+
+    Add a no execstack block to generated asm files
+
+commit 0356043c27c72486ec443bc5de6f63bd29110a51
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Thu Jun 17 09:37:40 2021 +1200
+
+    replace manual enumeration, bound to have mistakes sooner or later, with a sequence.
+
+commit 9c2bc110735d93973d24d33679c889a69c6743fc
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Thu Jun 17 09:36:57 2021 +1200
+
+    add braces to print in autogen.py so it is py3 compliant
+
+commit c6c2eaba2d66d5d1a23c9a736aed8f40fb8e5a61
+Merge: 8c75c05 29c5847
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Tue Jun 15 23:27:27 2021 +0000
+
+    Merge branch 'execstack' into 'master'
+    
+    Execstack part 1: x86_64
+    
+    See merge request zimmerma/ecm!6
+
+commit 29c5847ee3bfeb0d6a94f2401b4798cd55a96dc0
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Tue Jun 15 11:45:00 2021 +1200
+
+    Add exec stack code to mulredc1,asm as it is not generated.
+
+commit 1106ce1ec56d1ecfb8b82ee3b60644f41289eab9
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Tue Jun 15 11:20:54 2021 +1200
+
+    Add appropriate assembly code at the end of the m4 templates with appropriate quoting.
+
+commit ab8338134ac854cfda7e17eda01bb1084303b422
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Tue Jun 15 11:17:37 2021 +1200
+
+    We don't plan to rely on --noexecstak anymore so removing detection and inclusion
+
+commit 4013d15f6cc7d16e05b79a14e32116870f25f450
+Merge: 1f5b919 8c75c05
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Tue Jan 26 18:29:11 2021 +0000
+
+    Merge branch 'master' of gitlab.inria.fr:zimmerma/ecm
+
+commit 1f5b919e714e06364db3be2d1265755e4129d387
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Tue Jan 26 18:28:51 2021 +0000
+
+    Update to CUDA 11.2
+
+commit 8c75c05d6272282c8c3f3730294e6109dd4351f8
+Merge: 59bdbef 3d26545
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Wed Nov 18 20:00:12 2020 +0100
+
+    Merge branch 'update-todo' into 'master'
+    
+    Remove primality proving from TODO
+    
+    See merge request zimmerma/ecm!4
+
+commit 3d2654571a187cbb24b3d19cf270c5fafb100687
+Author: David Cleaver <dcleaver@morpheus.net>
+Date:   Wed Nov 18 12:57:33 2020 -0600
+
+    Remove primality proving from TODO
+
+commit 59bdbef9c14ab95b17f86b7824739fa194902896
+Author: David Cleaver <11787-x-dcleav@users.noreply.gitlab.inria.fr>
+Date:   Wed Nov 18 19:27:28 2020 +0100
+
+    Add config file for gitlab ci
+
+commit 554ca5c95f8410e8dc5811c2d7d02b1945de53e8
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri Nov 6 15:06:51 2020 +0100
+
+    added tag for 6.0.1
+
+commit d875a8beff22eba4729b0fe010e687fab6a79a04
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Wed Nov 4 10:44:57 2020 +0100
+
+    update README.dev for change to git
+
+commit 009acd453a0a29ccfb57ffdd74af6cfad48be437
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Tue Nov 3 14:56:40 2020 +0000
+
+    Reinstate a declaration required by Visual C's out of date Open MP version
+
+commit 940c757cda8e4b51edb3923b21040ca779584911
+Merge: 2d7cfb2 35af4b5
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Tue Nov 3 12:06:41 2020 +0000
+
+    Merge branch 'master' of gitlab.inria.fr:zimmerma/ecm
+
+commit 2d7cfb2d1e18721bf9ef0d93ecd5b0edd6e1937f
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Wed Oct 28 17:04:04 2020 +0000
+
+    Update Visual Studio 2019 build to CUDA 11.1
+
+commit 35af4b5ff0e74c8015dc543b55c7432d9b246f16
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri Oct 23 16:02:45 2020 +0200
+
+    added note
+
+commit cbfad99a5cd4f33a2c02c7b8bacaa099ebba7a81
+Merge: fa2b11e a61ff7b
+Author: ZIMMERMANN Paul <paul.zimmermann@inria.fr>
+Date:   Fri Oct 23 12:27:26 2020 +0200
+
+    Merge branch 'clang_openmp' into 'master'
+    
+    unsigned long are now acceptable variable for openMP
+    
+    Closes #21857
+    
+    See merge request zimmerma/ecm!3
+
+commit a61ff7bd9b30f7d2ec8bda44a9c23f951a58333a
+Author: François Bissey <frp.bissey@gmail.com>
+Date:   Fri Oct 23 22:10:12 2020 +1300
+
+    unsigned long are now acceptable variable for openMP
+
+commit fa2b11ea408c33ea62f14494db915d55e4f28302
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri Oct 23 10:14:40 2020 +0200
+
+    fixed typo
+
+commit 2349ef93fe4ab99b6dc3390b98bdfccbbbde4a04
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu Oct 22 10:40:23 2020 +0200
+
+    fixed memory leaks
+    
+    (reported by Bruno Victal <brunovictal at outlook dot com>)
+
+commit 09c5a3634b2101c56a94755fe647b4e953b41ba8
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Oct 20 16:49:37 2020 +0200
+
+    updated references to ecm-discuss list and archives
+
+commit 3566332e4d56c8bbe0d8d4e34001d8d107407a41
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Wed Oct 14 09:54:08 2020 +0200
+
+    fixed "make longcheck" (reported by Christoph Conrads)
+
+commit c8eb7861219d9b43f2652ab84f0b93a4fbae8540
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri Oct 9 16:31:18 2020 +0200
+
+    added Jim Fougeron in .mailmap
+
+commit 30611601cc78676deb73d7db65c4234793a78993
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri Oct 9 16:21:04 2020 +0200
+
+    added .mailmap
+
+commit 54b2c2197dd1a8a57a16f11777aff71a12a8e1be
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Mon Sep 28 13:33:38 2020 +0000
+
+    fix another issue reported by Wang Runsen
+    (https://lists.gforge.inria.fr/pipermail/ecm-discuss/2020-August/004495.html)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3092 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 6124ff41afe7343080c0a2117d4ae83433e91eb9
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Mon Sep 28 13:12:23 2020 +0000
+
+    fixed bug reported by Wang Runsen
+    (https://lists.gforge.inria.fr/pipermail/ecm-discuss/2020-August/004492.html)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3091 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 058c64c80cdeb16f0ff8e8d409c57ff50db714d6
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Mon Sep 28 12:26:56 2020 +0000
+
+    fixed problem reported by Christoph Conrads
+    (https://gforge.inria.fr/tracker/index.php?func=detail&aid=21755&group_id=135&atid=626)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3090 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 8fbb2809afe72799098e07d7c74fef4d6febbf70
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri Sep 18 14:44:26 2020 +0000
+
+    fix for clang 12 from Apple's Xcode 12
+    (https://gforge.inria.fr/tracker/?func=detail&atid=623&aid=21856&group_id=135)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3089 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 388d48e8997ef1b3cceffd84479425c98eb9898f
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Mon Jul 27 12:16:12 2020 +0000
+
+    remove *.obj file
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3088 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit b22add97119f0f7b558040ac7d15a5bdb501a4c1
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Mon Jul 27 11:40:30 2020 +0000
+
+    update Visual Studio 2019 build to use CUDA 11.0
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3087 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 69c359dc5b4996449bd50ff8838edf90bc74765e
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Wed Jul 8 15:09:06 2020 +0000
+
+    update Visual Studio 2019 build to use CUDA 11.0
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3086 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit ca7d4e2bda8f42bbf9ab60d201fa5496e012531c
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri May 22 07:47:51 2020 +0000
+
+    [INSTALL-ecm] added note related to GWNUM
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3085 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit cf5e6273abe14d00878ebd62cc15e024adb1b8ad
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu May 21 06:39:58 2020 +0000
+
+    [Fgw.c] fix bug reported at https://mersenneforum.org/showthread.php?t=25559
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3084 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 114aa487e16c678eb95acb63c4d51450be33c46a
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu May 21 06:08:45 2020 +0000
+
+    [INSTALL-ecm] updated latest GWNUM version
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3083 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 2f35ffb44690ec51c6f1f9e15fd742ec41e90212
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Apr 21 07:25:26 2020 +0000
+
+    partly revert previous commit (+ cast)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3082 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 9e20ec01d4cbf11acbef5b31f47ef09fffa005d2
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Sun Apr 19 06:35:39 2020 +0000
+
+    use AC_PROG_CC_C99 + print fix
+    (https://lists.gforge.inria.fr/pipermail/ecm-discuss/2020-April/004485.html)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3081 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 4ec21e29f65115a4fa36fe0d1a6e08366a82f464
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri Mar 20 15:17:28 2020 +0000
+
+    added comment
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3080 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 82d017b69ec96d50babdc57b11a012d9501eee03
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri Mar 20 15:09:52 2020 +0000
+
+    added ecm_reset()
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3079 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit c72938126f3c6be2cbd548958c85b06b30ed6f78
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu Mar 19 13:44:31 2020 +0000
+
+    added patch to solve bug [#21836] Cross-Compiling to mingw32 terminates with "memusage.c:72: undefined reference to `GetProcessMemoryInfo@12'"
+    
+    https://gforge.inria.fr/tracker/index.php?func=detail&aid=21836&group_id=135&atid=623
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3078 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit bcb4c1baff86cac4981190a1723ab110742488d8
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu Mar 19 09:58:41 2020 +0000
+
+    added -std=c99 to CFLAGS
+    (https://gforge.inria.fr/tracker/index.php?func=detail&aid=21835&group_id=135&atid=623)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3077 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 18bc4a8cededb917c115ab35b714e3d736c8974d
+Author: seth troisi <braintwo@gmail.com>
+Date:   Tue Jan 28 08:44:04 2020 +0000
+
+    Improve check_gpuecm.sage by using order of P(x0=2,y0=1)
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3076 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 18f12a3cdc398be1b74e2e64867dacda632c3bce
+Author: seth troisi <braintwo@gmail.com>
+Date:   Mon Jan 27 00:02:22 2020 +0000
+
+    Added check_gpuecm.sage script
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3075 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 8ebe0590558f50af0e445ce90eba8beedefe4d92
+Author: seth troisi <braintwo@gmail.com>
+Date:   Fri Jan 24 04:21:15 2020 +0000
+
+    Add test to verify number of factors found by gpucurves
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3074 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit a8fa12f0e18090cb0e3abaaf89dc392cd1739c61
+Author: seth troisi <braintwo@gmail.com>
+Date:   Wed Jan 22 10:36:50 2020 +0000
+
+    Revert changes to FindGroupOrderA in r3072
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3073 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 1d664f31bc4ea0dcd13b194a53aba5b288020575
+Author: seth troisi <braintwo@gmail.com>
+Date:   Wed Jan 22 09:19:35 2020 +0000
+
+    Simplify FindGroupOrder in check.sage
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3072 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit dae573d6fffb8e2aa20fba16794376896cdaafa6
+Author: seth troisi <braintwo@gmail.com>
+Date:   Fri Jan 17 23:24:33 2020 +0000
+
+    Fix man page description of -param
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3071 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit aec9d06ea7095bebf84c603c9e3fbf1656776054
+Author: seth troisi <braintwo@gmail.com>
+Date:   Fri Jan 17 03:49:22 2020 +0000
+
+    add -primetest and -param to man page
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3070 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 42060008c7a0ad1fa5fcb32cf7d69f69cd028996
+Author: seth troisi <braintwo@gmail.com>
+Date:   Wed Jan 15 06:42:13 2020 +0000
+
+    Added 'APR primality test:' to status output
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3069 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit fcab1a1192fef51c26c58940307bcbf024ec5753
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Mon Nov 25 14:09:17 2019 +0000
+
+    fix test for "-bsaves/-bloads can only be used with..."
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3068 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 42feec8b941f483313023214d7ed735bc3c86d55
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Nov 12 10:24:01 2019 +0000
+
+    fix bug reported on https://lists.gforge.inria.fr/pipermail/ecm-discuss/2019-November/004451.html
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3067 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit dc0bc24846c5fb863ae7a595fbd9979c69b18f0d
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Nov 12 08:44:00 2019 +0000
+
+    removed temporary code from revision 3064
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3066 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 4abd865f3c7adad08ca44e09012856156a6d0a9d
+Author: Chen Wang <wpolly0419@gmail.com>
+Date:   Sat Nov 9 16:10:14 2019 +0000
+
+    [test.ecm] add test cases for PhiL/M (for each base), primU and GCD.
+    [eval.c] restored eval_GCD; fixed bug in eval_phi where phi(p^n,1) is calculated as 1.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3065 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 063f488fcbf24c2fa240be7505f6d93126337ab2
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Wed Nov 6 19:07:40 2019 +0000
+
+    disable temporarily eval_gcd until it is tested by "make check"
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3064 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit f43ebb563ca857bb81460f88f128d42392ebc85f
+Author: Chen Wang <wpolly0419@gmail.com>
+Date:   Wed Nov 6 18:44:41 2019 +0000
+
+    Removed a leftover debug fprintf
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3063 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 867b4a06da4712d7d58d120f37c9ea15318a3840
+Author: Chen Wang <wpolly0419@gmail.com>
+Date:   Wed Nov 6 18:36:19 2019 +0000
+
+    Crude implementation of "Aurifeullian primitive part" functions PhiL and PhiM
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3062 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit e5a5e4c05d5d3f104ad0e26286251f9691921a7e
+Author: Chen Wang <wpolly0419@gmail.com>
+Date:   Tue Nov 5 04:17:42 2019 +0000
+
+    make the parser actually recognize gcd function
+    
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3061 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 3a8bb7c466ae04ef47f68e363cc70392f6493bfd
+Author: Chen Wang <wpolly0419@gmail.com>
+Date:   Wed Oct 30 14:36:33 2019 +0000
+
+    Added a GCD function
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3060 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 3a8c9891c0f2eb86b27595e5909a9199da6535b6
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Oct 22 11:11:52 2019 +0000
+
+    added more comments
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3059 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit bd98fd3fc035c36e6bdd5657600df8403b8e0be4
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Oct 22 10:56:10 2019 +0000
+
+    fixed memory leak and added comment
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3058 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 1456a3c66e98ab490d2df72d1f38d01c4a764692
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Oct 15 11:12:48 2019 +0000
+
+    added comment
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3057 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit ce1ee5ce6fa5a6285b1a6a4a32c7e55b5f9f79eb
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Oct 15 11:12:19 2019 +0000
+
+    added probability of finding a factor for P+1
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3056 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 55c49f4b6539ddeb4d5541cc7100fe1145ddb091
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Oct 15 10:27:54 2019 +0000
+
+    added reference
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3055 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit edcd2ccf968506f4303373a013cbdc1cf19510d6
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Mon Oct 14 19:48:27 2019 +0000
+
+    added "assuming one exists" to "Probability of finding a factor of n digits"
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3054 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit cebdd049d9d0a3f4083edcb1b89088d75a66b3b7
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Tue Oct 1 15:27:20 2019 +0000
+
+    Revise the explanation of the use of bash to run the tests on Windows
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3053 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit ef9830e0803d02a518cc994a249910096ebe3d34
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Aug 20 08:38:15 2019 +0000
+
+    fixed typos
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3052 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 4c7ab86b7892798e6db731b3d9f496851f20eba6
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Tue Aug 20 08:12:47 2019 +0000
+
+    Add a description of how to run the tests on Windows using bash
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3051 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit b4c70e3bcc7d0f178e5962720da1d84323d1ef3c
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Jun 11 12:53:23 2019 +0000
+
+    fixed again mpzspv_from_mpzv_fast (the solution from r3047 was incorrect,
+    since mpzspv_from_mpzv_fast might be called twice at the same time with the
+    same thread number)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3050 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 3c6ddc8d8a571b3db14716e6997625bf246ed6fd
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Thu May 16 16:34:52 2019 +0000
+
+    Add build files for Visual Studio 2019 (in build.vs)
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3049 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 93c7660da6dd4eed27f63772fd31a9bdd23ff7f1
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri May 10 13:27:24 2019 +0000
+
+    added note about issue with GWNUM
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3048 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 59e7682aed93d0e267101b1b642fae5f44683697
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri May 3 13:30:47 2019 +0000
+
+    avoid alloc/free in mpzspv_from_mpzv_fast()
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3047 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit d6d274a371359824fa408ad300dfb64ba02abde1
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri May 3 11:08:35 2019 +0000
+
+    fixed mpzspv_from_mpzv_fast() [was not thread-safe]
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3046 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit cbd34997261056d1ac0239323aa388d85240b8f5
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri May 3 08:04:29 2019 +0000
+
+    fixed another typo
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3045 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit b2ea1a4d135e5f37b5a6f5a1f968ae268e4f2ed8
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri May 3 08:00:44 2019 +0000
+
+    fixed compiler warning
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3044 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 0c5809a31df52e14b9b0f111980579453c31eccb
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri May 3 08:00:20 2019 +0000
+
+    fixed typo
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3043 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 85ac25d86487c04f8456bd10dab674785790c028
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu May 2 15:57:54 2019 +0000
+
+    fixed typo
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3042 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 8cbcd1eee399777cde48df9ef9ad7ce9c5d5a647
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu May 2 08:49:07 2019 +0000
+
+    need -ldl with GWNUM
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3041 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit c42aeb6b76c2b9c403bf5764147af31cee046f45
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Thu May 2 08:43:10 2019 +0000
+
+    updated paragraph about GWNUM
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3040 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 2dd171624b4940aca530a80433ad8841b7aee53b
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Apr 30 15:11:42 2019 +0000
+
+    several fixes for GWNUM
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3039 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit cfb68d8744904907d299657d39d6d6c214114a07
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Wed Apr 3 10:52:02 2019 +0000
+
+    clarify "default B2"
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3038 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit a06a8fa556f2c713170cffb12082b5cec405a04e
+Author: Chen Wang <wpolly0419@gmail.com>
+Date:   Sat Jan 26 02:03:23 2019 +0000
+
+    Unified interface for function parsing.
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3037 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 0e0a9743a0f7187f25deeb20a459ee7373fc0471
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Jan 15 16:01:24 2019 +0000
+
+    [Makefile.am] added -fPIC for nvcc
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3036 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit ac64652f2b20b8089fbb91489ce65711ac38f8a4
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Jan 15 12:16:49 2019 +0000
+
+    [gpu-ecm] added compute capability 60 61 62 70 72 75
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3035 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 42e817926a5091c3c5e01d0ce053bf2be284d333
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Tue Dec 4 22:44:02 2018 +0000
+
+    correct bug in YASM integration file (vsyasm.targets)
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3034 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit a913e07f72a3031a71ceb4e0c3e692d1357cdb83
+Author: Chen Wang <wpolly0419@gmail.com>
+Date:   Mon Nov 26 23:08:20 2018 +0000
+
+    Added parsable functions U(p,q,n) and primU(p,q,n) as parsable functions.
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3033 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 4ff4b164b26fd79486abcb845848d77a70f6b1e1
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Fri Oct 26 23:24:27 2018 +0000
+
+    update Visual Studio 2017 build to CUDA 10.0
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3032 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 6bbea2905c39c4ac83952f47e9cf68c903020f7e
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Fri Jul 20 15:25:08 2018 +0000
+
+    [pm1.c] fixed bug reported by Anton Repko when B2 < B1
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3031 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 21d62ff1ab094f8eb252dabbc8498d9e0dc40f98
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Mon Jun 18 12:16:16 2018 +0000
+
+    fixed wrong documentation (reported by Tanaydın Şirin <huzursuz@gmail.com>)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3030 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit d9dacc459c43a5ea58c2fa09b6f6ab5ec55f0b53
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Thu Jun 7 17:16:57 2018 +0000
+
+    update to CUDA 9.2
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3029 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit e62771c8821dfb9794a94a13f6e5f73b8af2fd82
+Author: Paul Leyland <paul.leyland@gmail.com>
+Date:   Sun Dec 10 15:29:46 2017 +0000
+
+    Determine CUDA minimum compute capability at configure time and set
+    -DECM_GPU_CURVES_BY_BLOCK=16 for cc2.x
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3027 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 72ec461885d7945bd2ea0ef8981a9a912b0ff34b
+Author: Paul Leyland <paul.leyland@gmail.com>
+Date:   Sun Dec 10 13:04:02 2017 +0000
+
+    Corrected minor typos
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3026 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit b3b48cce63e180f8bb0c5919b6ea0cae7d22c2a5
+Author: Paul Leyland <paul.leyland@gmail.com>
+Date:   Sun Dec 10 11:00:21 2017 +0000
+
+    Set -gpucurves 32 or small cards fail the final two tests.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3025 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 09ddf0bc538278fa5c803aabe38d11f037d9dfba
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Sun Nov 5 14:28:38 2017 +0000
+
+    set up the build for static linking
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3024 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 9d809aba3463c2a05a749d5bb80feac9cc604b74
+Author: Brian Gladman <riemannic@gmail.com>
+Date:   Fri Nov 3 16:50:23 2017 +0000
+
+    Add Visual Studio 2017 build (with CUDA 9)
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3023 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit a66397a96296a9b96191bb068a9cc8e9ebcda71c
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue May 16 11:09:39 2017 +0000
+
+    fix for "make check -j"
+    
+    (see https://trac.sagemath.org/ticket/20385#comment:161)
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3022 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 0654e369e9daa9fd130cf9e17fb3a1da4cc1be6d
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Mon Apr 24 14:53:38 2017 +0000
+
+    add in README that for ECM, -chkpnt is only implemented with -param 0 so far
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3021 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 6f2849903f089920594a102afb3abc43276d083a
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Mon Apr 24 14:50:54 2017 +0000
+
+    say that -chkpnt only works with -param 0
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3020 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit fe6f87b349d0e68b4cdb31580f61a115addc363b
+Author: Cyril Bouvier <cyril.bouvier@lirmm.fr>
+Date:   Wed Mar 1 22:04:17 2017 +0000
+
+    Update code from gpu_ecm: param is no longer a pointer
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3019 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 307a0737c6c67e543aa537c035b3dc3e5b055a9f
+Author: Cyril Bouvier <cyril.bouvier@lirmm.fr>
+Date:   Wed Mar 1 22:03:57 2017 +0000
+
+    Update ecm prototype in ecm.h: param is not longer a pointer
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3018 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 0d5e92d2247316ab300ebc65f69120111eb4ad31
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Wed Mar 1 18:35:42 2017 +0000
+
+    fixed a bug reported by Sam Wagstaff
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3017 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 5876a444f1b270a2f987b19a8b60ffebed6967bc
+Author: David Cleaver <wraithx@morpheus.net>
+Date:   Sun Feb 12 22:36:35 2017 +0000
+
+    - Finalize using ecm_tstbit in code where needed.
+    - Update B1 bounds for Windows, 3124253146UL for GMP <= 6, 50685770166ULL for MPIR.
+    - Clean up code formatting in batch.c
+    - Minor changes to fix some compiler warnings.
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3016 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 1a1373c7ecab8d32d0df8f78f338845c07d481f5
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Mon Feb 6 10:22:11 2017 +0000
+
+    changed B1 < MAX_B1_BATCH into B1 <= MAX_B1_BATCH
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3015 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 1d28f9f8b4c7a8f7983af597804c4bdbb98404a8
+Author: David Cleaver <wraithx@morpheus.net>
+Date:   Sat Feb 4 18:33:21 2017 +0000
+
+    Fix for systems with 32-bit longs that would miss factors when using GMP<=6.x, with B1>2977044736UL.
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3014 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit cfcd5fe3f9d26c47924169d3538a868356c769b6
+Author: Cyril Bouvier <cyril.bouvier@lirmm.fr>
+Date:   Mon Nov 7 10:21:09 2016 +0000
+
+    Revert previous commit
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3013 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 2d344c453bf183930b5a392d99d876b32f604784
+Author: Cyril Bouvier <cyril.bouvier@lirmm.fr>
+Date:   Mon Nov 7 09:30:40 2016 +0000
+
+    Trying to fix a compilation error with CUDA7.5
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3012 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 80017fca3e6b86fba2d2265984c415f89109c372
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Mon Oct 24 15:54:15 2016 +0000
+
+    90%+90%.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3011 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 2ac643a44a889639bd89aa0d7db5995646acdd54
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Sun Oct 23 17:00:11 2016 +0000
+
+    first time above 90%.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3010 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 4b29160faf36af00ab382b30d6ce1bed8bbf516b
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Sat Oct 22 18:58:53 2016 +0000
+
+    one more test.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3009 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit b1034e2d4b99bd2bcc0ae2d986a35cf5a2b35d96
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Sat Oct 22 07:46:41 2016 +0000
+
+    more and more cleaning.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3008 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit abc73751e788ac07f804bd9156f80ee4d14b51b6
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Sat Oct 22 07:30:55 2016 +0000
+
+    cleaning.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3007 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit f19d4f9e5042caa617758d035249274818769423
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Fri Oct 21 19:01:08 2016 +0000
+
+    printing is needed in debug mode only.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3006 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 5b5720b055dcab14b6efdded7224e603b2dafaa6
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Thu Oct 20 17:10:17 2016 +0000
+
+    Still more covering of addlaws.c, finding more bugs.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3005 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit ad816ada2e6932a5fb8fc1983122b1ee15574b41
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Thu Oct 20 11:36:56 2016 +0000
+
+    more cleaning and code moving to improve coverage of addlaws.c .
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3004 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 1e99299988a9ccb4c48d10acf0cface5b3839737
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Thu Oct 20 11:22:00 2016 +0000
+
+    some info about gcov.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3003 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit c38e1fd5797690dcbee02e8bcf6359d191265984
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Wed Oct 19 13:37:38 2016 +0000
+
+    more simplification of addlaws.c .
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3002 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit b792ea465506d467b545797d01b58947297c3a9d
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Tue Oct 18 15:45:50 2016 +0000
+
+    torsions.c is covered up to errors that cannot be simulated. More work
+    is needed for addlaws.c, in progress.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3001 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 61ff7f30b1aeb3bc33a0470ae1411a39edcf7e55
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Sun Oct 16 16:53:06 2016 +0000
+
+    More covering of Z2xZ8, Z4xZ4 and covering for Z3xZ3. Still missing is Z3xZ6.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@3000 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 81baa9f034a1628a179a346413756f3eb49edc5f
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Fri Oct 14 20:05:04 2016 +0000
+
+    More covering of Z9, Z2xZ8; simplification of Z10; cleaning of torsions.c .
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@2999 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 27708faaf8331372e8c357d4af9e67bc8874f6ee
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Thu Oct 13 13:04:56 2016 +0000
+
+    advancing in the covering of torsions.{c,h} . Not finished.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@2998 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit ab4234f77a9ae8cf24993428e47df0fc745cd7a6
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Wed Oct 12 16:41:10 2016 +0000
+
+    reintroducing all tests => some cleaning made after a bug occurred during
+    the old tests.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@2997 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 0f74c0baa5d7670dc39778c47eb0041ea9ad79d2
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Wed Oct 12 08:18:18 2016 +0000
+
+    reinjecting tests for Weierstrass form only.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@2996 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 421fc4baad95a95895a0a432d6685e37029ef5d0
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Tue Oct 11 16:14:57 2016 +0000
+
+    Forgot.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@2995 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit 2da354c493c2969152705f6e0a6ab30fb4652dea
+Author: Francois Morain <morain@lix.polytechnique.fr>
+Date:   Tue Oct 11 12:52:31 2016 +0000
+
+    introducing JKL curves + projective twisted Hessian curves a la Bernstein.
+    More cover tests are to be added soon.
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@2994 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit b43a451e72d4226c578253f821e0069675569260
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Oct 11 09:34:42 2016 +0000
+
+    version is now 7.0.5-dev
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@2993 404564d9-a503-0410-82bf-e18ce2cf3989
+
+commit fcc85095a977d7620c50923cb0d0d9551d1eaa5f
+Author: Paul Zimmermann <Paul.Zimmermann@inria.fr>
+Date:   Tue Oct 11 09:29:07 2016 +0000
+
+    prepare for release 7.0.4
+    
+    
+    git-svn-id: svn://scm.gforge.inria.fr/svnroot/ecm/trunk@2991 404564d9-a503-0410-82bf-e18ce2cf3989
 ------------------------------------------------------------------------
 r2990 | brian_gladman | 2016-09-29 13:13:04 +0200 (Thu, 29 Sep 2016) | 1 line
 Changed paths:
@@ -127,7 +1893,7 @@ r2982 | zimmerma | 2016-08-26 09:18:26 +0200 (Fri, 26 Aug 2016) | 2 lines
 Changed paths:
    M /trunk/configure.ac
 
-patch from Fran�ois Bissey to address issue on Mac OS X
+patch from François Bissey to address issue on Mac OS X
 
 ------------------------------------------------------------------------
 r2981 | zimmerma | 2016-08-25 15:44:58 +0200 (Thu, 25 Aug 2016) | 2 lines
@@ -10168,7 +11934,7 @@ r1519 | zimmerma | 2010-07-02 16:34:15 +0200 (Fri, 02 Jul 2010) | 2 lines
 Changed paths:
    M /trunk/Makefile.am
 
-[Makefile.am] better fix for #10648 (contributed from Vincent Lef�vre)
+[Makefile.am] better fix for #10648 (contributed from Vincent Lefèvre)
 
 ------------------------------------------------------------------------
 r1518 | zimmerma | 2010-07-01 17:38:51 +0200 (Thu, 01 Jul 2010) | 4 lines
@@ -10944,7 +12710,7 @@ Changed paths:
    M /trunk/test_mulredc.c
    M /trunk/tune.c
 
-check return value of malloc in several places (bug reported by Torbj�rn Granlund)
+check return value of malloc in several places (bug reported by Torbjörn Granlund)
 
 ------------------------------------------------------------------------
 r1413 | zimmerma | 2009-04-25 23:34:58 +0200 (Sat, 25 Apr 2009) | 2 lines
@@ -11549,7 +13315,7 @@ Changed paths:
    A /trunk/mul_fft-params.h.pentium4
    M /trunk/mul_fft.c
 
-Moved parameters for Sch�nhage-Strassen into separate file so that
+Moved parameters for Schönhage-Strassen into separate file so that
 tune output does not overwrite them
 
 ------------------------------------------------------------------------
@@ -12697,7 +14463,7 @@ r1216 | kruppa | 2008-04-17 15:25:51 +0200 (Thu, 17 Apr 2008) | 2 lines
 Changed paths:
    M /trunk/README
 
-Updated to NTT and SchönhageStrassen sections
+Updated to NTT and SchÃ¶nhageStrassen sections
 
 ------------------------------------------------------------------------
 r1215 | kruppa | 2008-04-17 11:30:23 +0200 (Thu, 17 Apr 2008) | 2 lines

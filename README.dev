@@ -60,7 +60,7 @@ To make a new release:
                            testlong.ecm, testlong.pm1, testlong.pp1),
      with or without NTT (./test.ecm "./ecm -no-ntt"),
      with or without --enable-openmp,
-     check the issues in TODO, and for bugs/patches on ecm.gforge.inria.fr.
+     check the issues in TODO, and for issues on gitlab.inria.fr/zimmerma/ecm.
      Check no compiler warnings remain (with and without assertions),
         if possible with different compilers (gcc, clang, llvm-gcc, ...)
      Check "make longcheck" works with --enable-valgrind-tests.

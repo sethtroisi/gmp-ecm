@@ -180,7 +180,8 @@ Step-by-step instructions, courtesy of Jes Hansen:
    Windows login name.
 
 5) Download GMP-ECM (if you do not have it already) from
-   http://ecm.gforge.inria.fr/ and place it in your home folder as well.
+   https://gitlab.inria.fr/zimmerma/ecm and place it in your home folder
+   as well.
 
 6) Start the MinSys up again from the desktop and type 
    tar -xvzf gmp-6.1.0.tar.gz

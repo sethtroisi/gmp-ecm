@@ -1,6 +1,12 @@
 Changes between GMP-ECM 7.0.4 and 7.0.5:
 * fixed a bug when input is a file with several numbers: the -param choice
   did depend on the first number
+* fixed cross-compiling issue to mingw32
+  (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21836)
+* fixed issue with Apple Xcode 12
+  (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21856)
+* fixed OpenMP error when compiling with clang
+  (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21857)
 
 Changes between GMP-ECM 7.0.3 and 7.0.4:
 * fixed a bug in mpres_pow:
