@@ -47,7 +47,7 @@ def FindGroupOrderParam (p, sigma, param):
    elif param == 3:
       return FindGroupOrderParam3 (p, sigma)
    else:
-      print "Invalid parametrization: ", param
+      print ("Invalid parametrization: ", param)
       raise ValueError
 
 # check if the prime p is found with B1,B2,param,sigma, or raises an error
@@ -66,8 +66,8 @@ def check_found_aux (ecm, p, B1, B2, param, sigma):
    l = f.readlines()
    f.close()
    n = len(l)
-   if l[n-1] <> 'Found input number N\n':
-      print "prime p=", p, "not found with B1=", B1, "B2=", B2, "param=", param, "sigma=", sigma
+   if l[n-1] != 'Found input number N\n':
+      print ("prime p=", p, "not found with B1=", B1, "B2=", B2, "param=", param, "sigma=", sigma)
       raise ValueError
 
 def is_found(l, B1, B2):
@@ -105,7 +105,7 @@ def check_found (ecm, p, B1, B2, param, sigma_max):
          # check the factor is really found
          check_found_aux (ecm, p, B1, B2, param, sigma)
          found += 1
-   print tries, found, 1.0*e2/tries, 1.0*e3/tries, 2.0^(e2/tries)*3.0^(e3/tries)
+   print (tries, found, 1.0*e2/tries, 1.0*e3/tries, 2.0^(e2/tries)*3.0^(e3/tries))
 
 # check all parametrizations 0, 1, 2, 3
 # check_found_all ("./ecm", 31622776601683800097, 11000, 1873422, 1000)
