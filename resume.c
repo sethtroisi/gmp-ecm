@@ -440,10 +440,10 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
       else
         fprintf (file, "; ETYPE=%d; A=", Etype);
           
-        mpz_out_str (file, 10, sigma);
-        mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
-        if (param != ECM_PARAM_DEFAULT)
-            mpz_mul_ui (checksum, checksum, (param+1)%CHKSUMMOD);
+      mpz_out_str (file, 10, sigma);
+      mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
+      if (param != ECM_PARAM_DEFAULT)
+        mpz_mul_ui (checksum, checksum, (param+1)%CHKSUMMOD);
     }
   
   fprintf (file, "; B1=%.0f; N=", B1);

@@ -309,7 +309,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
-    {
+  {
       long P;
       const unsigned long lmax = 1UL<<28; /* An upper bound */
       unsigned long lmax_NTT, lmax_noNTT;
@@ -388,7 +388,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
 	  outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
 		   "about %luMB of memory\n", faststage2_params.l, s, MB);
 	}
-    }
+  }
 
   /* Print B1, B2, polynomial and x0 */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_PP1, B1, *B1done, B2min_parm, B2min, 
