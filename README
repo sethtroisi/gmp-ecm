@@ -39,9 +39,12 @@ ecm 1000000 5e8 < composites
 
 Scientific notation is accepted for B1 and B2 values. The B1 value might be
 of the form B1min-B1, in which case primes up to B1min are skipped, for
-example with 1e6-1e9, primes up to 10^6 are skipped. The actual B2 value
-used may be larger than the specified value to let parameters satisfy some 
-conditions imposed by the stage 2 algorithm.
+example with 1e6-1e9, primes up to 10^6 are skipped. In particular using
+the same value enables one to skip stage 1, for example 1e9-1e9 (this is
+useful together with -resume when stage 1 was computed with another tool
+or on another computer). The actual B2 value used may be larger than the
+specified value to let parameters satisfy some conditions imposed by the
+stage 2 algorithm.
 
 To run one curve with B1=11e7 on M1061, simply do:
 
