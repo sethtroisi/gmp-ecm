@@ -37,7 +37,9 @@ To use a B2 value of ~5*10^8 instead of the default value of ~10^9, run
 
 ecm 1000000 5e8 < composites
 
-Scientific notation is accepted for B1 and B2 values. The actual B2 value
+Scientific notation is accepted for B1 and B2 values. The B1 value might be
+of the form B1min-B1, in which case primes up to B1min are skipped, for
+example with 1e6-1e9, primes up to 10^6 are skipped. The actual B2 value
 used may be larger than the specified value to let parameters satisfy some 
 conditions imposed by the stage 2 algorithm.
 
