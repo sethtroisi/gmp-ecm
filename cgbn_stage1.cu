@@ -620,10 +620,14 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
   uint64_t s_num_bits;
   uint32_t *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
-  assert( s_bits != NULL );
+  if (s_num_bits >= 4000000000)
+      outputf (OUTPUT_ALWAYS, "GPU: Very Large B1! Check magnitute of B1.\n");
+
   if (s_num_bits >= 100000000)
       outputf (OUTPUT_NORMAL, "GPU: Large B1, S = %'d bits = %d MB\n",
-               s_num_bits, s_num_bits >> 20);
+               s_num_bits, s_num_bits >> 23);
+  assert( s_bits != NULL );
+
 
   cudaEvent_t global_start, batch_start, stop;
   CUDA_CHECK(cudaEventCreate (&global_start));
