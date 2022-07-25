@@ -431,10 +431,10 @@ __global__ void kernel_double_add(
 
   uint32_t d = sigma_0 + instance_i;
   int swapped = 0;
-  for (uint32_t b = s_bits_start; b < s_bits_start + s_bits_interval; b++) {
+  for (uint64_t b = s_bits_start; b < s_bits_start + s_bits_interval; b++) {
     /* Process bits from MSB to LSB, last index to first index
      * b counts from 0 to s_num_bits */
-    int nth = s_bits - 1 - b;
+    uint64_t nth = s_bits - 1 - b;
     int bit = (gpu_s_bits[nth/32] >> (nth&31)) & 1;
     if (bit != swapped) {
         swapped = !swapped;
@@ -624,7 +624,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       outputf (OUTPUT_ALWAYS, "GPU: Very Large B1! Check magnitute of B1.\n");
 
   if (s_num_bits >= 100000000)
-      outputf (OUTPUT_NORMAL, "GPU: Large B1, S = %'d bits = %d MB\n",
+      outputf (OUTPUT_NORMAL, "GPU: Large B1, S = %'lu bits = %d MB\n",
                s_num_bits, s_num_bits >> 23);
   assert( s_bits != NULL );
 
@@ -800,7 +800,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
         (batches_complete < 500 && batches_complete % 100 == 0) ||
         (batches_complete < 5000 && batches_complete % 1000 == 0) ||
         (batches_complete % 10000 == 0)) {
-      outputf (OUTPUT_VERBOSE, "Computing %d bits/call, %d/%d (%.1f%%)",
+      outputf (OUTPUT_VERBOSE, "Computing %d bits/call, %lu/%lu (%.1f%%)",
           batch_size, s_partial, s_num_bits, 100.0 * s_partial / s_num_bits);
       if (batches_complete < 2 || *gputime < 1000) {
         outputf (OUTPUT_VERBOSE, "\n");
