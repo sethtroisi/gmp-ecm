@@ -772,7 +772,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   uint32_t np0 = find_np0(N);
 
   // Copy data
-  outputf (OUTPUT_VERBOSE, "Copying %d bits of data to GPU\n", data_size);
+  outputf (OUTPUT_VERBOSE, "Copying %'lu bytes of curves data to GPU\n", data_size);
   CUDA_CHECK(cudaMalloc((void **)&gpu_data, data_size));
   CUDA_CHECK(cudaMemcpy(gpu_data, data, data_size, cudaMemcpyHostToDevice));
 
