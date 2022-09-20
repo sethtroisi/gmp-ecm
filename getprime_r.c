@@ -150,7 +150,8 @@ getprime_mt (prime_info_t i)
 		  }
 		while (ok == 0);
 		i->primes[k] = p;
-		/* moduli[k] is the smallest m such that offset + 2*m = k*p */
+		/* moduli[k] is the smallest m such that
+                   offset + 2*m = 0 mod p, i.e., moduli[k] = -offset/2 mod p */
 		j = i->offset % p;
 		j = (j == 0) ? j : p - j; /* -offset mod p */
 		if ((j % 2) != 0)
