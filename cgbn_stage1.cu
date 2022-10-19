@@ -333,10 +333,14 @@ static
 uint32_t* set_p_2p(const mpz_t N,
                    uint32_t curves, uint32_t sigma,
                    uint32_t BITS, size_t *data_size) {
-  // P1_x, P1_y = (2,1)
-  // 2P_x, 2P_y = (9, 64 * d + 8)
+  /**
+   * Store 5 numbers per curve:
+   * N, P_a (x, y), P_b (x, y)
+   *
+   * P_a is initialized with (2, 1)
+   * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
+   */
 
-  /** Keeps a copy of N (AKA modulo) per curve */
   const size_t limbs_per = BITS/32;
   *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
   uint32_t *data = (uint32_t*) malloc(*data_size);
@@ -348,7 +352,7 @@ uint32_t* set_p_2p(const mpz_t N,
       // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
       uint32_t d = sigma + index;
 
-      // mod
+      // Modulo (N)
       from_mpz(N, datum + 0 * limbs_per, BITS/32);
 
       // P1 (X, Y)
@@ -358,7 +362,7 @@ uint32_t* set_p_2p(const mpz_t N,
       from_mpz(x, datum + 2 * limbs_per, BITS/32);
 
       // 2P = P2 (X, Y)
-      // P2_y = 64 * d + 8
+      // P2_x = 9
       mpz_set_ui(x, 9);
       from_mpz(x, datum + 3 * limbs_per, BITS/32);
 
@@ -366,7 +370,7 @@ uint32_t* set_p_2p(const mpz_t N,
       mpz_ui_pow_ui(x, 2, 32);
       mpz_invert(x, x, N);
       mpz_mul_ui(x, x, d);
-      // P2_y = 64 * d - 2;
+      // P2_x = 64 * d + 8;
       mpz_mul_ui(x, x, 64);
       mpz_add_ui(x, x, 8);
       mpz_mod(x, x, N);
@@ -627,7 +631,6 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       outputf (OUTPUT_NORMAL, "GPU: Large B1, S = %'lu bits = %d MB\n",
                s_num_bits, s_num_bits >> 23);
   assert( s_bits != NULL );
-
 
   cudaEvent_t global_start, batch_start, stop;
   CUDA_CHECK(cudaEventCreate (&global_start));

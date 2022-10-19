@@ -1,22 +1,30 @@
-Last Reviewed: Seth T. 2021-10-14
+Last Reviewed: Seth T. 2022-10-19
 
 Quality of Life
 
 1. Verify kernel_info.maxThreadsPerBlock <= TPB_DEFAULT in BIT select loop.
 2. Add info on what GPU kernels are available.
+3. Copy over `s_bit` to the GPU in chucks of 2^20 to reduce gpu memory alloc
+4. Improve Peak memory reporting during GPU runs
+   See https://stackoverflow.com/questions/11631191/why-does-the-cuda-runtime-reserve-80-gib-virtual
 
 Big improvements
 
-1. Automatic tuning for TPB, gpucurves
+* Automatic tuning for TPB, gpucurves
   gpu_throughput_test could be automated in the code and run when B1 > THRESHOLD
   Getting the wrong gpucurves / TPB pair can cost 2x/4x performance.
 
-2. Flag to sleep between kernel calls
+* Flag to sleep between kernel calls
   This reduces performance but can help the responsiveness of the computer.
   Even 5ms of pause (~7% performance) made the system seem much more stable.
 
-3. Some benchmark (gpu_throughput_test.sh?) to prevent performance regressions.
+* Some benchmark (gpu_throughput_test.sh?) to prevent performance regressions.
   Ideally it would record <git commit, GPU, registers, performance at BITS/CURVES> 
+
+* Consider what changes would be needed to run multiple numbers at a time.
+  `set_p_2p`, `findfactor`, and `process_results` seem easy to change
+  `np0` would have to become an array.
+  `n_log2` becames `max_n_log2`.
 
 Testing
 
@@ -43,3 +51,5 @@ so we don't forget.
 3. Removing the bn_t variables CB,DA,AA,BB,k,dK
   Only 2 (or possible 3) temporary variables are needed. This change didn't impact performance
   and hurt readability so was backed out. It's always possible that it could reduce registers
+
+4. Add fast squaring to CGBN, see https://github.com/NVlabs/CGBN/issues/19
