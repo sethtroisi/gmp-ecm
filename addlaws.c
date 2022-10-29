@@ -947,7 +947,11 @@ ell_curve_clear(ell_curve_t E, mpmod_t n)
 {
     int i;
 
+    mpres_clear(E->a1, n);
+    mpres_clear(E->a3, n);
+    mpres_clear(E->a2, n);
     mpres_clear(E->a4, n);
+    mpres_clear(E->a6, n);
     for(i = 0; i < EC_W_NBUFS; i++)
 	mpres_clear (E->buf[i], n);
     /* TODO: case of sq */
