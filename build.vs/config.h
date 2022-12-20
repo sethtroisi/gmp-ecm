@@ -237,8 +237,8 @@
 #    define int64_t     __int64
 #    define uint64_t    unsigned __int64
 #  endif
-#define strncasecmp   _strnicmp
-#define strcasecmp    _stricmp
+#  define strncasecmp _strnicmp
+#  define strcasecmp  _stricmp
 #  define access      _access 
 #  define alloca      _alloca
 #  define fseek64     _fseek64
