@@ -54,6 +54,9 @@ parser.add_argument('--seed', type=int, default=None,
 parser.add_argument('--nbits', '-n', type=int, default=1024,
     help='Only needed if ECM_GPU_NB_DIGITS was adjusted')
 
+parser.add_argument('--carry-bits', type=int, default=6,
+    help='Used to determine how close to 2^nbits to test')
+
 parser.add_argument('--timing', action='store_true',
     help='Producing timing information')
 
@@ -173,30 +176,6 @@ def testInternal():
 
     if args.verbose:
         print('Implementation successfully tested\n')
-
-
-def smallestGroupOrder(prime, param, sigma_0, num_curves):
-    '''
-    Print smallest B1 (and B2) needed to find a curve from sigma_0 ... sigma_0 + curves
-    At the end return the smallest sigma
-    '''
-    # This is not used directly in check_gpuecm.sage, but is very useful for building tests
-    found_at = None
-    smallest = 10 ^ 100
-    for sigma in range(sigma_0, sigma_0 + num_curves):
-        order = GroupOrder(param, prime, sigma)
-        assert 1 <= order < 2 * prime, (prime, param, sigma, order)
-
-        f = factor(order)
-        # Largest prime
-        exp = sorted(p ** k for p, k in f)
-        # B1 to find this factor is 2nd smallest if B2 = 500 * B1 finds large factor
-        min_b1 = exp[-2] if len(exp) >= 2 and exp[-1] < exp[-2] * 500 else exp[-1]
-        if min_b1 <= smallest:
-            print ("\tFound by sigma: %d with B1=%d, B2=%d" % (sigma, min_b1, exp[-1]))
-            smallest = min_b1
-            found_at = sigma
-    return found_at
 
 
 def smallGroupOrders(prime, param, sigma_0, test_B1, num_curves):
@@ -323,20 +302,36 @@ def verifyFactorsFoundBySigma(
     return len(found_factors)
 
 
-def stage1Tests(args, prime_size, B1, param):
+def findGoodN(bits, prime_size, large_last=False):
+    """
+    Generate N with many primes of prime_size
+    use a final larger prime to pad it to exactly bits bits
+    """
+
+    count =  bits // prime_size
+
+    primes = findPrimesOfSize(count-1, prime_size)
+    assert len(primes) == count-1
+
+    partial = prod(primes)
+    last_limit = 2 ** bits // partial
+    # Choose a large random prime that doesn't overflow
+    large_prime = Primes().next(ZZ(random.randint(last_limit // 2, last_limit - 1e5)))
+    assert 2 ** (bits-1) < large_prime * partial < 2 ** bits
+
+    return primes + [large_prime]
+
+
+def stage1Tests(args, prime_size, B1, param, seed):
     '''
     Generate N such that many sigmas (sigma_0:sigma_0+args.gpucurves) have factors
     Verify sigmas found factor in stage 1.
     '''
     assert param == GPU_PARAM, ('GPU only supports param=%d' % GPU_PARAM)
-    assert prime_size < args.nbits
-    assert args.nbits <= 1020
+    assert 2 * prime_size < args.nbits
     assert prime_size > 20
 
-    prime_count = args.nbits // prime_size
-    if args.verbose:
-        print('Testing GPU stage1: N = %d x %d bits primes @ B1=%d ' % (
-            prime_count, prime_size, B1))
+    prime_count = args.mbits // prime_size
 
     if args.verbose > 1:
         print('\tusing seed: %s' % args.seed)
@@ -344,8 +339,12 @@ def stage1Tests(args, prime_size, B1, param):
     random.seed(args.seed)
     sigma_0 = random.randrange(1000, 2^31)
 
-    primes = findPrimesOfSize(prime_count, prime_size)
+    primes = findGoodN(args.mbits, prime_size)
     factor_by_sigma = expectedFactorsBySigma(args, primes, param, sigma_0, B1)
+
+    if args.verbose:
+        print('Testing GPU stage1: N<%.2f bits> = %d x %d bits primes @ B1=%d ' % (
+            log(prod(primes), 2).n(), prime_count, prime_size, B1))
 
     return verifyFactorsFoundBySigma(
         args, primes, param, sigma_0, B1, factor_by_sigma)
@@ -353,7 +352,7 @@ def stage1Tests(args, prime_size, B1, param):
 
 def overflowTest(args, param):
     '''
-    Generate N such that N is VERY close to nbits
+    Generate N such that N is VERY close to mbits
     Verify small factors found
     '''
 
@@ -365,12 +364,13 @@ def overflowTest(args, param):
     primes = findPrimesOfSize(count=256//12, prime_size=12)
     expected = prod(primes)
 
-    pad_limit = 2 ** args.nbits// expected
+    pad_limit = 2 ** (args.mbits) // expected
     large_prime = Primes().next(ZZ(random.randint(pad_limit // 2, pad_limit)))
 
     N_log2 = log(expected * large_prime, 2).n()
-    # within 1 bits of the limit
-    assert 0 < args.nbits - N_log2 < 1, (args.nbits, N_log2)
+    # should have highest bits of limit set
+    assert 0 < args.mbits - N_log2 < 1, (args.mbits, N_log2)
+    assert (expected * large_prime) & 1 << (args.mbits - 1)
     if args.verbose:
         print ("Checking overflow with log2(N) = %.2f" % N_log2)
 
@@ -405,6 +405,7 @@ def timingTest(args, N_sizes):
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    args.mbits = args.nbits - args.carry_bits
 
     testInternal()
 
@@ -417,7 +418,6 @@ if __name__ == '__main__':
         exit()
 
     # GPU needs 6 bits for carry / temp results
-    args.nbits -= 6
     overflowTest(args, GPU_PARAM)
 
     if args.iterations:

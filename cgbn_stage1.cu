@@ -49,12 +49,12 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define cgbn_negative_overflow ((cgbn_error_t) 16)
 
 // Seems to adds very small overhead (1-10%)
-#define VERIFY_NORMALIZED 0
+#define VERIFY_NORMALIZED 1
 // Adds even less overhead (<1%)
 #define CHECK_ERROR 1
 
 // Tested with check_gpuecm.sage
-#define CARRY_BITS 6
+#define CARRY_BITS 0
 
 // Can dramatically change compile time
 #if 1
