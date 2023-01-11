@@ -751,11 +751,11 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
   /* Alert that recompiling with a smaller kernel would likely improve speed */
   {
-    size_t optimized_bits = ((n_log2 + 5)/128 + 1) * 128;
-    if (optimized_bits < BITS && 0.8 * BITS > n_log2 ) {
-      /* Assume speed is roughly O(N) but slightly slower for not being a power of two */
-      float pct_faster = 90 * BITS / optimized_bits;
-      assert(pct_faster > 100);
+    size_t optimized_bits = ((n_log2 + CARRY_BITS + 127)/128) * 128;
+    /* Assume speed is roughly O(N) but slightly slower for not being a power of two */
+    float pct_faster = 90 * BITS / optimized_bits;
+
+    if (pct_faster > 110) {
       outputf (OUTPUT_VERBOSE, "Compiling custom kernel for %d bits should be ~%.0f%% faster\n",
               optimized_bits, pct_faster);
     }
