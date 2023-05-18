@@ -875,7 +875,7 @@ int eval_2 (int bInFuncParams)
 	      tentative_func_name[paren_position-&expr_str[i]]='\0';
 	      for (func_id=0;func_id<num_of_funcs;func_id++)
 	        {
-		  if (!strcasecmp(tentative_func_name, func_names[func_id]))
+		  if (!strcasecmp (tentative_func_name, func_names[func_id]))
 		    break;
 		}
 	      if(func_id==num_of_funcs)	/* No matching function name found */
