@@ -23,27 +23,28 @@
     <RootNamespace>ecm_gpu</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <CudaToolkitCustomDir>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\</CudaToolkitCustomDir>	
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.5.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.1.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -117,36 +118,6 @@
       </Defines>
     </CudaCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Midl>
-      <TargetEnvironment>X64</TargetEnvironment>
-    </Midl>
-    <ClCompile>
-      <Optimization>Full</Optimization>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC50;_WIN64;NDEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>Default</CompileAs>
-      <OpenMPSupport>true</OpenMPSupport>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>ws2_32.lib;..\..\..\$(mp_dir)lib\$(Platform)\release\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
-      <SubSystem>Console</SubSystem>
-      <OptimizeReferences>true</OptimizeReferences>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention>
-      </DataExecutionPrevention>
-      <TargetMachine>NotSet</TargetMachine>
-      <StackReserveSize>8388608</StackReserveSize>
-      <StackCommitSize>65536</StackCommitSize>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -187,7 +158,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)$(IntDir);..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC50;_WIN64;_DEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -199,7 +170,7 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\$(mp_dir)$(IntDir)$(mp_lib);..\..\lib\$(IntDir)libecm_gpu.lib;advapi32.lib;ws2_32.lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\$(Platform)\cudart.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\$(mp_dir)$(IntDir)$(mp_lib);..\..\lib\$(IntDir)libecm_gpu.lib;advapi32.lib;ws2_32.lib;$(CudaToolkitLibDir)\cudart.lib;</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -221,14 +192,36 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Full</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)$(IntDir);..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC50;_WIN64;NDEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\$(mp_dir)$(IntDir)$(mp_lib);..\..\lib\$(IntDir)libecm_gpu.lib;advapi32.lib;ws2_32.lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.5\lib\$(Platform)\cudart.lib</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>advapi32.lib;ws2_32.lib;ws2_32.lib;..\..\..\$(mp_dir)$(IntDir)$(mp_lib);..\..\lib\$(IntDir)libecm_gpu.lib;$(CudaToolkitLibDir)\cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>     
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <TargetMachine>NotSet</TargetMachine>
+      <StackReserveSize>8388608</StackReserveSize>
+      <StackCommitSize>65536</StackCommitSize>
     </Link>
-    <CudaCompile>
+     <CudaCompile>
       <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
@@ -241,7 +234,7 @@
     <CudaLink>
       <AdditionalDependencies>
       </AdditionalDependencies>
-    </CudaLink>
+    </CudaLink>   
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\auxi.c" />
@@ -275,6 +268,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.5.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.1.targets" />
   </ImportGroup>
 </Project>
