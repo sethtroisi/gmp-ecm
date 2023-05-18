@@ -61,3 +61,13 @@ pentium4/Makefile
 powerpc64/Makefile
 stamp-h1
 stamp-h2
+
+# visual studio
+
+.vs/
+/bin
+/lib
+/Win32
+/x64
+*.user
+
