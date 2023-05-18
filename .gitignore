@@ -64,10 +64,13 @@ stamp-h2
 
 # visual studio
 
+tmp.h
 .vs/
-/bin
-/lib
-/Win32
-/x64
+bin/
+lib/
+Win32
+x64/
 *.user
+
+
 
