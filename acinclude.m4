@@ -439,6 +439,11 @@ AC_ARG_WITH(cuda_compiler,
             [a directory that contains a C and C++ compiler compatible with the CUDA compiler nvcc. If given, the value is used as '--compiler-bindir' argument for nvcc ]),
   [ cuda_compiler=$withval ])
 
+AC_ARG_WITH(cgbn_include,
+  AS_HELP_STRING([--with-cgbn-include=DIR],
+                 [CGBN include directory]),
+  [ cgbn_include=$withval ])
+
 AS_IF([test "x$enable_gpu" = "xyes" ],
   [
     AS_IF([test "x$cuda_include" != "x"],
@@ -462,10 +467,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
         #include <cuda.h>
       ]],[[
         printf("(%d.%d) ", CUDA_VERSION/1000, (CUDA_VERSION/10) % 10);
-        if (CUDA_VERSION < 3000)
-          return 1;
-        else
-          return 0;
+        return (CUDA_VERSION < 3000);
       ]])],
       [AC_MSG_RESULT([yes])],
       [
@@ -559,7 +561,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
       
     dnl Check which GPU architecture nvcc knows
     GPU_ARCH=""
-    m4_foreach_w([compute_capability], [30 32 35 37 50 52 53 60 61 62 70 72 75 80 86 87 90],
+    m4_foreach_w([compute_capability], [35 37 50 52 53 60 61 62 70 72 75 80 86 87 90],
       [
         testcc=compute_capability
         AS_IF([test -z "$WANTED_GPU_ARCH" -o "$WANTED_GPU_ARCH" = "$testcc"],
@@ -583,52 +585,26 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
     AS_IF([test -z "$GPU_ARCH"],
         [AC_MSG_ERROR([No supported compute capabilities found])])
 
-    dnl check that nvcc know ptx instruction madc
-    AC_MSG_CHECKING([if nvcc knows ptx instruction madc])
+    AS_IF([test -d "$cgbn_include"],
+      [],
+      [AC_MSG_ERROR([Specified CGBN include directory "$cgbn_include" does not exist])])
+
+    AC_MSG_CHECKING([if CGBN is present])
+
+    dnl AC_CHECK_HEADER can't verify NVCC compilability hence NVCC_CHECK_COMPILE
     NVCC_CHECK_COMPILE(
       [
-         __global__ void test (int *a, int b) {
-         asm(\"mad.lo.cc.u32 %0, %0, %1, %1;\":
-         \"+r\"(*a) : \"r\"(b));}
+        #include <gmp.h>
+        #include <cgbn.h>
       ],
-      [$NVCCFLAGS --generate-code arch=compute_${MIN_CC},code=compute_${MIN_CC}],
+      [-I$cgbn_include $GMPLIB],
       [AC_MSG_RESULT([yes])],
       [
         AC_MSG_RESULT([no])
-        AC_MSG_ERROR([nvcc does not recognize ptx instruction madc, you should upgrade it])
-      ])
-
-    AC_ARG_WITH(cgbn_include,
-      AS_HELP_STRING([--with-cgbn-include=DIR], [CGBN include directory]),
-      [
-        cgbn_include=$withval
-        AC_MSG_NOTICE([Using CGBN from $cgbn_include])
-        AS_IF([test "x$with_cgbn_include" != "xno"],
-          [
-            AS_IF([test -d "$cgbn_include"],
-              [],
-              [AC_MSG_ERROR([Specified CGBN include directory "$cgbn_include" does not exist])])
-
-            AC_MSG_CHECKING([if CGBN is present])
-
-            dnl AC_CHECK_HEADER can't verify NVCC compilability hence NVCC_CHECK_COMPILE
-            NVCC_CHECK_COMPILE(
-              [
-                #include <gmp.h>
-                #include <cgbn.h>
-              ],
-              [-I$cgbn_include $GMPLIB],
-              [AC_MSG_RESULT([yes])],
-              [
-                AC_MSG_RESULT([no])
-                AC_MSG_ERROR([cgbn.h not found (check if /cgbn needed after <PATH>/include)])
-              ]
-            )
-            AC_DEFINE([HAVE_CGBN_H], [1], [Define to 1 if cgbn.h exists])
-            NVCCFLAGS="-I$with_cgbn_include $GMPLIB $NVCCFLAGS"
-            want_cgbn="yes"
-        ])
-      ])
+        AC_MSG_ERROR([cgbn.h not found (check if /cgbn needed after <PATH>/include)])
+      ]
+    )
+    NVCCFLAGS="-I$with_cgbn_include $GMPLIB $NVCCFLAGS"
 
     LIBS="$LIBS_BACKUP"
     LDFLAGS="$LDFLAGS_BACKUP"
@@ -653,8 +629,6 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
   ])
 #Set this conditional if cuda is wanted
 AM_CONDITIONAL([WANT_GPU], [test "x$enable_gpu" = "xyes" ])
-#Set this conditional if cuda & cgbn_include
-AM_CONDITIONAL([WANT_CGBN], [test "x$want_cgbn" = "xyes" ])
 
 AC_SUBST(NVCC)
 AC_SUBST(NVCCFLAGS)

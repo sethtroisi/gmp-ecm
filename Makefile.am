@@ -54,9 +54,7 @@ libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 1:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 if WANT_GPU 
   libecm_la_SOURCES += cudacommon.cu
-if WANT_CGBN
   libecm_la_SOURCES += cgbn_stage1.cu
-endif
   libecm_la_LIBADD += $(CUDALIB)
   libecm_la_LDFLAGS += $(CUDALDFLAGS)
   ecm_LDFLAGS = $(CUDARPATH)
@@ -147,9 +145,6 @@ dist_check_SCRIPTS = test.pp1 test.pm1 test.ecm
 if WANT_GPU
 dist_check_SCRIPTS += test.gpuecm
 endif
-if WANT_CGBN
-dist_check_SCRIPTS += test.cgbnecm
-endif
 
 TESTS = $(dist_check_SCRIPTS)
 TESTS_ENVIRONMENT = $(VALGRIND)
@@ -177,9 +172,6 @@ longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 if WANT_GPU
 	$(srcdir)/test.gpuecm "$(VALGRIND) ./ecm$(EXEEXT)"
-endif
-if WANT_CGBN
-	$(srcdir)/test.cgbnecm "$(VALGRIND) ./ecm$(EXEEXT)"
 endif
 	$(srcdir)/testlong.pp1 "$(VALGRIND) ./ecm$(EXEEXT)"
 	$(srcdir)/testlong.pm1 "$(VALGRIND) ./ecm$(EXEEXT)"

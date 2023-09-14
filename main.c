@@ -137,10 +137,7 @@ usage (void)
     printf ("  -bsaves file With -param 1-3, save stage 1 exponent in file.\n");
     printf ("  -bloads file With -param 1-3, load stage 1 exponent from file.\n");
 #ifdef WITH_GPU
-    printf ("  -gpu         Use GPU-ECM for stage 1.\n");
-#if HAVE_CGBN_H
-    printf ("  -cgbn        Use CGBN for GPU-ECM stage 1 computation.\n");
-#endif /* HAVE_CGBN_H */
+    printf ("  -gpu         Use CGBN for computations stage 1.\n");
     printf ("  -gpudevice n Use device n to execute GPU code (by default, "
                                                           "CUDA chooses)\n");
     printf ("  -gpucurves n Compute on n curves in parallel on the GPU (by "
@@ -405,7 +402,6 @@ main (int argc, char *argv[])
   signed long gw_c = 0;    /* set default values for gwnum poly k*b^n+c */
 #endif
   int use_gpu = 0; /* Do we use the GPU for stage 1 (by default no) */
-  int gpucgbn = 0; /* Do we use CGBN for stage 1 GPU computation (by default no) */
   int gpudevice = -1; /* Which device do we use for GPU code (by default CUDA */
                       /* chooses)                                             */
   unsigned int gpucurves = 0; /* How many curves do we want for GPU code */ 
@@ -788,20 +784,9 @@ main (int argc, char *argv[])
 	  argc -= 2;
 	}
 #ifdef WITH_GPU
-      else if (strcmp (argv[1], "-gpu") == 0)
+      else if (strcmp (argv[1], "-gpu") == 0 || strcmp (argv[1], "-cgbn") == 0)
         {
           use_gpu = 1;
-          argv++;
-          argc--;
-        }
-      else if (strcmp (argv[1], "-cgbn") == 0)
-        {
-          use_gpu = 1;
-          gpucgbn = 1;
-#ifndef HAVE_CGBN_H
-          fprintf (stderr, "CGBN not present; configure with --with-cgbn-include\n");
-          exit (EXIT_FAILURE);
-#endif /* !HAVE_CGBN_H */
           argv++;
           argc--;
         }
@@ -1046,7 +1031,6 @@ main (int argc, char *argv[])
   params->maxmem = maxmem;
   params->stage1time = stage1time;
   params->gpu = use_gpu;   /* If WITH_GPU is not defined it will always be 0 */
-  params->gpu_cgbn = gpucgbn; /* If !HAVE_CGBN_H will always be 0 */
   params->gpu_device = gpudevice; /* If WITH_GPU is not defined or    */
                                   /* use_gpu = 0, it has no meaning   */
   params->gpu_number_of_curves = gpucurves; /* If WITH_GPU is not defined or */

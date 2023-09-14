@@ -4,9 +4,7 @@
 
 #include "cudacommon.h"
 
-#ifdef HAVE_CGBN_H
 #include "cgbn_stage1.h"
-#endif /* HAVE_CGBN_H */
 
 
 #define TWO32 4294967296 /* 2^32 */
@@ -380,15 +378,10 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   st = cputime ();
 
   if (use_cgbn) {
-#ifdef HAVE_CGBN_H
     youpi = cgbn_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves,
                              firstsigma_ui, &gputime, verbose);
-#else
-    outputf (OUTPUT_ERROR, "cgbn not included");
-    return ECM_ERROR;
-#endif /* HAVE_CGBN_H */
   }  else {
-    outputf (OUTPUT_ERROR, "--gpu not included");
+    outputf (OUTPUT_ERROR, "--gpu not included\n");
     return ECM_ERROR;
   }
 

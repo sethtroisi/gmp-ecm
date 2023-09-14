@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 ECM=${1:-./ecm}
-DEFAULT_CURVES=$(echo "2^31-1" | ./ecm -gpu 10 | grep -oP '[0-9]*(?= parallel curves)')
+DEFAULT_CURVES=$(echo "2^31-1" | ./ecm -gpu 10 | grep -oP '[0-9]*(?= Step 1 took)')
 C=${2:-$DEFAULT_CURVES}
 B1=128000
 
