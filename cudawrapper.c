@@ -170,7 +170,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
          char *chkfilename ATTRIBUTE_UNUSED, char *TreeFilename, double maxmem,
          int (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used, 
-         int use_cgbn, int device, int *device_init, unsigned int *nb_curves)
+         int device, int *device_init, unsigned int *nb_curves)
 {
   unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -270,15 +270,12 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   if (youpi == ECM_ERROR)
       goto end_gpu_ecm;
 
-  /* Set cudaDeviceScheduleBlockingSync with -cgbn, else cudaDeviceScheduleYield */
-  int schedule = use_cgbn ? 1 : 0;
-
   /* Initialize the GPU if necessary and determine nb_curves */
   if (!*device_init)
     {
       st = cputime ();
       youpi = select_and_init_GPU (device, nb_curves,
-                                   test_verbose (OUTPUT_VERBOSE), schedule);
+                                   test_verbose (OUTPUT_VERBOSE));
 
       if (youpi != 0)
         {
@@ -377,13 +374,8 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   st = cputime ();
 
-  if (use_cgbn) {
-    youpi = cgbn_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves,
-                             firstsigma_ui, &gputime, verbose);
-  }  else {
-    outputf (OUTPUT_ERROR, "--gpu not included\n");
-    return ECM_ERROR;
-  }
+  youpi = cgbn_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves,
+                           firstsigma_ui, &gputime, verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n", *nb_curves, 

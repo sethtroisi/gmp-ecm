@@ -16,12 +16,11 @@ filtered() {
 for number in "(2^269-1)/13822297" "(2^499-1)/20959" "2^997-1" "(2^1877-1)/15017"; do
   echo -e "\n\nTESTING $number B1=$B1"
   filtered "$number"
-  filtered "$number" "-gpu"
   echo
 
   curve_test="$((C / 4)) $((C / 2)) $C $((C * 2)) $((C * 4)) $((C * 8))"
   for curves in $curve_test; do
-    filtered "$number" "-cgbn -gpucurves $curves"
+    filtered "$number" "-v -gpu -gpucurves $curves"
     echo
   done
 

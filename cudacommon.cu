@@ -53,7 +53,7 @@ get_device_prop(int device, cudaDeviceProp *deviceProp)
 
 extern "C"
 int
-select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose, int schedule)
+select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
 {
   cudaDeviceProp deviceProp;
 
@@ -92,14 +92,7 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose, in
     }
 
   /* First call to a global function initialize the device */
-  if (schedule == 1)
-    {
-      cuda_check (cudaSetDeviceFlags (cudaDeviceScheduleBlockingSync));
-    }
-  else
-    {
-      cuda_check (cudaSetDeviceFlags (cudaDeviceScheduleYield));
-    }
+  cuda_check (cudaSetDeviceFlags (cudaDeviceScheduleBlockingSync));
   Cuda_Init_Device<<<1, 1>>> ();
   cuda_check (cudaGetLastError());
 
