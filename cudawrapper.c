@@ -3,7 +3,6 @@
 #ifdef WITH_GPU
 
 #include "cudacommon.h"
-#include "cudakernel.h"
 
 #ifdef HAVE_CGBN_H
 #include "cgbn_stage1.h"
@@ -11,33 +10,6 @@
 
 
 #define TWO32 4294967296 /* 2^32 */
-
-int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
-{
-  int youpi;
-  mpz_t gcd;
-  mpz_init (gcd);
-
-  mpz_gcd (gcd, zfin, N);
-  
-  if (mpz_cmp_ui (gcd, 1) == 0)
-  {
-    mpz_invert (zfin, zfin, N);
-    mpz_mul (xfin, xfin, zfin);
-    mpz_mod (xfin, xfin, N);
-      
-    mpz_set (factor, xfin);
-    youpi = ECM_NO_FACTOR_FOUND;
-  }
-  else //gcd !=1 (and gcd>0 because N>0) so we found a factor
-  {
-      mpz_set (factor, gcd);
-      youpi = ECM_FACTOR_FOUND_STEP1;
-    }
-
-  mpz_clear (gcd);
-  return youpi;
-}
 
 /* Try to reduce all composite factors to primes.
  * This can be hard if factors overlap e.g. (a*b, a*c*d, b*c)
@@ -171,56 +143,14 @@ void reducefactors (mpz_t *factors, int *array_found, unsigned int nb_curves)
 }
 
 
-void to_mont_repr (mpz_t x, mpz_t n)
-{
-  mpz_mul_2exp (x, x, ECM_GPU_MAX_BITS);
-  mpz_mod (x, x, n);
-}
-
-void from_mont_repr (mpz_t x, mpz_t n, mpz_t invB)
-{
-  mpz_mul (x, x, invB);
-  mpz_mod (x, x, n);
-}
-
-void mpz_to_biguint (biguint_t a, mpz_t b)
-{
-  int i;
-
-  for (i=0;i<ECM_GPU_NB_DIGITS;i++)
-  {
-#if GMP_NUMB_BITS == 32
-    a[i]=mpz_getlimbn (b, i);  
-#else // GMP_NUMB_BITS == 64
-    if (i%2 == 0)
-      a[i]=(mpz_getlimbn (b, i/2) & 0x00000000ffffffff);
-    else
-      a[i]=(mpz_getlimbn (b, i/2) >> 32);  
-#endif
-  }
-}
-
-void biguint_to_mpz (mpz_t a, biguint_t b)
-{
-  int i;
-  
-  mpz_set_ui (a, 0);
-
-  for (i=ECM_GPU_NB_DIGITS-1;i>=0;i--)
-  {
-    mpz_mul_2exp (a, a, 32);
-	  mpz_add_ui (a , a, b[i]);
-  }
-}
-
 static void
 A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
 {
   mpz_t tmp;
   int i;
   mpz_init_set_ui (tmp, sigma);
-  /* Compute d = sigma/2^ECM_GPU_SIZE_DIGIT */
-  for (i = 0; i < ECM_GPU_SIZE_DIGIT; i++)
+  /* Compute d = sigma/2^32 */
+  for (i = 0; i < 32; i++)
     {
       if (mpz_tstbit (tmp, 0) == 1)
       mpz_add (tmp, tmp, n);
@@ -234,141 +164,6 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
   mpz_clear (tmp);
 }
 
-
-int gpu_ecm_stage1 (mpz_t *factors, int *array_found, mpz_t N, mpz_t s,
-                    unsigned int number_of_curves, unsigned int firstsigma, 
-                    float *gputime, int verbose)
-{
-  int youpi = ECM_NO_FACTOR_FOUND;
-
-  unsigned int sigma;
-  unsigned int i;
-
-  mpz_t N3; /* N3 = 3*N */
-  mpz_t w; /* w = 2^(SIZE_DIGIT) */
-  mpz_t invN; /* invN = -N^-1 mod w */
-  mpz_t invB; /* invB = 2^(-MAX_BITS) mod N ; B is w^NB_DIGITS */
-  mpz_t invw; /* w^(-1) mod N */
-  mpz_t M; /* (invN*N+1)/w */
-  mpz_t xp, zp, x2p, z2p;
-
-  /* The same variables but for the GPU */
-  biguint_t *h_xarray, *h_zarray, *h_x2array, *h_z2array;
-  digit_t h_invN;
-  biguint_t h_N, h_3N, h_M;
-
-  /*****************************/
-  /* Initialize some variables */
-  /*****************************/
-  mpz_init (N3);
-  mpz_init (invw);
-  mpz_init (w);
-  mpz_init (M);
-  mpz_init (xp);
-  mpz_init (zp);
-  mpz_init (x2p);
-  mpz_init (z2p);
-  mpz_init (invN);
-  mpz_init (invB);
-
-  h_xarray= (biguint_t *) malloc (number_of_curves * sizeof (biguint_t));
-  h_zarray= (biguint_t *) malloc (number_of_curves * sizeof (biguint_t));
-  h_x2array= (biguint_t *) malloc (number_of_curves * sizeof (biguint_t));
-  h_z2array= (biguint_t *) malloc (number_of_curves * sizeof (biguint_t));
-
-  /*Some computation depending on N */
-  mpz_mul_ui (N3, N, 3); /* Compute N3 = 3*N */
-  mpz_ui_pow_ui (w, 2, ECM_GPU_SIZE_DIGIT); /* Compute w = 2^SIZE_DIGIT */
-    
-  mpz_invert (invN, N, w);
-  mpz_sub (invN, w, invN); /* Compute invN = -N^-1 mod w */
-   
-  mpz_mul (M, invN, N);
-  mpz_add_ui (M, M, 1);
-  mpz_divexact (M, M, w); /* Compute M = (invN*N+1)/w */
-
-  mpz_to_biguint (h_N, N); 
-  mpz_to_biguint (h_3N, N3); 
-  mpz_to_biguint (h_M, M); 
-  h_invN = mpz_get_ui (invN); 
-   
-  mpz_ui_pow_ui (invB, 2, ECM_GPU_MAX_BITS); 
-  mpz_invert (invB, invB, N); /* Compute invB = 2^(-MAX_BITS) mod N */
-
-  mpz_invert (invw, w, N); /* Compute inw = 2^-SIZE_DIGIT % N */
-
-  /* xp zp x2p are independent of N and the curve */
-  mpz_set_ui (xp, 2);
-  mpz_set_ui (zp, 1);
-  mpz_set_ui (x2p, 9);
-
-  /* Compute their Montgomery representation */
-  to_mont_repr (xp, N);
-  to_mont_repr (zp, N);
-  to_mont_repr (x2p, N);
-  
-  /* for each curve, compute z2p and put xp, zp, x2p, z2p in the h_*array  */
-  for (i = 0; i < number_of_curves; i++)
-  {
-    sigma = firstsigma + i;
-
-    mpz_mul_ui (z2p, invw, sigma);
-    mpz_mod (z2p, z2p, N);
-    mpz_mul_2exp (z2p, z2p, 6);
-    mpz_add_ui (z2p, z2p, 8);
-    mpz_mod (z2p, z2p, N); /* z2p = 8+64*d */
-
-    to_mont_repr (z2p, N);
-
-    mpz_to_biguint (h_xarray[i], xp); 
-    mpz_to_biguint (h_zarray[i], zp); 
-    mpz_to_biguint (h_x2array[i], x2p); 
-    mpz_to_biguint (h_z2array[i], z2p); 
-  } 
- 
-  /* Call the wrapper function that call the GPU */
-  *gputime=cuda_Main (h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
-                     h_z2array, s, firstsigma, number_of_curves, verbose);
-
-  /* Analyse results */
-  for (i = 0; i < number_of_curves; i++)
-  {
-    sigma = firstsigma + i;
-
-    biguint_to_mpz (xp, h_xarray[i]); 
-    biguint_to_mpz (zp, h_zarray[i]); 
-    
-    from_mont_repr (xp, N, invB);
-    from_mont_repr (zp, N, invB);
-  
-    array_found[i] = findfactor (factors[i], N, xp, zp);
-
-    if (array_found[i] != ECM_NO_FACTOR_FOUND)
-      {
-        youpi = array_found[i];
-        outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with"
-                " curve %u (-sigma 3:%u)\n", factors[i], i, sigma);
-      }
-  }
-  
-  mpz_clear (N3);
-  mpz_clear (invN);
-  mpz_clear (invw);
-  mpz_clear (w);
-  mpz_clear (M);
-  mpz_clear (xp);
-  mpz_clear (zp);
-  mpz_clear (x2p);
-  mpz_clear (z2p);
-  mpz_clear (invB);
-  
-  free ((void *) h_xarray);
-  free ((void *) h_zarray);
-  free ((void *) h_x2array);
-  free ((void *) h_z2array);
-
-  return youpi;
-}
 
 int
 gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
@@ -411,7 +206,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
 
   /* Check that N is not too big */
-  size_t max_bits = (use_cgbn ? ECM_GPU_CGBN_MAX_BITS : ECM_GPU_MAX_BITS) - 6;
+  size_t max_bits = ECM_GPU_CGBN_MAX_BITS - 6;
   if (mpz_sizeinbase (n, 2) > max_bits)
     {
       outputf (OUTPUT_ERROR, "GPU: Error, input number should be stricly lower"
@@ -593,8 +388,8 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     return ECM_ERROR;
 #endif /* HAVE_CGBN_H */
   }  else {
-    youpi = gpu_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves,
-                            firstsigma_ui, &gputime, verbose);
+    outputf (OUTPUT_ERROR, "--gpu not included");
+    return ECM_ERROR;
   }
 
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
@@ -714,7 +509,6 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
                                          ((double) st2)/((double) *nb_curves));
   tottime += st2;
 
-
 end_gpu_ecm_rhotable:
   if (test_verbose (OUTPUT_VERBOSE))
     {
@@ -727,7 +521,6 @@ end_gpu_ecm_rhotable:
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }
-
 
   reducefactors(factors, array_found, *nb_curves);
 

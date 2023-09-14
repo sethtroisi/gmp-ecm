@@ -226,6 +226,12 @@ class curve_t {
   }
 
 
+  /**
+   * Compute simultaneously
+   * (q : u) <- [2](q : u)
+   * (w : v) <- (q : u) + (w : v)
+   * A second implementation previously existed in cudakernel_default.cu
+   */
   __device__ FORCE_INLINE void double_add_v2(
           bn_t &q, bn_t &u,
           bn_t &w, bn_t &v,

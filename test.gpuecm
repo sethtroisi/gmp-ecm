@@ -21,7 +21,7 @@
 # http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 
-ECM="${1:-./ecm} -gpu -gpucurves 32"
+ECM="${1:-./ecm} -cgbn -gpu -gpucurves 32"
 ECMnoGPU=$(echo "${1-./ecm}" | sed -e "s/-gpu//" -e "s/-cgbn//")
 
 GMPECM_DATADIR=${GMPECM_DATADIR:-.}
