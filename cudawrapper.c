@@ -164,13 +164,7 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
 
 
 int
-gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
-         double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
-         unsigned long k, const int S, int verbose, int repr,
-         int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
-         char *chkfilename ATTRIBUTE_UNUSED, char *TreeFilename, double maxmem,
-         int (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used, 
-         int device, int *device_init, unsigned int *nb_curves)
+gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
 {
   unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -193,14 +187,15 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
   unsigned long dF;
   root_params_t root_params;
+  unsigned int nb_curves = 0; /* Local copy of number of curves */
 
-  ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
+  ASSERT((-1 <= params->sigma_is_A) && (params->sigma_is_A <= 1));
   ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
 
   /* Set global VERBOSE to avoid the need to explicitly passing verbose */
-  set_verbose (verbose);
-  ECM_STDOUT = (os == NULL) ? stdout : os;
-  ECM_STDERR = (es == NULL) ? stdout : es;
+  set_verbose (params->verbose);
+  ECM_STDOUT = (params->os == NULL) ? stdout : params->os;
+  ECM_STDERR = (params->es == NULL) ? stdout : params->es;
 
 
   /* Check that N is not too big */
@@ -213,10 +208,10 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
 
   /* Only param = ECM_PARAM_BATCH_32BITS_D is accepted on GPU */
-  if (param == ECM_PARAM_DEFAULT)
-      param = ECM_PARAM_BATCH_32BITS_D;
-    
-  if (param != ECM_PARAM_BATCH_32BITS_D)
+  if (params->param == ECM_PARAM_DEFAULT)
+      params->param = ECM_PARAM_BATCH_32BITS_D;
+
+  if (params->param != ECM_PARAM_BATCH_32BITS_D)
     {
       outputf (OUTPUT_ERROR, "GPU: Error, only param = ECM_PARAM_BATCH_32BITS_D "
                              "is accepted on GPU.\n");
@@ -224,15 +219,15 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
 
   /* check that repr == ECM_MOD_DEFAULT or ECM_MOD_BASE2 (only for stage 2) */
-  if (repr != ECM_MOD_DEFAULT && repr != ECM_MOD_BASE2)
+  if (params->repr != ECM_MOD_DEFAULT && params->repr != ECM_MOD_BASE2)
       outputf (OUTPUT_ERROR, "GPU: Warning, the value of repr will be ignored "
       "for step 1 on GPU.\n");
 
   /* It is only for stage 2, it is not taken into account for GPU code */
-  if (mpmod_init (modulus, n, repr) != 0)
+  if (mpmod_init (modulus, n, params->repr) != 0)
     return ECM_ERROR;
 
-  /* See what kind of number we have as that may influence optimal parameter 
+  /* See what kind of number we have as that may influence optimal parameter
      selection. Test for base 2 number. Note: this was already done by
      mpmod_init. */
 
@@ -241,16 +236,16 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   /* For a Fermat number (base2 a positive power of 2) */
   for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
-  if (Fermat == 1) 
+  if (Fermat == 1)
     {
       Fermat = base2;
       po2 = 1;
     }
   else
       Fermat = 0;
- 
+
   /* Cannot do resume on GPU */
-  if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
+  if (!ECM_IS_DEFAULT_B1_DONE(params->B1done) && params->B1done < B1)
     {
       outputf (OUTPUT_ERROR, "GPU: Error, cannot resume on GPU.\n");
       return ECM_ERROR;
@@ -264,17 +259,17 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   mpz_init (B2);
   mpz_init (B2min);
 
-  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params,
-                              B1, &k, S, use_ntt, &po2, &dF,
-                              TreeFilename, maxmem, Fermat, modulus);
+  youpi = set_stage_2_params (B2, params->B2, B2min, params->B2min, &root_params,
+                              B1, &params->k, params->S, params->use_ntt, &po2, &dF,
+                              params->TreeFilename, params->maxmem, Fermat, modulus);
   if (youpi == ECM_ERROR)
       goto end_gpu_ecm;
 
   /* Initialize the GPU if necessary and determine nb_curves */
-  if (!*device_init)
+  if (!params->gpu_device_init)
     {
       st = cputime ();
-      youpi = select_and_init_GPU (device, nb_curves,
+      youpi = select_and_init_GPU (params->gpu_device, &params->gpu_number_of_curves,
                                    test_verbose (OUTPUT_VERBOSE));
 
       if (youpi != 0)
@@ -287,17 +282,19 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
                                "took %ldms\n", elltime (st, cputime ()));
       /* TRICKS: If initialization of the device is too long (few seconds), */
       /* try running 'nvidia-smi -q -l' on the background .                 */
-      *device_init = 1;
+      params->gpu_device_init = 1;
     }
 
+  nb_curves = params->gpu_number_of_curves;
+
   /* Init arrays */
-  factors = (mpz_t *) malloc (*nb_curves * sizeof (mpz_t));
+  factors = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
   ASSERT_ALWAYS (factors != NULL);
 
-  array_found = (int *) malloc (*nb_curves * sizeof (int));
+  array_found = (int *) malloc (nb_curves * sizeof (int));
   ASSERT_ALWAYS (array_found != NULL);
 
-  for (i = 0; i < *nb_curves; i++)
+  for (i = 0; i < nb_curves; i++)
     {
       mpz_init (factors[i]);
       array_found[i] = ECM_NO_FACTOR_FOUND;
@@ -305,40 +302,40 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
 
   /* Current code works only for sigma_is_A = 0 */
-  if (sigma_is_A != 0)
+  if (params->sigma_is_A != 0)
     {
       outputf (OUTPUT_ERROR, "GPU: Not yet implemented.\n");
       youpi= ECM_ERROR;
       goto end_gpu_ecm;
     }
 
-  ASSERT (sigma_is_A == 0);
-  if (mpz_sgn (firstsigma) == 0)
+  ASSERT (params->sigma_is_A == 0);
+  if (mpz_sgn (params->sigma) == 0)
     {
       /* generate random value in [2, 2^32 - nb_curves - 1] */
-      mpz_set_ui (firstsigma, (get_random_ul () %
-                               (TWO32 - 2 - *nb_curves)) + 2);
+      mpz_set_ui (params->sigma, (get_random_ul () %
+                               (TWO32 - 2 - nb_curves)) + 2);
     }
   else /* sigma should be in [2, 2^32-nb_curves] */
     {
-      if (mpz_cmp_ui (firstsigma, 2) < 0 || 
-          mpz_cmp_ui (firstsigma, TWO32 - *nb_curves) >= 0)
+      if (mpz_cmp_ui (params->sigma, 2) < 0 ||
+          mpz_cmp_ui (params->sigma, TWO32 - nb_curves) >= 0)
         {
           outputf (OUTPUT_ERROR, "GPU: Error, sigma should be in [2,%lu]\n",
-                                 TWO32 - *nb_curves - 1);
+                                 TWO32 - nb_curves - 1);
           youpi= ECM_ERROR;
           goto end_gpu_ecm;
         }
     }
-  firstsigma_ui = mpz_get_ui (firstsigma);
+  firstsigma_ui = mpz_get_ui (params->sigma);
 
-  print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min,
-                    B2, S, firstsigma, sigma_is_A, ECM_EC_TYPE_MONTGOMERY,
-                    go, param, *nb_curves);
-  outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
-           dF, k, root_params.d1, root_params.d2, root_params.i0);
+  print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, params->B1done,  params->B2min, B2min,
+                    B2, params->S, params->sigma, params->sigma_is_A, ECM_EC_TYPE_MONTGOMERY,
+                    params->go, params->param, nb_curves);
+  outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n",
+           dF, params->k, root_params.d1, root_params.d2, root_params.i0);
 
-  if (go != NULL && mpz_cmp_ui (go, 1) > 0)
+  if (params->go != NULL && mpz_cmp_ui (params->go, 1) > 0)
     {
       outputf (OUTPUT_ERROR, "GPU: Error, option -go is not allowed\n");
       youpi= ECM_ERROR;
@@ -349,56 +346,57 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     {
       if (mpz_cmp_d (B2min, B1) != 0)
         {
-          outputf (OUTPUT_VERBOSE, 
+          outputf (OUTPUT_VERBOSE,
             "Can't compute success probabilities for B1 <> B2min\n");
         }
       else
         {
           rhoinit (256, 10);
-          print_expcurves (B1, B2, dF, k, root_params.S, param);
+          print_expcurves (B1, B2, dF, params->k, root_params.S, params->param);
         }
     }
 
   /* Compute s */
-  if (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0)
+  if (B1 != params->batch_last_B1_used || mpz_cmp_ui (params->batch_s, 1) <= 0)
     {
-      *batch_last_B1_used = B1;
+      params->batch_last_B1_used = B1;
 
       st = cputime ();
       /* construct the batch exponent */
-      compute_s (batch_s, B1, NULL);
+      compute_s (params->batch_s, B1, NULL);
       outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
                                " bits) of primes up to B1=%1.0f took %ldms\n",
-                               mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
+                               mpz_sizeinbase (params->batch_s, 2), B1, cputime () - st);
     }
+
 
   st = cputime ();
 
-  youpi = cgbn_ecm_stage1 (factors, array_found, n, batch_s, *nb_curves,
-                           firstsigma_ui, &gputime, verbose);
+    youpi = cgbn_ecm_stage1 (factors, array_found, n, params->batch_s, nb_curves,
+                             firstsigma_ui, &gputime, params->verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
-                          "%.0fms of GPU time\n", *nb_curves, 
-                                           elltime (st, cputime ()), gputime);
-  outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves per second ", 
-                                                 1000 * (*nb_curves)/gputime);
-  outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n", 
-                                                        gputime/(*nb_curves));
+                          "%.0fms of GPU time\n", nb_curves,
+                          elltime (st, cputime ()), gputime);
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves per second ",
+                           1000 * nb_curves/gputime);
+  outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n",
+                           gputime/nb_curves);
   tottime = (long) gputime;
 
-  *B1done=B1;
+  params->B1done = B1;
 
   /* GMP documentation says mpz_sizeinbase(op, 2) is always the exact value. */
   size_t n_bits = mpz_sizeinbase(n, 2);
 
   /* Save stage 1 residues as x = x0 + x1 * 2^bits + ... + xk * 2^(bits*k) */
-  mpz_set_ui (x, 0);
+  mpz_set_ui (params->x, 0);
   /* Equivalent to using mpz_mul_2exp and mpz_add while avoiding O(n*k) limp copies */
-  mpz_realloc2(x, *nb_curves * n_bits);
-  for (i = 0; i < *nb_curves; i++)
+  mpz_realloc2(params->x, nb_curves * n_bits);
+  for (i = 0; i < nb_curves; i++)
     for (size_t j = 0; j < n_bits; j++)
       if (mpz_tstbit (factors[i], j))
-        mpz_setbit(x, j + n_bits * i);
+        mpz_setbit(params->x, j + n_bits * i);
 
   /* was a factor found in stage 1 ? */
   if (youpi != ECM_NO_FACTOR_FOUND)
@@ -406,12 +404,12 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   /* If using 2^k +/-1 modulus and 'nobase2step2' flag is set,
      set default (-nobase2) modular method and remap P.x, P.y, and P.A */
-  if (modulus->repr == ECM_MOD_BASE2 && nobase2step2)
+  if (modulus->repr == ECM_MOD_BASE2 && params->nobase2step2)
     {
       mpmod_clear (modulus);
 
-      repr = ECM_MOD_NOBASE2;
-      if (mpmod_init (modulus, n, repr) != 0) /* reset modulus for nobase2 */
+      params->repr = ECM_MOD_NOBASE2;
+      if (mpmod_init (modulus, n, params->repr) != 0) /* reset modulus for nobase2 */
         {
           youpi = ECM_ERROR;
           goto end_gpu_ecm_rhotable;
@@ -422,26 +420,26 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
       goto end_gpu_ecm_rhotable;
 
   st2 = cputime ();
-  
+
   P.disc = 0; /* For stage2 this needs to be 0, in order not to use CM stuff */
 
-  for (i = 0; i < *nb_curves; i++)
+  for (i = 0; i < nb_curves; i++)
     {
       /* hack to reduce verbose Step 2 */
-      if (verbose > 0)
-        set_verbose (verbose-1);
+      if (params->verbose > 0)
+        set_verbose (params->verbose-1);
 
-      if (test_verbose (OUTPUT_RESVERBOSE)) 
+      if (test_verbose (OUTPUT_RESVERBOSE))
         outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", factors[i]);
 
-      if (stop_asap != NULL && (*stop_asap) ())
+      if (params->stop_asap != NULL && params->stop_asap())
           goto end_gpu_ecm_rhotable;
-    
+
       mpres_set_z (P.x, factors[i], modulus);
       mpres_set_ui (P.y, 1, modulus);
       A_from_sigma (tmp_A, i+firstsigma_ui, modulus->orig_modulus);
       mpres_set_z (P.A, tmp_A, modulus);
-  
+
       /* compute stage 2 */
       youpi = montgomery_to_weierstrass (factors[i], P.x, P.y, P.A, modulus);
       if (youpi != ECM_NO_FACTOR_FOUND)
@@ -464,11 +462,11 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
           mpz_clear (t);
         }
  
-      youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, use_ntt, 
-                      TreeFilename, i+1, stop_asap);
+      youpi = stage2 (factors[i], &P, modulus, dF, params->k, &root_params, params->use_ntt, 
+                      params->TreeFilename, i+1, params->stop_asap);
       
     next_curve:
-      set_verbose (verbose);
+      set_verbose (params->verbose);
 
       if (youpi != ECM_NO_FACTOR_FOUND)
         {
@@ -488,11 +486,11 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   st2 = elltime (st2, cputime ());
   outputf (OUTPUT_NORMAL, "Computing %u Step 2 on CPU took %ldms\n", 
-                                                              *nb_curves, st2);
+                          nb_curves, st2);
   outputf (OUTPUT_VERBOSE, "Throughput: %.3f Step 2 per second ", 
-                                  1000 * ((double)(*nb_curves))/((double)st2));
+                           1000.0 * nb_curves /st2);
   outputf (OUTPUT_VERBOSE, "(on average %0.2fms per Step 2)\n", 
-                                         ((double) st2)/((double) *nb_curves));
+                           ((double) st2)/((double) nb_curves));
   tottime += st2;
 
 end_gpu_ecm_rhotable:
@@ -501,14 +499,14 @@ end_gpu_ecm_rhotable:
       if (mpz_cmp_d (B2min, B1) == 0)
         {
           if (youpi == ECM_NO_FACTOR_FOUND && 
-              (stop_asap == NULL || !(*stop_asap)()))
-              print_exptime (B1, B2, dF, k, root_params.S, 
-                             (long) (tottime / *nb_curves), param);
+              (params->stop_asap == NULL || !params->stop_asap()))
+              print_exptime (B1, B2, dF, params->k, root_params.S, 
+                             (long) (tottime / nb_curves), params->param);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }
 
-  reducefactors(factors, array_found, *nb_curves);
+  reducefactors(factors, array_found, nb_curves);
 
   /* If f0, ,fk are the factors found (in stage 1 or 2) 
    * f = f0 + f1*n + .. + fk*n^k
@@ -516,13 +514,13 @@ end_gpu_ecm_rhotable:
    * factor if needed without breaking the lib interface (as gcd(f,n)=gcd(f0,n).
    */
   mpz_set_ui (f, 0);
-  for (i = 0; i < *nb_curves; i++)
+  for (i = 0; i < nb_curves; i++)
   {
     /* invert order of factors so they are processed in same order found */
-    if (array_found[*nb_curves-1-i] != ECM_NO_FACTOR_FOUND)
+    if (array_found[nb_curves-1-i] != ECM_NO_FACTOR_FOUND)
       {
         mpz_mul (f, f, n);
-        mpz_add (f, f, factors[*nb_curves-1-i]);
+        mpz_add (f, f, factors[nb_curves-1-i]);
       }
   }
 
@@ -531,7 +529,7 @@ end_gpu_ecm:
   mpz_clear (B2);
   mpz_clear (B2min);
 
-  for (i = 0; i < *nb_curves; i++)
+  for (i = 0; i < nb_curves; i++)
       mpz_clear (factors[i]);
 
   free (array_found);
