@@ -17,7 +17,20 @@ Instructions to install GMP-ECM:
    comparing the version number from header and library; if this test 
    fails, you should remove the obsolete GMP installation.
 
-1) check your configuration with:
+1) run autotools
+
+   $ libtoolize
+   $ autoheader
+   $ aclocal
+   $ automake -c -a
+   $ autoconf
+
+   These commands will generate a configure script and makefile.
+   Alternatively, you can type:
+
+   $ autoreconf -i
+
+2) check your configuration with:
 
    $ ./configure
 
@@ -79,7 +92,7 @@ Instructions to install GMP-ECM:
    29.6 with some inputs. George Woltman says the error lies in the giants
    half-GCD code. This issue is fixed in p95v298b7.
 
-2) compile the program with:
+3) compile the program with:
 
    $ make
 
@@ -88,14 +101,14 @@ Instructions to install GMP-ECM:
    the 'ecmfactor' binary file (sample use of libecm.a), and 'tune',
    a tuning program.
 
-3) to check that the program works correctly, type:
+4) to check that the program works correctly, type:
 
    $ make check
 
    This will run several tests for P+1, P-1, ECM. These tests take a few
    minutes. It should normally end with "All ECM tests are ok."
 
-4) (optional) to tune GMP-ECM, simply type:
+5) (optional) to tune GMP-ECM, simply type:
 
    $ make ecm-params; make
 
@@ -103,7 +116,7 @@ Instructions to install GMP-ECM:
    has not enough memory for the tune program, you can run it manually with
    ./tune -max_log2_len 16 for example (the default is 18).
 
-5) (optional) you can then install the ecm binary and its man page:
+6) (optional) you can then install the ecm binary and its man page:
 
    $ make install
 
@@ -119,7 +132,7 @@ Instructions to install GMP-ECM:
 
    You can also do "make uninstall" to remove those files.
 
-6) If you like GMP-ECM, please help us factoring Cunningham numbers. First
+7) If you like GMP-ECM, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
    perform one ecm test with B1=110e6 on each number of this file:
 
