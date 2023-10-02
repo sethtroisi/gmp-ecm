@@ -7,3 +7,14 @@ linux_gmp:
     - make check
   tags:
     - linux
+
+lucaschains:
+  stage: build
+  script:
+    - git co lucaschains
+    - autoreconf -i
+    - ./configure
+    - make
+    - make check
+  tags:
+    - linux
