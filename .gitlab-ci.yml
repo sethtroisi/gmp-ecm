@@ -1,6 +1,7 @@
-linux_gmp:
+lucaschains:
   stage: build
   script:
+    - git checkout lucaschains
     - autoreconf -i
     - ./configure
     - make
@@ -8,10 +9,9 @@ linux_gmp:
   tags:
     - linux
 
-lucaschains:
+linux_gmp:
   stage: build
   script:
-    - git co lucaschains
     - autoreconf -i
     - ./configure
     - make
