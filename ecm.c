@@ -1519,6 +1519,12 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     }
   mpres_mul (x, x, u, n);
 
+  for(i = 15; i >= 0; i--)
+  {
+    mpres_clear ( LCS_z[i], n);
+    mpres_clear ( LCS_x[i], n);
+  }
+
   mpres_clear (zT2, n);
   mpres_clear (xT2, n);
   mpres_clear (zT, n);
@@ -1532,12 +1538,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_clear (u, n);
   mpres_clear (z, n);
   mpres_clear (b, n);
-
-  for(i = 0; i < 16; i++)
-  {
-    mpres_clear ( LCS_x[i], n);
-    mpres_clear ( LCS_z[i], n);
-  }
 
   return ret;
 }
