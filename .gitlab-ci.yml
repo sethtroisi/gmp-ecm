@@ -1,14 +1,3 @@
-lucaschains:
-  stage: build
-  script:
-    - git checkout lucaschains
-    - autoreconf -i
-    - ./configure
-    - make
-    - make check
-  tags:
-    - linux
-
 linux_gmp:
   stage: build
   script:
