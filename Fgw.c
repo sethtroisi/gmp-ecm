@@ -361,6 +361,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   /* kbnc_size = bits per word * # of whole words required to hold k*b^n+c */
   kbnc_size = 8*sizeof(mp_size_t)*(tmp->_mp_size); 
   ASSERT_ALWAYS ( (unsigned long)tmp_bitsize >= kbnc_size );
+  mpz_clear (tmp);
 
   /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
   /* ecmstag1.c in gwnum says it needs 60 bits more than the gwnum modulus size,
@@ -368,7 +369,6 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   mpz_init2 (gw_x, kbnc_size + 64);
   mpz_init2 (gw_z, kbnc_size + 64);
   mpres_init (gw_A, modulus);
-  mpz_clear (tmp);
 
   /* mpres_get_z always produces non-negative integers */
   mpres_get_z (gw_x, P->x, modulus);
