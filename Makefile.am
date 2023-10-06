@@ -102,7 +102,8 @@ if WITH_GWNUM
   
   libecm_la_SOURCES += Fgw.c
   # Use ecm_DEPENDENCIES += gwdata.ld instead? Is that possible?
-  ecm_DEPENDENCIES = gwdata.ld
+#  ecm_DEPENDENCIES = gwdata.ld
+#  the above line breaks the build for gwnum. Please don't use it. PBMcL
   ecm_LDFLAGS = $(AM_LDFLAGS) -Wl,gwdata.ld
   LIBS += -ldl
   Fgwtest : Fgw.c gwdata.ld
