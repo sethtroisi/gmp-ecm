@@ -507,7 +507,11 @@ case $host_os in
   darwin*) ;;
   *) if test "x$enable_shared" != xyes; then
        if test -r "$with_gmp_lib/libgmp.a"; then
-         GMPLIB="$with_gmp_lib/libgmp.a"
+         if test "x$with_gwnum" != "x"; then
+           GMPLIB="$with_gmp_lib/libgmp.a $with_gmp_lib/libgmp.so"
+         else
+           GMPLIB="$with_gmp_lib/libgmp.a"
+         fi
          dnl Don't need -L flag since we give full path to libgmp.a
          GMPLDFLAGS=""
        fi
