@@ -218,12 +218,18 @@ int
 kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
           char *z, mpz_t num)
 {
-  unsigned long i = 0;
+  unsigned long i = 0, s_len, b2, n2, i2, pow;
+  char power_count = 0, prev_pwr_indx = 0,
+               last_pwr_indx = 0, mul_count = 0, mul_indx = 0,
+               sign_count = 0, sign_indx = 0;
   int total = 0;
   char strk[11];
   char strb[11];
   char strn[11];
   char strc[11];
+  char strb2[11];
+  char strn2[11];
+  char sign;
   mpz_t tmp;
 
   /* make sure we have a place to put our results */
@@ -232,7 +238,52 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
 
   *b = 0;
 
-  for (i = 0; i < strlen(z); i++)
+  /* ignore everything after a '/', if there is one */
+  s_len = strlen(z);
+  for (i = 0; i < s_len; i++)
+  {
+    if( z[i] == '^' )
+    {
+      power_count++;
+      prev_pwr_indx = last_pwr_indx;
+      last_pwr_indx = i;
+    }
+
+    if( z[i] == '*' )
+    {
+      mul_count++;
+      mul_indx = i;
+    }
+
+    if( z[i] == '+' )
+    {
+      sign_count++;
+      sign_indx = i;
+      sign = 1;
+    }
+
+    if( z[i] == '-' )
+    {
+      sign_count++;
+      sign_indx = i;
+      sign = -1;
+    }
+
+    if( z[i] == '/' )
+    {
+       s_len = i;
+       break;
+    }
+  }
+  /* exit if there is no '^' in the string
+     or the input is not of the right form */
+  if( power_count == 0 || power_count > 2 || mul_count > 1 || sign_count != 1 ||
+        sign_indx < last_pwr_indx || mul_indx > sign_indx)
+    return 0;
+
+  if( power_count == 1 && mul_indx < last_pwr_indx)
+  {
+    for (i = 0; i < s_len; i++)
     {
       if (z[i] == '(' || z[i] == '{' || z[i] == '[')
         continue;
@@ -288,6 +339,82 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
         }
       break;
     }
+  }
+  else if( power_count == 2 && mul_indx < prev_pwr_indx )
+  {
+    for (i = 0; i < prev_pwr_indx; i++)
+    {
+      if (z[i] == '(' || z[i] == '{' || z[i] == '[')
+        continue;
+
+      /* find k & b */
+      if( mul_indx == 0 ) /* k = 1.0 */
+      {
+        total = sscanf (z+i, "%10[0-9]", strb);
+        if(total == 1)
+        {
+          *k = 1.0;
+          *b = strtoul (strb, NULL, 10);
+          break;
+        }
+      }
+      else
+      {
+        total = sscanf (z+i, "%10[0-9]*%10[0-9]", strk, strb);
+        if( total == 2 )
+        {
+          *k = (double) strtoul (strk, NULL, 10);
+          *b = strtoul (strb, NULL, 10);
+          break;
+        }
+      }
+      break;
+    }
+
+    for (i = (prev_pwr_indx + 1); i < s_len; i++)
+    {
+      if (z[i] == '(' || z[i] == '{' || z[i] == '[')
+        continue;
+
+      total = sscanf (z+i, "%10[0-9]^%10[0-9]", strb2, strn2);
+      if (total == 2)
+      {
+        b2 = strtoul (strb2, NULL, 10);
+        n2 = strtoul (strn2, NULL, 10);
+
+        if( (double)n2*log10((double)b2) >= 10.0 )
+        {
+          outputf (OUTPUT_NORMAL, 
+           "Exponent (%lu^%lu) too large in kbnc_str!\n", b2, n2);
+          return 0;
+        }
+
+        pow = b2;
+        for( i2 = 1; i2 < n2; i2++)
+          pow *= b2;
+
+        *n = pow;
+        break;
+      }
+      break;
+    }
+
+    for (i = (sign_indx + 1); i < s_len; i++)
+    {
+      if (z[i] == '(' || z[i] == '{' || z[i] == '[')
+        continue;
+
+      total = sscanf (z+i, "%10[0-9]", strc);
+      if(total == 1)
+      {
+        *c = sign*strtoul (strc, NULL, 10);
+        break;
+      }
+      break;
+    }
+  }
+  else
+    return 0;
 
   /* first, check to see if we found a k*b^n+c */
   if (*b)
