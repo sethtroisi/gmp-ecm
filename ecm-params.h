@@ -32,10 +32,6 @@
 #define ECM_TUNE_CASE "x86_64/k8/params.h"
 #include "x86_64/k8/params.h"
 
-#elif defined (__tune_athlon__) /* Threshold for Athlon */
-#define ECM_TUNE_CASE "athlon/params.h"
-#include "athlon/params.h"
-
 #elif defined (__tune_pentiumpro__) || defined (__tune_i686__) || defined (__i386) /* we consider all other 386's here */
 #define ECM_TUNE_CASE "x86/params.h"
 #include "x86/params.h"

@@ -1,7 +1,7 @@
 dnl Various routines adapted from gmp-4.1.4
 
 define(X86_PATTERN,
-[[i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | athlon-*-* | viac3*-*-*]])
+[[i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | viac3*-*-*]])
 
 
 dnl  GMP_INIT([M4-DEF-FILE])
