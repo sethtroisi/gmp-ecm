@@ -20,17 +20,9 @@
 #define ECM_TUNE_CASE "generic/params33.h"
 #include "generic/params33.h"
 
-#elif defined(__tune_corei7__)
-#define ECM_TUNE_CASE "x86_64/corei7/params.h"
-#include "x86_64/corei7/params.h"
-
-#elif (defined (__tune_core2__) || defined (__tune_nocona__)) && defined (__x86_64) /* 64-bit Core 2 or Xeon */
-#define ECM_TUNE_CASE "x86_64/core2/params.h"
-#include "x86_64/core2/params.h"
-
-#elif defined (__tune_k8__) || defined (__amd64__) /* AMD 64 */
-#define ECM_TUNE_CASE "x86_64/k8/params.h"
-#include "x86_64/k8/params.h"
+#elif defined(__x86_64)
+#define ECM_TUNE_CASE "x86_64/params.h"
+#include "x86_64/params.h"
 
 #elif defined (__tune_pentiumpro__) || defined (__tune_i686__) || defined (__i386) /* we consider all other 386's here */
 #define ECM_TUNE_CASE "x86/params.h"

@@ -117,10 +117,9 @@ noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h \
                  aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
-             x86_64/core2/params.h x86_64/k8/params.h \
              x86/params.h ia64/params.h arm/params.h    \
              powerpc64/params.h powerpc32/params.h sparc64/params.h     \
-             hppa/params.h mips/params.h x86_64/corei7/params.h         \
+             hppa/params.h mips/params.h x86_64/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
              getprime_r.h cudakernel_default.cu cgbn_stage1.cu \
              test.gpuecm README.gpu c155 \
