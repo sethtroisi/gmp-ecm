@@ -20,10 +20,6 @@
 #define ECM_TUNE_CASE "generic/params33.h"
 #include "generic/params33.h"
 
-#elif defined (__tune_pentium4__) /* tuning for Pentium 4 */
-#define ECM_TUNE_CASE "pentium4/params.h"
-#include "pentium4/params.h"
-
 #elif defined(__tune_corei7__)
 #define ECM_TUNE_CASE "x86_64/corei7/params.h"
 #include "x86_64/corei7/params.h"
