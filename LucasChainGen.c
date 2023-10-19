@@ -2754,6 +2754,7 @@ int32_t main( int argc, char *argv[])
 	static char *file_6 = "current_status.dat";
 	static char *old_target_prime_filename, *new_target_prime_filename;
 	static char *old_pending_code_filename, *new_pending_code_filename;
+	size_t dum;
 
 	B1_in = 0;
     if( argc < 2 ) /* no arguments? */
@@ -2876,26 +2877,28 @@ int32_t main( int argc, char *argv[])
 	else /* resume from where we left off */
 	{
 		current_status_file = fopen(file_6,"r");
-		fread((int8_t *)chain_code_list_start_index, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&smallest_unsaved_code_index, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&old_smallest_unsaved_code_index, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&smallest_target_prime_next_list, sizeof(u_int64_t), 1, current_status_file);
-		fread((int8_t *)&old_tgt_prime_list_count, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&old_tgt_p_file_read_count, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&old_pending_code_list_count, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&old_pending_code_file_read_count, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&new_tgt_prime_list_count, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&new_pending_code_list_count, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&chain_list_zero_count, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&total_prime_chain_count, sizeof(u_int64_t), 1, current_status_file);
-		fread((int8_t *)&total_chain_count_max_dbls, sizeof(u_int64_t), 1, current_status_file);
-		fread((int8_t *)&indx, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&code_save_index, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&dif_index, sizeof(u_int32_t), 1, current_status_file);
-		fread((int8_t *)&true_indx, sizeof(u_int64_t), 1, current_status_file);
-		fread((int8_t *)&test_length_restart, sizeof(u_int8_t), 1, current_status_file);
-		fread((int8_t *)&new_length_init, sizeof(u_int8_t), 1, current_status_file);
-		fread((int8_t *)max_code_length, sizeof(u_int8_t), 1, current_status_file);
+		dum = fread((int8_t *)chain_code_list_start_index, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&smallest_unsaved_code_index, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_smallest_unsaved_code_index, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&smallest_target_prime_next_list, sizeof(u_int64_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_tgt_prime_list_count, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_tgt_p_file_read_count, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_pending_code_list_count, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_pending_code_file_read_count, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&new_tgt_prime_list_count, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&new_pending_code_list_count, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&chain_list_zero_count, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&total_prime_chain_count, sizeof(u_int64_t), 1, current_status_file);
+		dum = fread((int8_t *)&total_chain_count_max_dbls, sizeof(u_int64_t), 1, current_status_file);
+		dum = fread((int8_t *)&indx, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&code_save_index, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&dif_index, sizeof(u_int32_t), 1, current_status_file);
+		dum = fread((int8_t *)&true_indx, sizeof(u_int64_t), 1, current_status_file);
+		dum = fread((int8_t *)&test_length_restart, sizeof(u_int8_t), 1, current_status_file);
+		dum = fread((int8_t *)&new_length_init, sizeof(u_int8_t), 1, current_status_file);
+		dum = fread((int8_t *)max_code_length, sizeof(u_int8_t), 1, current_status_file);
+		if(dum == 0)
+			printf("ERROR: Size mismatch reading status file!\n");
 		fclose(current_status_file);
 
 		/* update sieve space to current interval */
@@ -2988,7 +2991,9 @@ int32_t main( int argc, char *argv[])
 				pending_list_read_count = old_pending_code_list_count - old_pending_code_file_read_count;
 				if( pending_list_read_count > MAX_CODE_OR_PRIME_COUNT )
 					pending_list_read_count = MAX_CODE_OR_PRIME_COUNT;
-				fread((int8_t *)chain_code_list, sizeof(u_int64_t), pending_list_read_count, old_pending_code_list_read_file);
+				dum = fread((int8_t *)chain_code_list, sizeof(u_int64_t), pending_list_read_count, old_pending_code_list_read_file);
+				if(dum == 0)
+					printf("ERROR: End-Of-File reading old pending list file!\n");
 				old_pending_code_file_read_count += pending_list_read_count;
 				if( old_pending_code_list_count == old_pending_code_file_read_count )
 				{
@@ -3026,7 +3031,9 @@ int32_t main( int argc, char *argv[])
 				}
 
 				/* read in target primes corresponding to the zeros in the code array so far */
-				fread((int8_t *)tgt_prime_list, sizeof(target_prime), pending_list_zero_count, old_tgt_p_list_read_file);
+				dum = fread((int8_t *)tgt_prime_list, sizeof(target_prime), pending_list_zero_count, old_tgt_p_list_read_file);
+				if(dum == 0)
+					printf("ERROR: End-Of-File reading old target prime list file!\n");
 				old_tgt_p_file_read_count += pending_list_zero_count;
 				if( old_tgt_prime_list_count == old_tgt_p_file_read_count )
 				{
@@ -3291,6 +3298,7 @@ int32_t main( int argc, char *argv[])
 					fwrite((int8_t *)&chain_code_list[code_save_count], sizeof(u_int64_t), k, new_pending_code_list_write_file);
 					printf("info: stored %u chain codes in file %s\n", k, new_pending_code_filename);
 					new_pending_code_list_count = k;
+					last_j = 0;
 
 					if( old_pending_code_list_count > 0 )
 					{
@@ -3298,7 +3306,9 @@ int32_t main( int argc, char *argv[])
 						k = 0;
 						while( old_pending_code_file_read_count < old_pending_code_list_count )
 						{
-							fread((int8_t *)&temp_var, sizeof(u_int64_t), 1, old_pending_code_list_read_file);
+							dum = fread((int8_t *)&temp_var, sizeof(u_int64_t), 1, old_pending_code_list_read_file);
+							if(dum == 0)
+								printf("ERROR: Early EOF reading old pending list file!\n");
 							if( temp_var != 0 )
 							{
 								fwrite((int8_t *)&temp_var, sizeof(u_int64_t), 1, new_pending_code_list_write_file);
@@ -3358,7 +3368,9 @@ int32_t main( int argc, char *argv[])
 						chain_code_file = fopen(file_1,"a");
 						while( old_pending_code_file_read_count < old_pending_code_list_count )
 						{
-							fread((int8_t *)&temp_var, sizeof(u_int64_t), 1, old_pending_code_list_read_file);
+							dum = fread((int8_t *)&temp_var, sizeof(u_int64_t), 1, old_pending_code_list_read_file);
+							if(dum == 0)
+								printf("ERROR: Early EOF reading old pending list file!\n");
 							if( temp_var != 0 )
 							{
 								fwrite((int8_t *)&temp_var, sizeof(u_int64_t), 1, chain_code_file);
@@ -3407,7 +3419,9 @@ int32_t main( int argc, char *argv[])
 					k = 0;
 					while( old_pending_code_file_read_count < old_pending_code_list_count )
 					{
-						fread((int8_t *)&temp_var, sizeof(u_int64_t), 1, old_pending_code_list_read_file);
+						dum = fread((int8_t *)&temp_var, sizeof(u_int64_t), 1, old_pending_code_list_read_file);
+						if(dum == 0)
+							printf("ERROR: Early EOF reading old pending list file!\n");
 						if( temp_var != 0 )
 						{
 							fwrite((int8_t *)&temp_var, sizeof(u_int64_t), 1, new_pending_code_list_write_file);
@@ -3613,7 +3627,14 @@ int32_t main( int argc, char *argv[])
 		}
 		while( true_indx <= max_indx_value );
 		if( gen_exit_flag )
+		{
+			dum = system("rm -f Tgt_prime_list_1.dat");
+			dum = system("rm -f Tgt_prime_list_2.dat");
+			dum = system("rm -f Pending_Lchain_code_list_1.dat");
+			dum = system("rm -f Pending_Lchain_code_list_2.dat");
+			dum = system("rm -f current_status.dat");
 			return EXIT_SUCCESS;
+		}
 	}
 
 	return EXIT_SUCCESS;
