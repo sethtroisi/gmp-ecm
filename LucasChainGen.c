@@ -17,7 +17,7 @@
 #include "LucasChainGen.h"
 
 /* returns current clock count in microseconds */
-u_int64_t cputime()
+u_int64_t cputime(void)
 {
     return (u_int64_t)clock();
 }
@@ -233,7 +233,7 @@ sieve_params *get_sieve_primes_ptr(void)
 
 
 /* sieving & prime generation routines */
-int32_t sieve_init(void)
+u_int32_t sieve_init(void)
 {
 	u_int8_t *dif_table, *newsieve;
 	sieve_params *sieve_primes;
@@ -244,9 +244,10 @@ int32_t sieve_init(void)
 
 	/* set up the difference table, sieve primes, and associated table indices */
 
-	int32_t i, j, s_index, indx_p, last_index, dif_index, dif_sum, max_dif, max_dif_sum;
-	int32_t small_primes[5] = {3, 5, 7, 11, 13};
-	u_int32_t p;
+	u_int32_t i, j;
+	u_int32_t s_index, indx_p, last_index, dif_index, dif_sum, max_dif, max_dif_sum = 0;
+	u_int32_t small_primes[5] = {3, 5, 7, 11, 13};
+	u_int32_t p = 0;
 	u_int64_t tmp;
 
 	/* construct a table of differences for integers not divisible by
@@ -282,7 +283,7 @@ int32_t sieve_init(void)
 	do
 	{
 		while(newsieve[s_index] == 0) s_index++;
-		dif_table[j] = s_index - last_index;
+		dif_table[j] = (u_int8_t)(s_index - last_index);
 		last_index = s_index;
 		j++;
 		s_index++;
@@ -361,12 +362,12 @@ int32_t sieve_init(void)
 	return i;
 }
 
-void standard_sieve( int32_t sieve_prime_count )
+void standard_sieve( u_int32_t sieve_prime_count )
 {
 	static u_int8_t *dif_table, *sieve_space, init = 0;
 	static sieve_params *sieve_primes;
 
-	int32_t i, j, k, dif_index;
+	u_int32_t i, j, k, dif_index;
 	u_int64_t indx;
 	u_int32_t p, p_multiples[11];
 
@@ -412,7 +413,7 @@ void standard_sieve( int32_t sieve_prime_count )
 	}
 }
 
-int32_t prime_count( u_int32_t *sieve_space_start_index, int32_t *dif_table_start_index )
+u_int32_t prime_count( u_int32_t *sieve_space_start_index, u_int32_t *dif_table_start_index )
 {
 	static u_int8_t *dif_table, *sieve_space, init = 0;
 
@@ -577,7 +578,7 @@ void copy_candidate_to_working_chain(void)
 		init = 1;
 	}
 
-	w_index = *current_partial_length + 1;
+	w_index = (u_int8_t)(*current_partial_length + 1);
 	c_index = *current_c_index;
 
 	working_chain[w_index].value           = candidate_list[c_index].value;
@@ -671,7 +672,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			Lchain[3].comp_offset_1 = 1;
 			Lchain[3].comp_offset_2 = 1;
 			Lchain[3].dif_offset = 0;
-			*dbl_count += 1;
+			(*dbl_count)++;
 
 			Lchain[4].value = 7;
 			Lchain[4].comp_offset_1 = 0;
@@ -764,7 +765,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			Lchain[4].comp_offset_1 = 1;
 			Lchain[4].comp_offset_2 = 1;
 			Lchain[4].dif_offset = 0;
-			*dbl_count += 1;
+			(*dbl_count)++;
 
 			Lchain[5].value = 11;
 			Lchain[5].comp_offset_1 = 0;
@@ -780,7 +781,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			Lchain[3].comp_offset_1 = 1;
 			Lchain[3].comp_offset_2 = 1;
 			Lchain[3].dif_offset = 0;
-			*dbl_count += 1;
+			(*dbl_count)++;
 
 			Lchain[4].value = 7;
 			Lchain[4].comp_offset_1 = 0;
@@ -822,7 +823,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			Lchain[3].comp_offset_1 = 1;
 			Lchain[3].comp_offset_2 = 1;
 			Lchain[3].dif_offset = 0;
-			*dbl_count += 1;
+			(*dbl_count)++;
 
 			Lchain[4].value = 7;
 			Lchain[4].comp_offset_1 = 0;
@@ -848,7 +849,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			Lchain[4].comp_offset_1 = 1;
 			Lchain[4].comp_offset_2 = 1;
 			Lchain[4].dif_offset = 0;
-			*dbl_count += 1;
+			(*dbl_count)++;
 
 			Lchain[5].value = 9;
 			Lchain[5].comp_offset_1 = 0;
@@ -885,7 +886,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			Lchain[3].comp_offset_1 = 1;
 			Lchain[3].comp_offset_2 = 1;
 			Lchain[3].dif_offset = 0;
-			*dbl_count += 1;
+			(*dbl_count)++;
 
 			Lchain[4].value = 5;
 			Lchain[4].comp_offset_1 = 0;
@@ -980,7 +981,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			Lchain[5].comp_offset_2 = 1;
 			Lchain[5].dif_offset = 0;
 
-			*dbl_count += 1;
+			(*dbl_count)++;
 			start_frag_count[CHAIN_START_5_8_10]++;
 //			print_chain = 1;
 			break;
@@ -1023,7 +1024,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			Lchain[5].comp_offset_2 = 1;
 			Lchain[5].dif_offset = 0;
 
-			*dbl_count += 1;
+			(*dbl_count)++;
 			start_frag_count[CHAIN_START_5_7_10]++;
 //			print_chain = 1;
 			break;
@@ -1054,12 +1055,12 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 					Lchain[ chain_length+1 ].comp_offset_1 = 2;
 					Lchain[ chain_length+1 ].comp_offset_2 = 2;
 					Lchain[ chain_length+1 ].dif_offset = 0;
-					*dbl_count += 1;
+					(*dbl_count)++;
 					chain_length++;
 				}
 				else
 				{
-					i = 12*(i + 1);
+					i = (u_int8_t)(12*(i + 1));
 					max_continuation( Lchain, &chain_length, i );
 				}
 				break;
@@ -1088,7 +1089,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 				Lchain[ chain_length+1 ].comp_offset_1 = 1;
 				Lchain[ chain_length+1 ].comp_offset_2 = 1;
 				Lchain[ chain_length+1 ].dif_offset = 0;
-				*dbl_count += 1;
+				(*dbl_count)++;
 				chain_length++;
 				break;
 			}
@@ -1111,7 +1112,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 				Lchain[ chain_length+1 ].comp_offset_1 = 1;
 				Lchain[ chain_length+1 ].comp_offset_2 = 1;
 				Lchain[ chain_length+1 ].dif_offset = 0;
-				*dbl_count += 1;
+				(*dbl_count)++;
 				chain_length++;
 				break;
 			}
@@ -1134,7 +1135,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 				Lchain[ chain_length+1 ].comp_offset_1 = 1;
 				Lchain[ chain_length+1 ].comp_offset_2 = 1;
 				Lchain[ chain_length+1 ].dif_offset = 0;
-				*dbl_count += 1;
+				(*dbl_count)++;
 				chain_length++;
 				break;
 			}
@@ -1157,7 +1158,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 				Lchain[ chain_length+1 ].comp_offset_1 = 1;
 				Lchain[ chain_length+1 ].comp_offset_2 = 1;
 				Lchain[ chain_length+1 ].dif_offset = 0;
-				*dbl_count += 1;
+				(*dbl_count)++;
 				chain_length++;
 				break;
 			}
@@ -1184,7 +1185,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 				Lchain[ chain_length+1 ].comp_offset_1 = 1;
 				Lchain[ chain_length+1 ].comp_offset_2 = 1;
 				Lchain[ chain_length+1 ].dif_offset = 0;
-				*dbl_count += 1;
+				(*dbl_count)++;
 				chain_length++;
 				break;
 			}
@@ -1211,7 +1212,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 				Lchain[ chain_length+1 ].comp_offset_1 = 1;
 				Lchain[ chain_length+1 ].comp_offset_2 = 1;
 				Lchain[ chain_length+1 ].dif_offset = 0;
-				*dbl_count += 1;
+				(*dbl_count)++;
 				chain_length++;
 				break;
 			}
@@ -1294,6 +1295,11 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 				chain_length++;
 				break;
 			}
+			default: /* placeholder - should never get here */
+			{
+				printf("ERROR: reached default #1\n");
+				break;
+			}
 		}
 	}
 
@@ -1351,7 +1357,7 @@ void max_continuation( chain_element *Lchain, u_int8_t *chain_length, u_int8_t i
 		return;
 	}
 	Lchain[ *chain_length+1 ].dif_offset = k;
-	*chain_length += 1;
+	(*chain_length)++;
 	if( i > 1 )
 	{
 		for( k = 1; k < i; k++)
@@ -1360,7 +1366,7 @@ void max_continuation( chain_element *Lchain, u_int8_t *chain_length, u_int8_t i
 			Lchain[ *chain_length+1 ].comp_offset_1 = 0;
 			Lchain[ *chain_length+1 ].comp_offset_2 = 1;
 			Lchain[ *chain_length+1 ].dif_offset = 2;
-			*chain_length += 1;
+			(*chain_length)++;
 		}
 	}
 }
@@ -1576,6 +1582,10 @@ u_int64_t encode_Lchain(void)
 								chain_code <<= 2;
 								*code_length += 2;
 								chain_code += 0x3B;
+								break;
+							default: /* placeholder - should never get here */
+								printf("ERROR: reached default #2\n");
+								break;
 						}
 						switch( i ) /* step_type = 1, i*12 */
 						{
@@ -1595,9 +1605,12 @@ u_int64_t encode_Lchain(void)
 								chain_code <<= 6;
 								*code_length += 6;
 								chain_code += 0x20; /* 36 maximal elements */
-
+								break;
 							/* Note: the code fragment 0x30 is used for step type = 4, since a string of 48
 							   maximal elements will never appear until chain lengths are well into the 50's */
+							default: /* placeholder - should never get here */
+								printf("ERROR: reached default #3\n");
+								break;
 						}
 						break;
 
@@ -1668,6 +1681,10 @@ u_int64_t encode_Lchain(void)
 								chain_code <<= 2;
 								*code_length += 2;
 								chain_code += 0x3C;
+								break;
+							default: /* placeholder - should never get here */
+								printf("ERROR: reached default #4\n");
+								break;
 						}
 						switch( i ) /* step_type = 1, i*12 */
 						{
@@ -1687,7 +1704,10 @@ u_int64_t encode_Lchain(void)
 							chain_code <<= 6;
 							*code_length += 6;
 							chain_code += 0x20; /* 36 maximal elements */
-
+							break;
+						default: /* placeholder - should never get here */
+							printf("ERROR: reached default #5\n");
+							break;
 						/* Note: the code fragment 0x30 is used for step type = 4, since a string of 48
 						   maximal elements will never appear until chain lengths are well into the 50's */
 						}
@@ -1711,7 +1731,7 @@ u_int64_t encode_Lchain(void)
 							case 1:
 							case 2:
 							case 3:
-								chain_code += (i*16 + 0xE);
+								chain_code += (u_int64_t)(i*16 + 0xE);
 								break;
 							case 4:
 								chain_code += 0xD; /* not needed until chain length = 44 */
@@ -1731,7 +1751,7 @@ u_int64_t encode_Lchain(void)
 						}
 						chain_code <<= 2;
 						*code_length += 2;
-						chain_code += (i*16 + 0xF);
+						chain_code += (u_int64_t)(i*16 + 0xF);
 						increment = 1;
 						break;
 
@@ -1837,6 +1857,8 @@ u_int64_t encode_Lchain(void)
 							goto report_error;
 					}
 				}
+				default:
+					goto report_error;
 			}
 		} /* end case val3 == 4 */
 		case 5:
@@ -1894,8 +1916,12 @@ u_int64_t encode_Lchain(void)
 							goto report_error;
 					}
 				}
+				default:
+					goto report_error;
 			}
 		}
+		default:
+			goto report_error;
 	}
 
 	/* report unimplemented start sequence */
@@ -1972,7 +1998,7 @@ u_int8_t check_candidate(void)
 	}
 
 	c = candidate_list[*current_c_index].value;
-	steps_to_go = *w_chain_length - *current_partial_length - 1;
+	steps_to_go = (u_int8_t)(*w_chain_length - *current_partial_length - 1);
 	max_val = Fib[steps_to_go + 1]*c + Fib[steps_to_go]*chain_values[0];
 	/* note that max_val == c when steps_to_go == 0 */
 
@@ -2680,7 +2706,7 @@ void generate_and_process_candidate_list(void)
 		generate_and_process_candidate_list(); /* recursive call */
 		r_level--;
 		*c_list_start_index -= c_count[r_level];
-		*current_partial_length -= 1;
+		(*current_partial_length)--;
 
 		c_indx[r_level]++;
 	}
@@ -2693,7 +2719,7 @@ int32_t main( int argc, char *argv[])
 	u_int8_t *dif_table;
 	u_int8_t *sieve_space;
 //	sieve_params *sieve_primes;
-	int32_t dif_table_start_index, sieve_prime_count, p_count, total_p_count;
+	u_int32_t dif_table_start_index, sieve_prime_count, p_count, total_p_count;
 	u_int32_t sieve_space_start_index;
 	u_int32_t indx, dif_index;
 	u_int64_t true_indx, max_indx_value, max_odd_val, i64;
@@ -2737,7 +2763,7 @@ int32_t main( int argc, char *argv[])
 	u_int64_t smallest_target_prime_next_list;
 	u_int32_t pending_list_read_count, pending_list_zero_count;
 	u_int32_t chain_code_array_space_remaining, chain_code_array_count;
-	u_int64_t largest_target_prime_next_list;
+	u_int64_t largest_target_prime_next_list = 0;
 	u_int8_t *max_code_length;
 	u_int8_t *tgt_prime_code_length;
 	u_int32_t *code_length_problem_count, code_index;
@@ -2746,14 +2772,14 @@ int32_t main( int argc, char *argv[])
 	FILE *old_tgt_p_list_read_file, *new_tgt_p_list_write_file;
 	FILE *old_pending_code_list_read_file, *new_pending_code_list_write_file;
 	FILE *current_status_file;
-	static char *file_1 = "Lchain_codes.dat";
-	static char *file_2 = "Pending_Lchain_code_list_1.dat";
-	static char *file_3 = "Tgt_prime_list_1.dat";
-	static char *file_4 = "Pending_Lchain_code_list_2.dat";
-	static char *file_5 = "Tgt_prime_list_2.dat";
-	static char *file_6 = "current_status.dat";
-	static char *old_target_prime_filename, *new_target_prime_filename;
-	static char *old_pending_code_filename, *new_pending_code_filename;
+	static const char *file_1 = "Lchain_codes.dat";
+	static const char *file_2 = "Pending_Lchain_code_list_1.dat";
+	static const char *file_3 = "Tgt_prime_list_1.dat";
+	static const char *file_4 = "Pending_Lchain_code_list_2.dat";
+	static const char *file_5 = "Tgt_prime_list_2.dat";
+	static const char *file_6 = "current_status.dat";
+	static const char *old_target_prime_filename, *new_target_prime_filename;
+	static const char *old_pending_code_filename, *new_pending_code_filename;
 	size_t dum;
 
 	B1_in = 0;
@@ -2783,7 +2809,11 @@ int32_t main( int argc, char *argv[])
     B1 = (u_int64_t)B1_in;
     printf("\nGenerator upper limit B1 = %lu\n\n", B1);
 
-	/* generate Fibonacci & Lucas numbers */
+    /* keep the compiler happy */
+    old_tgt_p_list_read_file = (FILE *)NULL;
+    old_pending_code_list_read_file = (FILE *)NULL;
+
+    /* generate Fibonacci & Lucas numbers */
 	Fib = get_Fib_ptr();
 	Luc = get_Luc_ptr();
 
@@ -3017,12 +3047,12 @@ int32_t main( int argc, char *argv[])
 
 				/* count zeros in the chain code array just read in */
 				pending_list_zero_count = 0;
-				for( i = 0; i < pending_list_read_count; i++ )
+				for( i = 0; i < (int32_t)pending_list_read_count; i++ )
 					if( chain_code_list[i] == 0 )
 						pending_list_zero_count++;
 
 				/* # of records remaining in the old target prime list file */
-				i = old_tgt_prime_list_count - old_tgt_p_file_read_count;
+				i = (int32_t)(old_tgt_prime_list_count - old_tgt_p_file_read_count);
 				if( pending_list_zero_count > (u_int32_t)i ) /* sanity check - should never happen */
 				{
 					printf("ERROR: code array zero count %u > remaining records in old target prime file %d!\n",
@@ -3047,7 +3077,7 @@ int32_t main( int argc, char *argv[])
 
 				/* logic check - remove after testing */
 				*chain_code_list_start_index = tgt_prime_list[0].save_index;
-				for( i = 0; i < pending_list_zero_count; i++ )
+				for( i = 0; i < (int32_t)pending_list_zero_count; i++ )
 				{
 					k = tgt_prime_list[i].save_index - *chain_code_list_start_index;
 					if( k >= pending_list_read_count )
@@ -3118,10 +3148,10 @@ int32_t main( int argc, char *argv[])
 				}
 
 				/* write zeros into the chain code array for the primes just generated */
-				i = *tgt_p_count - pending_list_zero_count;
+				i = (int32_t)(*tgt_p_count - pending_list_zero_count);
 				if( i > 0 )
 				{
-					k = pending_list_read_count + i;
+					k = pending_list_read_count + (u_int32_t)i;
 					for(j = pending_list_read_count; j < k; j++)
 						chain_code_list[ j ] = 0;
 				}
@@ -3130,10 +3160,10 @@ int32_t main( int argc, char *argv[])
 			/* "index_count_per_val" helps to give a rough estimate of where in the target prime list to start
 			 * looking for a match between a final chain value and a prime in the target list */
 			c_value_range = (double)(tgt_prime_list[*tgt_p_count - 1].prime - tgt_prime_list[0].prime);
-			if( c_value_range != 0 )
+			if( c_value_range > 0.0 )
 				*index_count_per_val = ((double)(*tgt_p_count - 1))/c_value_range;
 			else
-				*index_count_per_val = 0;
+				*index_count_per_val = 0.0;
 
 			/* output status of current interval */
 			chain_code_array_count = pending_list_read_count + (*tgt_p_count - pending_list_zero_count); /* total index count */
@@ -3147,7 +3177,7 @@ int32_t main( int argc, char *argv[])
 				printf("\nERROR: # of target primes = %u > MAX_CODE_OR_PRIME_COUNT = %u\n", *tgt_p_count, MAX_CODE_OR_PRIME_COUNT);
 
 			/* initialize chain counts for the target primes */
-			for(i = 0;i < *tgt_p_count; i++)
+			for(i = 0;i < (int32_t)(*tgt_p_count); i++)
 			{
 				chain_count[i] = 0;
 				chain_max_dbl_count[i] = 0;
@@ -3165,11 +3195,11 @@ int32_t main( int argc, char *argv[])
 				exception_list_1_step[0] = Luc[test_length];
 				exception_count = 1;
 				if( (test_length & 1) != 0 )
-					j = (test_length - 3)/2;
+					j = (u_int32_t)((test_length - 3)/2);
 				else
-					j = (test_length - 2)/2;
+					j = (u_int32_t)((test_length - 2)/2);
 
-				for(i=1;i < j;i++) /* note that min_test_length >= 6, so j >= 2 */
+				for(i=1;i < (int32_t)j;i++) /* note that min_test_length >= 6, so j >= 2 */
 				{
 					/* Starting with the length 2 chain [1,2,3], follow the fibonacci chain for i steps, (a(i) = Fib[i+2]),
 					 *  take one step down (a(i + 1) = Fib[i+2] + Fib[i]),
@@ -3254,7 +3284,7 @@ int32_t main( int argc, char *argv[])
 				/* save chain codes to the final file until a target prime with no chain yet appears */
 
 				/* find the first target prime with no chain yet */
-				while( i < *tgt_p_count )
+				while( i < (int32_t)(*tgt_p_count) )
 				{
 					if(chain_count[i] == 0)
 					{
@@ -3265,7 +3295,7 @@ int32_t main( int argc, char *argv[])
 				}
 
 				/* write chain codes to the final file */
-				if( i < *tgt_p_count ) /* a target prime was found with chain_count == 0 */
+				if( i < (int32_t)(*tgt_p_count) ) /* a target prime was found with chain_count == 0 */
 				{
 					code_save_count = tgt_prime_list[i].save_index - *chain_code_list_start_index;
 					smallest_unsaved_code_index = tgt_prime_list[i].save_index;
@@ -3343,7 +3373,7 @@ int32_t main( int argc, char *argv[])
 					/* save target primes with no chain yet to the new target prime file */
 					new_tgt_p_list_write_file = fopen(new_target_prime_filename, "w");
 					k = 0;
-					for(j = i; j < *tgt_p_count; j++)
+					for(j = (u_int32_t)i; j < *tgt_p_count; j++)
 					{
 						if( chain_count[j] == 0 )
 						{
@@ -3485,7 +3515,7 @@ int32_t main( int argc, char *argv[])
 
 			interval_chain_count = 0;
 			k = 0;
-			for(i = 0;i < *tgt_p_count; i++)
+			for(i = 0;i < (int32_t)(*tgt_p_count); i++)
 			{
 				interval_chain_count += chain_count[i];
 				k += chain_count_max_dbls[i];
@@ -3498,7 +3528,7 @@ int32_t main( int argc, char *argv[])
 
 //#if 0
 			unique_chain_count = 0;
-			for(i=0;i<*tgt_p_count;i++)
+			for(i = 0; i < (int32_t)(*tgt_p_count); i++)
 			{
 #if 0
 				if( i < 10 ) /* print results for up to 10 primes at start of target list */
@@ -3628,11 +3658,11 @@ int32_t main( int argc, char *argv[])
 		while( true_indx <= max_indx_value );
 		if( gen_exit_flag )
 		{
-			dum = system("rm -f Tgt_prime_list_1.dat");
-			dum = system("rm -f Tgt_prime_list_2.dat");
-			dum = system("rm -f Pending_Lchain_code_list_1.dat");
-			dum = system("rm -f Pending_Lchain_code_list_2.dat");
-			dum = system("rm -f current_status.dat");
+			dum = (size_t)system("rm -f Tgt_prime_list_1.dat");
+			dum = (size_t)system("rm -f Tgt_prime_list_2.dat");
+			dum = (size_t)system("rm -f Pending_Lchain_code_list_1.dat");
+			dum = (size_t)system("rm -f Pending_Lchain_code_list_2.dat");
+			dum = (size_t)system("rm -f current_status.dat");
 			return EXIT_SUCCESS;
 		}
 	}

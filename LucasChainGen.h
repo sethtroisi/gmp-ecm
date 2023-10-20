@@ -61,7 +61,7 @@ typedef struct
 {
 	u_int32_t	prime;
 	u_int64_t	sieve_space_start_index;
-	int32_t		dif_table_start_index;
+	u_int32_t	dif_table_start_index;
 
 } sieve_params;
 
@@ -87,8 +87,8 @@ typedef struct
 } chain_element;
 
 /* prototypes */
-void get_PRAC_performance(u_int64_t, u_int8_t *, u_int8_t *, u_int32_t *);
 
+u_int64_t cputime(void);
 chain_element	*get_working_chain_ptr(void);
 u_int8_t	*get_current_partial_length_ptr(void); /* current # of elements in the working chain */
 u_int64_t	*get_chain_values_ptr(void);
@@ -115,9 +115,9 @@ u_int32_t	*get_code_length_problem_count_ptr(void);
 u_int8_t	*get_dif_table_ptr(void);
 u_int8_t	*get_sieve_space_ptr(void);
 sieve_params	*get_sieve_primes_ptr(void);
-int32_t		sieve_init(void);
-void		standard_sieve(int32_t);
-int32_t		prime_count( u_int32_t *, int32_t *);
+u_int32_t	sieve_init(void);
+void		standard_sieve(u_int32_t);
+u_int32_t	prime_count( u_int32_t *, u_int32_t *);
 u_int8_t	extract_chain_values(void);
 u_int16_t	gen_candidate_list(void);
 u_int8_t	gen_next_step_candidates(void);
