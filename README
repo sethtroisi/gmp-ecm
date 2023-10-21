@@ -1,3 +1,8 @@
+This doesn't work because identity is point at infinity (0, 0) 
+isn't supported by our dup and add function.
+
+See ~/Scripts/python/ecm/ecm_quick_test.py for testing.
+
 [note: this file is outdated now that GMP-ECM moved to gitlab.]
 
 This is the README file for GMP-ECM. (See INSTALL-ecm for installing GMP-ECM

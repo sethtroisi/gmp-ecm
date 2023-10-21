@@ -353,6 +353,49 @@ class curve_t {
   }
 };
 
+static
+uint32_t* set_p(const mpz_t N,
+                   uint32_t curves, uint32_t sigma,
+                   uint32_t BITS, size_t *data_size) {
+  /**
+   * Store 5 numbers per curve:
+   * N, P_a (x, y), P_b (x, y)
+   *
+   * P_a is initialized with (2, 1)
+   * P_b is initialzed to 0 (0, 1)
+   */
+
+  const size_t limbs_per = BITS/32;
+  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
+  uint32_t *data = (uint32_t*) malloc(*data_size);
+  uint32_t *datum = data;
+
+  mpz_t x;
+  mpz_init(x);
+  for(int index = 0; index < curves; index++) {
+      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
+      uint32_t d = sigma + index;
+
+      // Modulo (N)
+      from_mpz(N, datum + 0 * limbs_per, BITS/32);
+
+      // P_a = 2 = (2, 1)
+      mpz_set_ui(x, 2);
+      from_mpz(x, datum + 1 * limbs_per, BITS/32);
+      mpz_set_ui(x, 1);
+      from_mpz(x, datum + 2 * limbs_per, BITS/32);
+
+      // P_b = 0 = (0, 1)
+      mpz_set_ui(x, 0);
+      from_mpz(x, datum + 3 * limbs_per, BITS/32);
+      mpz_set_ui(x, 1);
+      from_mpz(x, datum + 4 * limbs_per, BITS/32);
+
+      datum += 5 * limbs_per;
+  }
+  mpz_clear(x);
+  return data;
+}
 
 /**
  * Double-and-add, index decreasing algorithm.
@@ -518,61 +561,6 @@ uint32_t* allocate_and_set_s_bits(const mpz_t s, uint64_t *nbits) {
 
 
 static
-uint32_t* set_p_2p(const mpz_t N,
-                   uint32_t curves, uint32_t sigma,
-                   uint32_t BITS, size_t *data_size) {
-  /**
-   * Store 5 numbers per curve:
-   * N, P_a (x, z), P_b (x, z)
-   *
-   * P_a is initialized with (2, 1)
-   * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
-   */
-
-  const size_t limbs_per = BITS/32;
-  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
-  uint32_t *data = (uint32_t*) malloc(*data_size);
-  uint32_t *datum = data;
-
-  mpz_t x;
-  mpz_init(x);
-  for(int index = 0; index < curves; index++) {
-      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
-      uint32_t d = sigma + index;
-
-      // Modulo (N)
-      from_mpz(N, datum + 0 * limbs_per, BITS/32);
-
-      // P1 (X, Z)
-      mpz_set_ui(x, 2);
-      from_mpz(x, datum + 1 * limbs_per, BITS/32);
-      mpz_set_ui(x, 1);
-      from_mpz(x, datum + 2 * limbs_per, BITS/32);
-
-      // 2P = P2 (X, Z)
-      // P2_x = 9
-      mpz_set_ui(x, 9);
-      from_mpz(x, datum + 3 * limbs_per, BITS/32);
-
-      // d = sigma * mod_inverse(2 ** 32, N)
-      mpz_ui_pow_ui(x, 2, 32);
-      mpz_invert(x, x, N);
-      mpz_mul_ui(x, x, d);
-      // P2_x = 64 * d + 8;
-      mpz_mul_ui(x, x, 64);
-      mpz_add_ui(x, x, 8);
-      mpz_mod(x, x, N);
-
-      outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x);
-      from_mpz(x, datum + 4 * limbs_per, BITS/32);
-      datum += 5 * limbs_per;
-  }
-  mpz_clear(x);
-  return data;
-}
-
-
-static
 int process_results(mpz_t *factors, int *array_found,
                     const mpz_t N,
                     const uint32_t *data, uint32_t cgbn_bits,
@@ -666,6 +654,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
   uint64_t s_num_bits;
   uint32_t *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
+
   if (s_num_bits >= 4000000000)
       outputf (OUTPUT_ALWAYS, "GPU: Very Large B1! Check magnitute of B1.\n");
 
@@ -831,7 +820,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
   assert( sizeof(curve_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
   assert( sizeof(curve_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
-  data = set_p_2p(N, curves, sigma, BITS, &data_size);
+  data = set_p(N, curves, sigma, BITS, &data_size);
 
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
   uint32_t np0 = find_np0(N);
@@ -845,8 +834,8 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
           "CGBN<%d, %d> running kernel<%d block x %d threads> input number is %d bits\n",
           BITS, TPI, BLOCK_COUNT, TPB, n_log2);
 
-  /* First bit (doubling) is handled in set_p_2p */
-  uint64_t s_partial = 1;
+  uint64_t s_partial = 0;
+  // assert that bit zero is always 1?
 
   /* Start with small batches and increase till timing is ~100ms */
   uint64_t batch_size = 200;
