@@ -229,7 +229,7 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   char strc[11];
   char strb2[11];
   char strn2[11];
-  char sign;
+  char sign=0;
   mpz_t tmp;
 
   /* make sure we have a place to put our results */
