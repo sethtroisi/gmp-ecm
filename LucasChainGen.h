@@ -88,7 +88,7 @@ typedef struct
 
 /* prototypes */
 
-u_int64_t cputime(void);
+u_int64_t	cputime(void);
 chain_element	*get_working_chain_ptr(void);
 u_int8_t	*get_current_partial_length_ptr(void); /* current # of elements in the working chain */
 u_int64_t	*get_chain_values_ptr(void);

@@ -237,18 +237,17 @@ u_int32_t sieve_init(void)
 {
 	u_int8_t *dif_table, *newsieve;
 	sieve_params *sieve_primes;
+	u_int32_t i, j;
+	u_int32_t s_index, indx_p, last_index, dif_index, dif_sum, max_dif, max_dif_sum = 0;
+	u_int32_t small_primes[5] = {3, 5, 7, 11, 13};
+	u_int32_t p = 0;
+	u_int64_t tmp;
 
 	dif_table = get_dif_table_ptr();
 	newsieve = get_sieve_space_ptr();
 	sieve_primes = get_sieve_primes_ptr();
 
 	/* set up the difference table, sieve primes, and associated table indices */
-
-	u_int32_t i, j;
-	u_int32_t s_index, indx_p, last_index, dif_index, dif_sum, max_dif, max_dif_sum = 0;
-	u_int32_t small_primes[5] = {3, 5, 7, 11, 13};
-	u_int32_t p = 0;
-	u_int64_t tmp;
 
 	/* construct a table of differences for integers not divisible by
 	any of the primes 2, 3, 5, 7, 11, or 13. Note that sieve arrays
@@ -330,7 +329,6 @@ u_int32_t sieve_init(void)
 	i = 0;
 	s_index = 8;
 	dif_index = 1;
-//	next_prime_indx = 8;
 	do
 	{
 		if( newsieve[s_index] )
@@ -341,11 +339,6 @@ u_int32_t sieve_init(void)
 			sieve_primes[i].sieve_space_start_index = (tmp*tmp - 1)/2;
 			sieve_primes[i].dif_table_start_index = dif_index;
 			i++;
-//			if(i >= SIEVE_PRIME_COUNT)
-//			{
-//				printf("ERROR: increase SIEVE_PRIME_COUNT\n");
-//				break;
-//			}
 		}
 		s_index += dif_table[dif_index];
 		dif_index++;
@@ -628,7 +621,6 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 {
 	static u_int8_t init = 0;
 	u_int8_t code_fragment, chain_length, i, k;
-//	u_int8_t print_chain;
 	u_int64_t dif;
 	u_int64_t chain_code_save;
 
@@ -651,7 +643,6 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 	}
 	*dbl_count = 1;
 	chain_code_save = chain_code;
-//	print_chain = 0;
 
 	/* the code file starts at p = 11, so handle 5 and 7 separately */
 	if( prime < 11 )
@@ -983,7 +974,6 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 
 			(*dbl_count)++;
 			start_frag_count[CHAIN_START_5_8_10]++;
-//			print_chain = 1;
 			break;
 		}
 		case CHAIN_START_5_7_9:  /* extremely rare */
@@ -1004,7 +994,6 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			Lchain[5].dif_offset = 1;
 
 			start_frag_count[CHAIN_START_5_7_9]++;
-//			print_chain = 1;
 			break;
 		}
 		case CHAIN_START_5_7_10:  /* extremely rare */
@@ -1026,7 +1015,6 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 
 			(*dbl_count)++;
 			start_frag_count[CHAIN_START_5_7_10]++;
-//			print_chain = 1;
 			break;
 		}
 		default:
@@ -1594,7 +1582,7 @@ u_int64_t encode_Lchain(void)
 							case 1:
 								chain_code <<= 6;
 								*code_length += 6;
-//								chain_code += 0x0; /* 12 maximal elements */
+								/* chain_code += 0x0;  12 maximal elements  */
 								break;
 							case 2:
 								chain_code <<= 6;
@@ -1693,7 +1681,7 @@ u_int64_t encode_Lchain(void)
 						case 1:
 							chain_code <<= 6;
 							*code_length += 6;
-//							chain_code += 0x0; /* 12 maximal elements */
+							/* chain_code += 0x0;  12 maximal elements */
 							break;
 						case 2:
 							chain_code <<= 6;
@@ -1968,10 +1956,6 @@ u_int8_t check_candidate(void)
 	u_int64_t beta, upper_limit_1_step, a1, a2;
 	u_int8_t kk, steps_to_go, c_length, element_count, doubles_count;
 	u_int8_t compare_val_in_chain, next_c_count, max_c_flag;
-//	u_int8_t i, j, d;
-//	u_int64_t gamma;
-//	u_int64_t delta;
-//	u_int8_t delta_flag;
 
 	if( init == 0 )
 	{
@@ -2168,10 +2152,6 @@ bypass:
 			if( (max_c_flag == 1) && ((max_val & 1) != 0) )
 			{
 				/* check if max_val is on the target list */
-//				if( (gcd_c_p == 1) && ( ( (max_val >= 17) && (gcd(max_val, 15015) == 1) ) || (max_val < 17) ) )				/* check if max_val is on the target list */
-//				if( (gcd_c_p == 1) && ( ( (max_val >= 17) && (gcd(max_val, 105) == 1) ) || (max_val < 17) ) )				/* check if max_val is on the target list */
-//				if( gcd_c_p == 1 )
-//				if( (gcd_c_p == 1) && ( ( (max_val >= 17) && (gcd( max_val, 15015 ) == 1) ) || (max_val < 17) ) )
 				if( (gcd_c_p == 1) && (gcd( max_val, 15015 ) == 1) )
 				{
 					doubles_count = candidate_list[*current_c_index].chain_dbl_count;
@@ -2676,7 +2656,6 @@ void generate_and_process_candidate_list(void)
 	static u_int16_t c_indx[MAX_WORKING_CHAIN_LENGTH];
 	static u_int8_t *current_partial_length;
 	static u_int8_t init = 0, r_level = 0;
-//	static u_int16_t max_c_list_start_index = 0;
 
 	if( init == 0 )
 	{
@@ -2718,24 +2697,19 @@ int32_t main( int argc, char *argv[])
 {
 	u_int8_t *dif_table;
 	u_int8_t *sieve_space;
-//	sieve_params *sieve_primes;
 	u_int32_t dif_table_start_index, sieve_prime_count, p_count, total_p_count;
 	u_int32_t sieve_space_start_index;
 	u_int32_t indx, dif_index;
 	u_int64_t true_indx, max_indx_value, max_odd_val, i64;
 
 	target_prime *tgt_prime_list;
-//	u_int8_t next_list_flag[MAX_CODE_OR_PRIME_COUNT];
 	u_int64_t *chain_code_list, clock_start, clock_stop, temp_var;
 	u_int32_t *chain_code_list_start_index;
-//	u_int32_t old_p_count;
 	u_int32_t code_save_index;
-//	u_int32_t i_lim;
 	u_int32_t j, last_j;
 	u_int32_t *tgt_p_count, *chain_count;
 	u_int64_t *Fib, *Luc;
 	u_int64_t excp_1_val, exception_list_1_step[40];
-//	u_int32_t next_list_count;
 	int32_t i;
 	u_int32_t k;
 	u_int16_t exception_count, exception_index, prime_exception_count;
@@ -2745,12 +2719,9 @@ int32_t main( int argc, char *argv[])
 	u_int8_t *chain_max_dbl_count;
 	u_int64_t total_prime_chain_count, interval_chain_count;
 	u_int64_t total_chain_count_max_dbls;
-//	u_int32_t total_chain_count_max_dbls;
-//	u_int32_t holdover_count, last_holdover_prime, cc_list_zero_count;
 	u_int8_t test_length, min_test_length, max_test_length, test_length_restart;
 	u_int8_t on_list_flag, restart_flag, new_length_init;
     u_int8_t truncating_for_B1, gen_exit_flag;
-//	u_int32_t save_index_end, save_index_last;
 	u_int32_t code_save_count;
 	double c_value_range, *index_count_per_val;
 	double B1_in;
@@ -2820,7 +2791,6 @@ int32_t main( int argc, char *argv[])
 	/* initialize pointers & arrays */
 	dif_table = get_dif_table_ptr();
 	sieve_space = get_sieve_space_ptr();;
-//	sieve_primes = get_sieve_primes_ptr();
 	current_partial_length = get_current_partial_length_ptr();
 	c_list_start_index = get_c_list_start_index_ptr();
 	chain_count = get_chain_count_ptr();
@@ -2865,7 +2835,7 @@ int32_t main( int argc, char *argv[])
 	*c_list_start_index = 0;
 
 	restart_flag = _false_; /* if restarting, set to _true_ and recompile */
-//	restart_flag = _true_; /* if restarting, set to _true_ and recompile */
+/*	restart_flag = _true_; */ /* if restarting, set to _true_ and recompile */
 
 	if( restart_flag == _false_ ) /* start from scratch */
 	{
@@ -3007,7 +2977,6 @@ int32_t main( int argc, char *argv[])
 			if( new_length_init == _true_)
 			{
 				printf("\n\nStarting test_length = %u\n\n", test_length);
-//				new_length_init = _false_;
 			}
 			else /* current test length has already started */
 			{
@@ -3526,7 +3495,6 @@ int32_t main( int argc, char *argv[])
 			total_prime_chain_count += interval_chain_count;
 			total_chain_count_max_dbls += k;
 
-//#if 0
 			unique_chain_count = 0;
 			for(i = 0; i < (int32_t)(*tgt_p_count); i++)
 			{
@@ -3571,7 +3539,6 @@ int32_t main( int argc, char *argv[])
 
 			if( unique_chain_count > 0 )
 				printf("Total # of unique chains, including max double chains, = %u\n", unique_chain_count);
-//#endif
 
 			if( true_indx > max_indx_value ) /* current test length is complete */
 			{
@@ -3612,7 +3579,7 @@ int32_t main( int argc, char *argv[])
 				printf("Cumulative total prime codes saved = %u\n", smallest_unsaved_code_index);
 
 				clock_stop = cputime();
-				printf("\nTime for test length = %u: %12.4lf seconds\n\n", test_length, (double)(clock_stop - clock_start)/(double)1000000.0);
+				printf("\nTime for test length = %u: %12.4f seconds\n\n", test_length, (double)(clock_stop - clock_start)/(double)1000000.0);
 
 				test_length_restart = test_length + 1;
 				old_tgt_prime_list_count = new_tgt_prime_list_count;
@@ -3620,7 +3587,6 @@ int32_t main( int argc, char *argv[])
 				new_tgt_prime_list_count = 0;
 				new_pending_code_list_count = 0;
 				chain_list_zero_count = 0;
-//				*chain_code_list_start_index = smallest_unsaved_code_index;
 				old_smallest_unsaved_code_index = smallest_unsaved_code_index;
 				total_prime_chain_count = 0;
 				total_chain_count_max_dbls = 0;
