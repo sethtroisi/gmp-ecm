@@ -190,7 +190,7 @@ Buchstab_Phi(unsigned long x, unsigned long y)
 
   s = 1;
   primesieve_init (pg);
-  primesieve_skipto (pg, y, x+1);
+  primesieve_jump_to (pg, y+1, x+1);
   for (p = primesieve_next_prime (pg); p <= x; p = primesieve_next_prime (pg))
     s += Buchstab_Phi(x / p, p - 1);
   return (s);
