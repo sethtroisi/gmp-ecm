@@ -854,6 +854,20 @@ choose_S (mpz_t B2len)
 #define DIGITS_INCR   5
 #define DIGITS_END   80
 
+static double
+get_param_smoothness (int param)
+{
+  if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
+      return 1.0;
+  else if (param == ECM_PARAM_BATCH_SQUARE)
+      return EXTRA_SMOOTHNESS_SQUARE;
+  else if (param == ECM_PARAM_BATCH_32BITS_D)
+      return EXTRA_SMOOTHNESS_32BITS_D;
+
+  /* This case should never happen */
+  return 0.0;
+}
+
 void
 print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
                  int S, int param)
@@ -863,14 +877,7 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   char sep, outs[128], flt[16];
   double smoothness_correction;
 
-  if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
-      smoothness_correction = 1.0; 
-  else if (param == ECM_PARAM_BATCH_SQUARE)
-      smoothness_correction = EXTRA_SMOOTHNESS_SQUARE;
-  else if (param == ECM_PARAM_BATCH_32BITS_D)
-      smoothness_correction = EXTRA_SMOOTHNESS_32BITS_D;
-  else /* This case should never happen */
-      smoothness_correction = 0.0; 
+  smoothness_correction = get_param_smoothness(param);
 
   for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR)
     j += sprintf (outs + j, "%u%c", i, (i < DIGITS_END) ? '\t' : '\n');
@@ -909,15 +916,8 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   char sep, outs[128];
   double smoothness_correction;
 
-  if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
-      smoothness_correction = 1.0; 
-  else if (param == ECM_PARAM_BATCH_SQUARE)
-      smoothness_correction = EXTRA_SMOOTHNESS_SQUARE;
-  else if (param == ECM_PARAM_BATCH_32BITS_D)
-      smoothness_correction = EXTRA_SMOOTHNESS_32BITS_D;
-  else /* This case should never happen */
-      smoothness_correction = 0.0; 
-  
+  smoothness_correction = get_param_smoothness(param);
+
   for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR)
     j += sprintf (outs + j, "%u%c", i, (i < DIGITS_END) ? '\t' : '\n');
   outs[j] = '\0';
