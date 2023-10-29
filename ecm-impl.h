@@ -335,6 +335,9 @@ int set_stage_2_params (mpz_t, mpz_t, mpz_t, mpz_t, root_params_t *,
 #define print_expcurves __ECM(print_expcurves)
 void print_expcurves (double, const mpz_t, unsigned long, unsigned long, int, 
                       int);
+#define print_expwork __ECM(print_expwork)
+void print_expwork (double, const mpz_t, unsigned long, unsigned long, int, 
+                    int, unsigned int);
 #define print_exptime __ECM(print_exptime)
 void print_exptime (double, const mpz_t, unsigned long, unsigned long, int, 
                     double, int);

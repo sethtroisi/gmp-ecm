@@ -566,6 +566,7 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
         {
           rhoinit (256, 10);
           print_expcurves (B1, B2, dF, k, root_params.S, param);
+          print_expwork (B1, B2, dF, k, root_params.S, param, *nb_curves);
         }
     }
 
