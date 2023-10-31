@@ -241,12 +241,12 @@ class curve_t {
     }
   }
 
-
   /**
    * Compute simultaneously
    * (q : u) <- [2](q : u)
    * (w : v) <- (q : u) + (w : v)
    * A second implementation previously existed in cudakernel_default.cu
+   * See dup_add_batch1 in batch.c
    */
   __device__ FORCE_INLINE void double_add_v2(
           bn_t &q, bn_t &u,
@@ -354,7 +354,9 @@ class curve_t {
 };
 
 
-// kernel implementation using cgbn
+/**
+ * Double-and-add, index decreasing algorithm.
+ */
 template<class params>
 __global__ void kernel_double_add(
         cgbn_error_report_t *report,
@@ -405,14 +407,17 @@ __global__ void kernel_double_add(
 
   /* Initially
      P_a = (aX, aZ) contains P
-     P_b = (bX, bZ) contains 2P */
+     P_b = (bX, bZ) contains 0 */
 
+  // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mult_ui32
   uint32_t d = sigma_0 + instance_i;
+
   int swapped = 0;
   for (uint64_t b = s_bits_start; b < s_bits_start + s_bits_interval; b++) {
     /* Process bits from MSB to LSB, last index to first index
      * b counts from 0 to s_num_bits */
     uint64_t nth = s_bits - 1 - b;
+
     int bit = (gpu_s_bits[nth/32] >> (nth&31)) & 1;
     if (bit != swapped) {
         swapped = !swapped;
@@ -453,8 +458,8 @@ int findfactor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t z_f
     // XXX: combine / refactor logic with cudawrapper.c findfactor
 
     /* Check if factor found */
-    bool inverted = mpz_invert(factor, z_final, N);    // aZ ^ (N-2) % N
 
+    bool inverted = mpz_invert(factor, z_final, N);    // aZ ^ (N-2) % N
     if (inverted) {
         mpz_mul(factor, x_final, factor);         // aX * aZ^-1
         mpz_mod(factor, factor, N);             // "Residual"
