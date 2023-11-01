@@ -248,7 +248,6 @@ fi
 
 if test "x$enable_asm_redc" = xyes; then
   case $host in
-    pentium4-*-* | pentium3-*-* | viac7-*-* | i786-*-*) ASMPATH=pentium4;;
     x86_64*-*-*)
 # In case GMP has been compiled with a 32-bit ABI...
 # Use AC_COMPILE_IFELSE instead of AC_PREPROC_IFELSE, otherwise
@@ -273,9 +272,6 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
     powerpc64-*-linux*)
 			  ECM_INCLUDE([<"$srcdir"/powerpc64/powerpc-defs.m4>])
 			  ASMPATH=powerpc64;;
-    i[[56]]86-*-* | k[[78]]*-*-* | athlon*-*-* | pentiumpro-*-* | \
-    pentium2-*-* | viac3*-*-* | i686-apple-darwin*)
-    		   	  ASMPATH=athlon;;
     *) AC_MSG_ERROR([[asm redc not available on this machine $host]]);;
   esac
 fi
@@ -319,7 +315,7 @@ dnl Default: if we build for Pentium 4, enable SSE2 code for the NTT
 dnl Some SSE2 enabled cpus are identified as i686, we enable SSE2 
 dnl for them by default and let the tests below check if it works
   case $host in
-    pentium4-*-* | viac7-*-* | i686-*-* | i786-*-*) 
+    x86_64*-*-*) 
       enable_sse2=yes
     ;;
   esac
@@ -696,7 +692,7 @@ CU_CHECK_CUDA
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
-AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile aprtcle/Makefile build.vc12/Makefile build.vc12/assembler/Makefile build.vc12/ecm/Makefile build.vc12/ecm_gpu/Makefile build.vc12/libecm/Makefile build.vc12/libecm_gpu/Makefile build.vc12/tune/Makefile build.vc12/bench_mulredc/Makefile])
+AC_CONFIG_FILES([Makefile x86_64/Makefile powerpc64/Makefile aprtcle/Makefile build.vc12/Makefile build.vc12/assembler/Makefile build.vc12/ecm/Makefile build.vc12/ecm_gpu/Makefile build.vc12/libecm/Makefile build.vc12/libecm_gpu/Makefile build.vc12/tune/Makefile build.vc12/bench_mulredc/Makefile])
 
 AC_SUBST([XSLDIR])
 AC_SUBST([ASMPATH])

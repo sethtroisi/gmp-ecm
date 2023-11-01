@@ -21,7 +21,7 @@ instructions of INSTALL-ecm until the 'configure' step. Then add the
   $ ./configure --enable-gpu [other options]
 
 This will configure the code for NVIDIA GPU for all compute capabilities
-between 3.0 and 7.0 known to the nvcc compiler.
+between 3.0 and 9.0 known to the nvcc compiler.
 
 To enable only a single compute capability you can set '--enable-gpu=XX'
 
@@ -81,8 +81,10 @@ For failing kernels some additional information may be present in cuda-memcheck
 2. How to enable CGBN code in GMP-ECM
 
 By default the CGBN code is not enabled during GPU builds, follow the
-instructions above but add the "-with-cgbn-include" argument to point at
-the CGBN include directory (.../CGBN/include/cgbn).
+instructions above and add "-with-cgbn-include" argument to point at the
+CGBN include directory (../CGBN/include/cgbn).
+CGBN is a "CUDA Accelerated Multiple Precision Arithmetic (Big Num)" library
+available at https://github.com/NVlabs/CGBN
 
   $ ./configure --enable-gpu --with-cgbn-include=/PATH/DIR/CGBN/include/cgbn
 
@@ -123,13 +125,17 @@ GPU on which the code is run.
 The option "-gpucurves n" forces GMP-ECM to compute n curves in parallel on the
 GPU. By default, the number of curves is choose to fill completly the GPU. The
 number of curves must be a multiple of the number of curves by multiprocessors
-(which depend on the GPU compute capability) or else it would be rounded to the
-next multiple.
+(which depend on the GPU) or else it would be rounded to the next multiple.
 
-The default implementation of the arithmetic for the GPU restricts
-integers to be smaller than 2^1018.  This restriction can be altered by
-changing the source code but do so at your own risk because support
-from the GMP-ECM team will be very limited.
+Throughput for determining CGBN kernel size and "-gpucurves" can be tested
+using the provided "gpu_throughput_test.sh" script. This takes optional ecm
+command and number of curves.
+
+    $ gpu_throughput_test.sh [ECM_CMD] [GPUCURVES]
+
+The CGBN based GPU code can be easily changed to support different sized input.
+This is done by changing the "cgbn_params" in cgbn_stage1.cu at the cost of
+compile time and binary size.
 
 ##############################################################################
 
@@ -142,5 +148,6 @@ In general the best solution is to restart the machine.
 
 ##############################################################################
 
-Please report to mail@cyrilbouvier.fr any problems, bugs, ...
+Please report to sethtroisi (by email or on mersenneforum) any problems,
+bugs, or observations.
 

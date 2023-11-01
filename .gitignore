@@ -57,7 +57,6 @@ install-sh
 libtool
 ltmain.sh
 missing
-pentium4/Makefile
 powerpc64/Makefile
 stamp-h1
 stamp-h2

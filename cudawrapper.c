@@ -463,19 +463,6 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
       return ECM_ERROR;
     }
 
-  /* Compute s */
-  if (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0)
-    {
-      *batch_last_B1_used = B1;
-
-      st = cputime ();
-      /* construct the batch exponent */
-      compute_s (batch_s, B1, NULL);
-      outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
-                               " bits) of primes up to B1=%1.0f took %ldms\n",
-                               mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
-    }
-
   /* Set parameters for stage 2 */
   mpres_init (P.x, modulus);
   mpres_init (P.y, modulus);
@@ -580,6 +567,19 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
           rhoinit (256, 10);
           print_expcurves (B1, B2, dF, k, root_params.S, param);
         }
+    }
+
+  /* Compute s */
+  if (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0)
+    {
+      *batch_last_B1_used = B1;
+
+      st = cputime ();
+      /* construct the batch exponent */
+      compute_s (batch_s, B1, NULL);
+      outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
+                               " bits) of primes up to B1=%1.0f took %ldms\n",
+                               mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
     }
 
   st = cputime ();

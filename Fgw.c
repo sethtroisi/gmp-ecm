@@ -315,29 +315,20 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   return 0;
 }
 
-/* return ceil(log(v)/log(2)) */
-unsigned long gw_log_2(unsigned long v)
-{
-  unsigned long r = 0;
-
-  while (v > 1)
-    {
-      r++;
-      v = (v + 1) / 2;
-    }
-
-  return r;
-}
-
 int 
 gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus, 
 	       double B1, double *B1done, mpz_t go, double gw_k,
                unsigned long gw_b, unsigned long gw_n, signed long gw_c)
 {
   ecm_uint gw_B1done = *B1done;
-  unsigned long siz_x, siz_z; /* Size of gw_x and gw_y as longs */
-  mpz_t gw_x, gw_z, gw_A;
+  unsigned long siz_x, siz_z, kbnc_size; /* Size of gw_x and gw_y as longs */
+  double tmp_bitsize;
+  mpz_t gw_x, gw_z, gw_A, tmp;
   int youpi;
+
+  /* P->y must never be zero when calling ecm_mul */
+  if( P->y->_mp_size == 0 )
+    mpres_set_ui (P->y, 1, modulus);
 
   if (mpz_cmp_ui (go, 1) > 0)
     {
@@ -353,13 +344,31 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
            "Using gwnum_ecmStage1(%.0f, %d, %d, %d, %.0f, %ld)\n",
            gw_k, gw_b, gw_n, gw_c, B1, gw_B1done);
 
-  /* Copy x, z and A values from modular representation to 
-     plain integers */
+  /* make sure tmp has adequate allocation */
+  tmp_bitsize = log2(gw_k) + ((double)gw_n)*log2((double)gw_b) + 64.0;
+  tmp_bitsize = 64.0*ceil(tmp_bitsize/64.0); /* set to first multiple of 64 >= tmp_bitsize */
+  mpz_init2 (tmp, (unsigned long)tmp_bitsize);
+  
+  /* construct k*b^n+c to get true size */
+  mpz_set_ui (tmp, gw_b);
+  mpz_pow_ui (tmp, tmp, gw_n);
+  mpz_mul_ui (tmp, tmp, (unsigned long)gw_k);
+  if (gw_c >= 0)
+    mpz_add_ui (tmp, tmp, gw_c);
+  else
+    mpz_sub_ui (tmp, tmp, (gw_c * -1));
+
+  /* kbnc_size = bits per word * # of whole words required to hold k*b^n+c */
+  kbnc_size = 8*sizeof(mp_size_t)*(tmp->_mp_size); 
+  ASSERT_ALWAYS ( (unsigned long)tmp_bitsize >= kbnc_size );
 
   /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
-  mpz_init2 (gw_x, (gw_n+1)*gw_log_2(gw_b)+64);
-  mpz_init2 (gw_z, (gw_n+1)*gw_log_2(gw_b)+64);
-  mpz_init (gw_A);
+  /* ecmstag1.c in gwnum says it needs 60 bits more than the gwnum modulus size,
+     so we add 64 bits here to maintain whole-word allocations for gw_x and gw_z */
+  mpz_init2 (gw_x, kbnc_size + 64);
+  mpz_init2 (gw_z, kbnc_size + 64);
+  mpres_init (gw_A, modulus);
+  mpz_clear (tmp);
 
   /* mpres_get_z always produces non-negative integers */
   mpres_get_z (gw_x, P->x, modulus);

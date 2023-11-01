@@ -1,7 +1,7 @@
 dnl Various routines adapted from gmp-4.1.4
 
 define(X86_PATTERN,
-[[i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | athlon-*-* | viac3*-*-*]])
+[[i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | viac3*-*-*]])
 
 
 dnl  GMP_INIT([M4-DEF-FILE])
@@ -329,7 +329,10 @@ else
   if test $tmp_result = yes; then
     gmp_cv_asm_underscore=no
   else
-    AC_MSG_ERROR([Test program links neither with nor without underscore.])
+dnl AC_MSG_ERROR([Test program links neither with nor without underscore.])
+dnl In GMP 6.3.0, there fallback is on no underscore, based on the assumption
+dnl that the worldis moving towards non-underscore systems. We do the same.
+    gmp_cv_asm_underscore=no
   fi
 fi
 rm -f conftes1* conftes2* a.out
