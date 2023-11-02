@@ -885,7 +885,7 @@ main (int argc, char **argv)
               " S'th power as the Brent-Suyama function\n\n");
       printf (" <B1>        B1 limit.\n");
       printf (" <B2>        B2 limit.\n");
-      printf (" <N>         N of similiar size, or number of bits in factor (if < 50).\n");
+      printf (" <N>         N of similiar size (e.g. 1e30), or number of bits in factor (if < 300).\n");
       printf (" <nr>        Number of random points evaluated in stage 2.\n");
       printf (" <S>         Degree of Brent-Suyama polynomial in stage 2.\n");
       printf (" [<r> <m>]   Limit P-1 to primes p == r (mod m).\n");
@@ -975,25 +975,27 @@ main (int argc, char **argv)
     }
 
   rhoinit (256, 10);
-  if (N < 50.)
+  if (N < 300.)
     {
       double sum;
       sum = ecmprob(B1, B2, exp2 (N), nr, S);
       sum += 4. * ecmprob(B1, B2, 3./2. * exp2 (N), nr, S);
       sum += ecmprob(B1, B2, 2. * exp2 (N), nr, S);
       sum *= 1./6.;
-      printf ("ECM: %.16f\n", sum);
+      printf ("ECM: %.16f, 1/p = %.4g\n", sum, 1 / sum);
 
       sum = pm1prob_rm (B1, B2, exp2 (N), nr, S, r, m);
       sum += 4. * pm1prob_rm (B1, B2, 3./2. * exp2 (N), nr, S, r, m);
       sum += pm1prob_rm (B1, B2, 2. * exp2 (N), nr, S, r, m);
       sum *= 1./6.;
-      printf ("P-1: %.16f\n", sum);
+      printf ("P-1: %.16f, 1/p = %.4g\n", sum, 1 / sum);
     }
   else
     {
-      printf ("ECM: %.16f\n", ecmprob(B1, B2, N, nr, S));
-      printf ("P-1: %.16f\n", pm1prob_rm (B1, B2, N, nr, S, r, m));
+      double p = ecmprob(B1, B2, N, nr, S);
+      printf ("ECM: %.16f, 1/p = %.4g\n", p, 1 / p);
+      p = pm1prob_rm (B1, B2, N, nr, S, r, m);
+      printf ("P-1: %.16f, 1/p = %.4g\n", p, 1 / p);
     }
   rhoinit (0, 0);
   return 0;
