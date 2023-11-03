@@ -9,7 +9,7 @@
 # for even faster check
 #  $ sage check_gpuecm.sage --iterations 1 ./ecm
 #
-# to test with ECM_GPU_NB_DIGITS=16 and extra verbose output
+# to test with 512 bit kernal and extra verbose output
 #  $ sage check_gpuecm.sage --nbits 512 -v -v ./ecm
 # 
 # to test more iterations (~12 minutes) or more curves per iteration

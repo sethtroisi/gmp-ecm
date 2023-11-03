@@ -676,18 +676,18 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
    * (32,32768)      | ecm 5.2M, 4.7 minutes
    */
   /* NOTE: Custom kernel changes here
-   * For "Compling custom kernel for %d bits should be XX% faster"
-   * Change the 512 in cgbn_params_t<4, 512> cgbn_params_512;
+   * For "Compiling custom kernel for %d bits should be XX% faster"
+   * Change the 512 in cgbn_params_t<4, 512> cgbn_params_small;
    * to the suggested value (a multiple of 32 >= bits + 6).
    * You may need to change the 4 to an 8 (or 16) if bits >512, >2048
    */
   /** TODO: try with const vector for BITs/TPI, see if compiler is happy */
   std::vector<uint32_t> available_kernels;
 
-  typedef cgbn_params_t<4, 512>   cgbn_params_512;
-  typedef cgbn_params_t<8, 1024>  cgbn_params_1024;
-  available_kernels.push_back((uint32_t)cgbn_params_512::BITS);
-  available_kernels.push_back((uint32_t)cgbn_params_1024::BITS);
+  typedef cgbn_params_t<4, 512>   cgbn_params_small;
+  typedef cgbn_params_t<8, 1024>  cgbn_params_medium;
+  available_kernels.push_back((uint32_t)cgbn_params_small::BITS);
+  available_kernels.push_back((uint32_t)cgbn_params_medium::BITS);
 
 #ifndef IS_DEV_BUILD
   /**
@@ -717,12 +717,12 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
       /* Print some debug info about kernel. */
       /* TODO: return kernelAttr and validate maxThreadsPerBlock. */
-      if (BITS == cgbn_params_512::BITS) {
-        TPI = cgbn_params_512::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_512>, verbose);
-      } else if (BITS == cgbn_params_1024::BITS) {
-        TPI = cgbn_params_1024::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_1024>, verbose);
+      if (BITS == cgbn_params_small::BITS) {
+        TPI = cgbn_params_small::TPI;
+        kernel_info((const void*)kernel_double_add<cgbn_params_small>, verbose);
+      } else if (BITS == cgbn_params_medium::BITS) {
+        TPI = cgbn_params_medium::TPI;
+        kernel_info((const void*)kernel_double_add<cgbn_params_medium>, verbose);
 #ifndef IS_DEV_BUILD
       } else if (BITS == cgbn_params_1536::BITS) {
         TPI = cgbn_params_1536::TPI;
@@ -762,7 +762,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
     float pct_faster = 90 * BITS / optimized_bits;
 
     if (pct_faster > 110) {
-      outputf (OUTPUT_VERBOSE, "Compiling custom kernel for %d bits should be ~%.0f%% faster\n",
+      outputf (OUTPUT_VERBOSE, "Compiling custom kernel for %d bits should be ~%.0f%% faster see README.gpu\n",
               optimized_bits, pct_faster);
     }
   }
@@ -773,8 +773,8 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   }
 
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
-  assert( sizeof(curve_t<cgbn_params_512>::mem_t) == cgbn_params_512::BITS/8 );
-  assert( sizeof(curve_t<cgbn_params_1024>::mem_t) == cgbn_params_1024::BITS/8 );
+  assert( sizeof(curve_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
+  assert( sizeof(curve_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
   data = set_p_2p(N, curves, sigma, BITS, &data_size);
 
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
@@ -824,11 +824,11 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
     CUDA_CHECK(cudaEventRecord (batch_start));
 
-    if (BITS == cgbn_params_512::BITS) {
-      kernel_double_add<cgbn_params_512><<<BLOCK_COUNT, TPB>>>(
+    if (BITS == cgbn_params_small::BITS) {
+      kernel_double_add<cgbn_params_small><<<BLOCK_COUNT, TPB>>>(
           report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-    } else if (BITS == cgbn_params_1024::BITS) {
-      kernel_double_add<cgbn_params_1024><<<BLOCK_COUNT, TPB>>>(
+    } else if (BITS == cgbn_params_medium::BITS) {
+      kernel_double_add<cgbn_params_medium><<<BLOCK_COUNT, TPB>>>(
           report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
 #ifndef IS_DEV_BUILD
     } else if (BITS == cgbn_params_1536::BITS) {
