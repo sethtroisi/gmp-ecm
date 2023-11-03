@@ -230,11 +230,7 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
 #if defined (DEBUG_EVALUATOR)
   if ('#'==op || '^'==op || '!'==op || '@'==op || '$'==op)
     {
-      fprintf (stderr, "eval_power ");
-      mpz_out_str(stderr, 10, prior_n);
-      fprintf (stderr, "%c", op);
-      mpz_out_str(stderr, 10, n);
-      fprintf (stderr, "\n");
+      gmp_fprintf (stderr, "eval power %Zd%c%Zd\n", prior_n, op, n);
     }
 #endif
 
@@ -300,11 +296,7 @@ eval_product (mpz_t prior_n, mpz_t n, char op)
 #if defined (DEBUG_EVALUATOR)
   if ('*'==op || '.'==op || '/'==op || '%'==op)
     {
-      fprintf (stderr, "eval_product ");
-      mpz_out_str(stderr, 10, prior_n);
-      fprintf (stderr, "%c", op);
-      mpz_out_str(stderr, 10, n);
-      fprintf (stderr, "\n");
+      gmp_fprintf (stderr, "eval_product %Zd%c%Zd\n", prior_n, op, n);
     }
 #endif
   if ('*' == op || '.' == op)
@@ -330,11 +322,7 @@ void eval_sum (mpz_t prior_n, mpz_t n,char op)
 #if defined (DEBUG_EVALUATOR)
   if ('+'==op || '-'==op)
     {
-      fprintf (stderr, "eval_sum ");
-      mpz_out_str(stderr, 10, prior_n);
-      fprintf (stderr, "%c", op);
-      mpz_out_str(stderr, 10, n);
-      fprintf (stderr, "\n");
+      gmp_fprintf (stderr, "eval_sum %Zd%c%Zd\n", prior_n, op, n);
     }
 #endif
 
@@ -427,7 +415,7 @@ int eval_Phi (mpz_t* params, mpz_t n)
   mpz_set_ui (n, 1);
   mpz_init_set_ui (D, 1);
   mpz_init (T);
-	      
+
   for(dw=0;(dw<(1U<<dwFactors)); dw++)
     {
       /* for all Mobius terms */
@@ -435,7 +423,7 @@ int eval_Phi (mpz_t* params, mpz_t n)
       int iMobius=0;
       unsigned dwIndex=0;
       unsigned dwMask=1;
-		  
+
       while(dwIndex < dwFactors)
 	{
 	  if(dw&dwMask)
@@ -448,34 +436,18 @@ int eval_Phi (mpz_t* params, mpz_t n)
 	  dwMask<<=1;
 	  ++dwIndex;
 	}
-      /*
-      fprintf (stderr, "Taking ");
-      mpz_out_str(stderr, 10, org_n);
-      fprintf (stderr, "^%d-1\n", iPower);
-      */
+      // gmp_fprintf (stderr, "Taking %Zd^%d-1\n", org_n, iPower);
       mpz_pow_ui(T, org_n, iPower);
       mpz_sub_ui(T, T, 1);
     
       if(iMobius&1)
       {
-	/*
-	fprintf (stderr, "Muling D=D*T  ");
-	mpz_out_str(stderr, 10, D);
-	fprintf (stderr, "*");
-	mpz_out_str(stderr, 10, T);
-	fprintf (stderr, "\n");
-	*/
+	// gmp_fprintf (stderr, "Muling D=D*T  %Zd*%Zd\n", D, T);
 	mpz_mul(D, D, T);
       }
       else
       {
-	/*
-	fprintf (stderr, "Muling n=n*T  ");
-	mpz_out_str(stderr, 10, n);
-	fprintf (stderr, "*");
-	mpz_out_str(stderr, 10, T);
-	fprintf (stderr, "\n");
-	*/
+	// gmp_fprintf (stderr, "Muling n=n*T  %Zd*%Zd\n", n, T);
 	mpz_mul(n, n, T); 
       }
   }
@@ -579,7 +551,7 @@ int aurif (mpz_t output, mpz_t n, mpz_t base, int sign) // Evaluate Aurifeullian
     }
   mpz_set(output, C);
   (sign>0 ? mpz_addmul : mpz_submul)(output, D, l);
-//  gmp_fprintf(stderr, "Calculated base=%Zd, exp=%Zd, C=%Zd, D=%Zd, output=%Zd\n",base,n,C,D,output);
+  // gmp_fprintf (stderr, "Calculated base=%Zd, exp=%Zd, C=%Zd, D=%Zd, output=%Zd\n",base,n,C,D,output);
   mpz_clears(orig_base,C,D,l,m,NULL);
   return 1;
 }
@@ -683,7 +655,7 @@ int eval_U (mpz_t *params, mpz_t n)
 	    mpz_addmul (U1,U0,params[1]); // U0 is 2k-1, U1 is 2k
 	    mpz_divexact (U1,U1,params[0]);
          }
-	 /* gmp_printf("%d %Zd %Zd\n",k,U0,U1); */
+	 /* gmp_fprintf (stderr, "%d %Zd %Zd\n",k,U0,U1); */
     }
   mpz_set(n, U1);
 
@@ -774,9 +746,7 @@ int eval_primU (mpz_t* params, mpz_t n)
 	  dwMask<<=1;
 	  ++dwIndex;
 	}
- /*     
-      gmp_fprintf (stderr, "Taking U(%Zd,%Zd,%d)\n", P,Q,iPower);
- */     
+      // gmp_fprintf (stderr, "Taking U(%Zd,%Zd,%d)\n", P,Q,iPower);
       mpz_set_ui(T,iPower);
       if(eval_U(params, T)==0)
       {
@@ -785,24 +755,12 @@ int eval_primU (mpz_t* params, mpz_t n)
     
       if(iMobius&1)
       {
-/*	
-	fprintf (stderr, "Muling D=D*T  ");
-	mpz_out_str(stderr, 10, D);
-	fprintf (stderr, "*");
-	mpz_out_str(stderr, 10, T);
-	fprintf (stderr, "\n");
-*/	
+	// gmp_fprintf (stderr, "Muling D=D*T  %Zd*%Zd\n", D, T);
 	mpz_mul(D, D, T);
       }
       else
       {
-/*	
-	fprintf (stderr, "Muling n=n*T  ");
-	mpz_out_str(stderr, 10, n);
-	fprintf (stderr, "*");
-	mpz_out_str(stderr, 10, T);
-	fprintf (stderr, "\n");
-*/	
+	// gmp_fprintf (stderr, "Muling n=n*T  %Zd*%Zd\n", n, T);
 	mpz_mul(n, n, T); 
       }
   }
