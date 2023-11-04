@@ -460,22 +460,16 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
   mpz_clear (checksum);
   if (y != NULL)
     {
-      fprintf (file, " Y=0x");
-      mpz_out_str (file, 16, y);
-      fprintf (file, ";");
+      gmp_fprintf (file, " Y=0x%Zx;", y);
     }
   
   if (x0 != NULL)
     {
-      fprintf (file, " X0=0x");
-      mpz_out_str (file, 16, x0);
-      fprintf (file, ";");
+      gmp_fprintf (file, " X0=0x%Zx;", x0);
     }
   if (y0 != NULL)
     {
-      fprintf (file, " Y0=0x");
-      mpz_out_str (file, 16, y0);
-      fprintf (file, ";");
+      gmp_fprintf (file, " Y0=0x%Zx;", y0);
     }
   
   /* Try to get the users and his machines name */
