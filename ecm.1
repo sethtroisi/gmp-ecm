@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: ECM
 .\"    Author: [see the "AUTHORS" section]
-.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
-.\"      Date: 06/08/2022
+.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
+.\"      Date: 11/03/2023
 .\"    Manual: April 22, 2003
 .\"    Source: April 22, 2003
 .\"  Language: English
 .\"
-.TH "ECM" "1" "06/08/2022" "April 22, 2003" "April 22, 2003"
+.TH "ECM" "1" "11/03/2023" "April 22, 2003" "April 22, 2003"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -166,20 +166,15 @@ Stores some tables of data in disk files to reduce the amount of memory occupied
 .PP
 \fB\-power \fR\fB\fIn\fR\fR
 .RS 4
-[ECM, P\-1] Use x^\fIn\fR
+[ECM] Use x^\fIn\fR
 for Brent\-Suyama\*(Aqs extension (\fB\-power 1\fR
-disables Brent\-Suyama\*(Aqs extension)\&. The default polynomial is chosen depending on the method and B2\&. For P\-1 and P+1, disables the fast stage 2\&. For P\-1,
-\fIn\fR
-must be even\&.
+disables Brent\-Suyama\*(Aqs extension)\&. The default polynomial is chosen depending on the method and B2\&.
 .RE
 .PP
 \fB\-dickson \fR\fB\fIn\fR\fR
 .RS 4
-[ECM, P\-1] Use degree\-\fIn\fR
-Dickson\*(Aqs polynomial for Brent\-Suyama\*(Aqs extension\&. For P\-1 and P+1, disables the fast stage 2\&. Like for
-\fB\-power\fR,
-\fIn\fR
-must be even for P\-1\&.
+[ECM] Use degree\-\fIn\fR
+Dickson\*(Aqs polynomial for Brent\-Suyama\*(Aqs extension\&.
 .RE
 .PP
 \fB\-maxmem \fR\fB\fIn\fR\fR
@@ -498,7 +493,7 @@ Line continuation\&. If a line ends with a backslash character
 \(lq\e\(rq, it is considered to continue on the next line\&.
 .PP
 Common arithmetic expressions can be used\&. Example:
-\fI3*5+2^10\fR\&.
+\fI3*5+(2+7)^10\fR\&.
 .PP
 Factorial: example
 \fI53!\fR\&.
@@ -515,8 +510,17 @@ Reduced primorial: example
 \fI17#5\fR
 means 5*7*11*13*17\&.
 .PP
-Functions: currently, the only available function is
-\fIPhi(x,n)\fR\&.
+Functions:
+.PP
+GCD(a,b): Greatest common divisor
+.RS 4
+example GCD(120,28) = 4
+.RE
+.PP
+Phi(n,x): n\-th Cyclotomic Polynomial evaluated at x
+.RS 4
+example Phi(3,5) = 1 + x + x^2 = 31
+.RE
 .SH "EXIT STATUS"
 .PP
 The exit status reflects the result of the last ECM curve or P\-1/P+1 attempt the program performed\&. Individual bits signify particular events, specifically:

@@ -47,8 +47,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
  *   Reduced Primorial:          n#m    17#5 == 5.7.11.13.17     *
  *                                                               *
  * Supported functions:	(case insensitive)			 *
- *   Phi(n,x)							 *
- *   GCD(m,n)							 *
+ *   Phi(n,x)			Phi(3,5) == 1+x+x^2 = 31	 *
+ *   GCD(m,n)			GCD(120, 28) = 4		 *
  *   U(p,q,n)							 *
  *   primU(p,q,n)						 *
  *   TODO: PhiL(k,n), PhiM(k,n)  				 *
