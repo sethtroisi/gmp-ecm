@@ -599,7 +599,7 @@ int process_results(mpz_t *factors, int *array_found,
     array_found[i] = findfactor(factors[i], N, x_final, y_final);
     if (array_found[i] != ECM_NO_FACTOR_FOUND) {
       youpi = array_found[i];
-      outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with curve %ld (-sigma %d:%d)\n",
+      outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with curve %ld (-sigma %d:%lu)\n",
           factors[i], i, ECM_PARAM_BATCH_32BITS_D, sigma + i);
     }
   }
