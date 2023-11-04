@@ -113,9 +113,8 @@ new_line:
 
 #if defined (DEBUG_EVALUATOR)
   if (n->cpExpr)
-    fprintf (stderr, "%s\n", n->cpExpr);
-  mpz_out_str (stderr, 10, n->n);
-  fprintf (stderr, "\n");
+    fprintf (stderr, "Input Expr: %s\n", n->cpExpr);
+  gmp_fprintf(stderr, "N: %Zd\n", n->n);
 #endif
 
   return 1;
