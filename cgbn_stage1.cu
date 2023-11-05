@@ -239,24 +239,24 @@ class curve_t {
           const bn_t &modulus,
           const uint32_t np0) {
     // q = xA = aX
-    // u = zA = aY
+    // u = zA = aZ
     // w = xB = bX
-    // v = zB = bY
+    // v = zB = bZ
 
     /* Doesn't seem to be a large cost to using many extra variables */
     bn_t t, CB, DA, AA, BB, K, dK;
 
     /* Can maybe use one more bit if cgbn_add subtracts when carry happens */
 
-    cgbn_add(_env, t, v, w); // t = (bY + bX)
+    cgbn_add(_env, t, v, w); // t = (bZ + bX)
     normalize_addition(t, modulus);
-    if (cgbn_sub(_env, v, v, w)) // v = (bY - bX)
+    if (cgbn_sub(_env, v, v, w)) // v = (bZ - bX)
         cgbn_add(_env, v, v, modulus);
 
 
-    cgbn_add(_env, w, u, q); // w = (aY + aX)
+    cgbn_add(_env, w, u, q); // w = (aZ + aX)
     normalize_addition(w, modulus);
-    if (cgbn_sub(_env, u, u, q)) // u = (aY - aX)
+    if (cgbn_sub(_env, u, u, q)) // u = (aZ - aX)
         cgbn_add(_env, u, u, modulus);
     if (VERIFY_NORMALIZED) {
         assert_normalized(t, modulus);
@@ -305,7 +305,7 @@ class curve_t {
         assert_normalized(u, modulus);
     }
 
-    // u = aY is finalized
+    // u = aZ is finalized
     cgbn_mont_mul(_env, u, K, u, modulus, np0); // K(BB+dK)
         normalize_addition(u, modulus);
         assert_normalized(u, modulus);
@@ -328,7 +328,7 @@ class curve_t {
         normalize_addition(v, modulus);
         assert_normalized(v, modulus);
 
-    // v = bY is finalized
+    // v = bZ is finalized
     cgbn_shift_left(_env, v, v, 1); // double
     normalize_addition(v, modulus);
         assert_normalized(v, modulus);
@@ -341,7 +341,7 @@ uint32_t* set_p_2p(const mpz_t N,
                    uint32_t BITS, size_t *data_size) {
   /**
    * Store 5 numbers per curve:
-   * N, P_a (x, y), P_b (x, y)
+   * N, P_a (x, z), P_b (x, z)
    *
    * P_a is initialized with (2, 1)
    * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
@@ -361,13 +361,13 @@ uint32_t* set_p_2p(const mpz_t N,
       // Modulo (N)
       from_mpz(N, datum + 0 * limbs_per, BITS/32);
 
-      // P1 (X, Y)
+      // P1 (X, Z)
       mpz_set_ui(x, 2);
       from_mpz(x, datum + 1 * limbs_per, BITS/32);
       mpz_set_ui(x, 1);
       from_mpz(x, datum + 2 * limbs_per, BITS/32);
 
-      // 2P = P2 (X, Y)
+      // 2P = P2 (X, Z)
       // P2_x = 9
       mpz_set_ui(x, 9);
       from_mpz(x, datum + 3 * limbs_per, BITS/32);
@@ -414,30 +414,34 @@ __global__ void kernel_double_add(
   cgbn_monitor_t monitor = CHECK_ERROR ? cgbn_report_monitor : cgbn_no_checks;
 
   curve_t<params> curve(monitor, report, instance_i);
-  typename curve_t<params>::bn_t  aX, aY, bX, bY, modulus;
+  typename curve_t<params>::bn_t  aX, aZ, bX, bZ, modulus;
 
   { // Setup
       cgbn_load(curve._env, modulus, &data_cast[5*instance_i+0]);
       cgbn_load(curve._env, aX, &data_cast[5*instance_i+1]);
-      cgbn_load(curve._env, aY, &data_cast[5*instance_i+2]);
+      cgbn_load(curve._env, aZ, &data_cast[5*instance_i+2]);
       cgbn_load(curve._env, bX, &data_cast[5*instance_i+3]);
-      cgbn_load(curve._env, bY, &data_cast[5*instance_i+4]);
+      cgbn_load(curve._env, bZ, &data_cast[5*instance_i+4]);
 
       /* Convert points to mont, has a miniscule bit of overhead with batching. */
       uint32_t np0_test = cgbn_bn2mont(curve._env, aX, aX, modulus);
       assert(np0 == np0_test);
 
-      cgbn_bn2mont(curve._env, aY, aY, modulus);
+      cgbn_bn2mont(curve._env, aZ, aZ, modulus);
       cgbn_bn2mont(curve._env, bX, bX, modulus);
-      cgbn_bn2mont(curve._env, bY, bY, modulus);
+      cgbn_bn2mont(curve._env, bZ, bZ, modulus);
 
       {
         curve.assert_normalized(aX, modulus);
-        curve.assert_normalized(aY, modulus);
+        curve.assert_normalized(aZ, modulus);
         curve.assert_normalized(bX, modulus);
-        curve.assert_normalized(bY, modulus);
+        curve.assert_normalized(bZ, modulus);
       }
   }
+
+  /* Initially
+     P_a = (aX, aZ) contains P
+     P_b = (bX, bZ) contains 2P */
 
   uint32_t d = sigma_0 + instance_i;
   int swapped = 0;
@@ -449,55 +453,50 @@ __global__ void kernel_double_add(
     if (bit != swapped) {
         swapped = !swapped;
         cgbn_swap(curve._env, aX, bX);
-        cgbn_swap(curve._env, aY, bY);
+        cgbn_swap(curve._env, aZ, bZ);
     }
-    curve.double_add_v2(aX, aY, bX, bY, d, modulus, np0);
+    curve.double_add_v2(aX, aZ, bX, bZ, d, modulus, np0);
   }
 
   if (swapped) {
     cgbn_swap(curve._env, aX, bX);
-    cgbn_swap(curve._env, aY, bY);
+    cgbn_swap(curve._env, aZ, bZ);
   }
 
   { // Final output
     // Convert everything back to bn
     cgbn_mont2bn(curve._env, aX, aX, modulus, np0);
-    cgbn_mont2bn(curve._env, aY, aY, modulus, np0);
+    cgbn_mont2bn(curve._env, aZ, aZ, modulus, np0);
     cgbn_mont2bn(curve._env, bX, bX, modulus, np0);
-    cgbn_mont2bn(curve._env, bY, bY, modulus, np0);
+    cgbn_mont2bn(curve._env, bZ, bZ, modulus, np0);
 
     {
       curve.assert_normalized(aX, modulus);
-      curve.assert_normalized(aY, modulus);
+      curve.assert_normalized(aZ, modulus);
       curve.assert_normalized(bX, modulus);
-      curve.assert_normalized(bY, modulus);
+      curve.assert_normalized(bZ, modulus);
     }
     cgbn_store(curve._env, &data_cast[5*instance_i+1], aX);
-    cgbn_store(curve._env, &data_cast[5*instance_i+2], aY);
+    cgbn_store(curve._env, &data_cast[5*instance_i+2], aZ);
     cgbn_store(curve._env, &data_cast[5*instance_i+3], bX);
-    cgbn_store(curve._env, &data_cast[5*instance_i+4], bY);
+    cgbn_store(curve._env, &data_cast[5*instance_i+4], bZ);
   }
 }
 
 static
-int findfactor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t y_final) {
+int findfactor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t z_final) {
     // XXX: combine / refactor logic with cudawrapper.c findfactor
 
-    mpz_t temp;
-    mpz_init(temp);
-
     /* Check if factor found */
-    bool inverted = mpz_invert(temp, y_final, N);    // aY ^ (N-2) % N
+    bool inverted = mpz_invert(factor, z_final, N);    // aZ ^ (N-2) % N
 
     if (inverted) {
-        mpz_mul(temp, x_final, temp);         // aX * aY^-1
-        mpz_mod(factor, temp, N);             // "Residual"
-        mpz_clear(temp);
+        mpz_mul(factor, x_final, factor);         // aX * aZ^-1
+        mpz_mod(factor, factor, N);             // "Residual"
         return ECM_NO_FACTOR_FOUND;
     }
-    mpz_clear(temp);
 
-    mpz_gcd(factor, y_final, N);
+    mpz_gcd(factor, z_final, N);
     return ECM_FACTOR_FOUND_STEP1;
 }
 
@@ -552,10 +551,10 @@ int process_results(mpz_t *factors, int *array_found,
                     const mpz_t N,
                     const uint32_t *data, uint32_t cgbn_bits,
                     int curves, uint32_t sigma) {
-  mpz_t x_final, y_final, modulo;
+  mpz_t x_final, z_final, modulo;
   mpz_init(modulo);
   mpz_init(x_final);
-  mpz_init(y_final);
+  mpz_init(z_final);
 
   const uint32_t limbs_per = cgbn_bits / 32;
 
@@ -569,12 +568,12 @@ int process_results(mpz_t *factors, int *array_found,
       outputf (OUTPUT_TRACE, "index: 0 modulo: %Zd\n", modulo);
 
       to_mpz(x_final, datum + 1 * limbs_per, limbs_per);
-      to_mpz(y_final, datum + 2 * limbs_per, limbs_per);
-      outputf (OUTPUT_TRACE, "index: 0 pA: (%Zd, %Zd)\n", x_final, y_final);
+      to_mpz(z_final, datum + 2 * limbs_per, limbs_per);
+      outputf (OUTPUT_TRACE, "index: 0 pA: (%Zd, %Zd)\n", x_final, z_final);
 
       to_mpz(x_final, datum + 3 * limbs_per, limbs_per);
-      to_mpz(y_final, datum + 4 * limbs_per, limbs_per);
-      outputf (OUTPUT_TRACE, "index: 0 pB: (%Zd, %Zd)\n", x_final, y_final);
+      to_mpz(z_final, datum + 4 * limbs_per, limbs_per);
+      outputf (OUTPUT_TRACE, "index: 0 pB: (%Zd, %Zd)\n", x_final, z_final);
     }
 
     // Make sure we were testing the right number.
@@ -582,21 +581,21 @@ int process_results(mpz_t *factors, int *array_found,
     assert(mpz_cmp(modulo, N) == 0);
 
     to_mpz(x_final, datum + 1 * limbs_per, limbs_per);
-    to_mpz(y_final, datum + 2 * limbs_per, limbs_per);
+    to_mpz(z_final, datum + 2 * limbs_per, limbs_per);
 
-    /* Very suspicious for (x_final, y_final) to match (x_0, y_0) == (2, 1)
+    /* Very suspicious for (x_final, z_final) to match (x_0, z_0) == (2, 1)
      * Can happen when
      * 1. block calculation performed incorrectly (and some blocks not run)
      * 2. Kernel didn't run because not enough register
      * 3. nvcc links old version of kernel when something changed
      */
-    if (mpz_cmp_ui (x_final, 2) == 0 && mpz_cmp_ui (y_final, 1) == 0) {
+    if (mpz_cmp_ui (x_final, 2) == 0 && mpz_cmp_ui (z_final, 1) == 0) {
       errors += 1;
       if (errors < 10 || errors % 100 == 1)
         outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute?\n", i);
     }
 
-    array_found[i] = findfactor(factors[i], N, x_final, y_final);
+    array_found[i] = findfactor(factors[i], N, x_final, z_final);
     if (array_found[i] != ECM_NO_FACTOR_FOUND) {
       youpi = array_found[i];
       outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with curve %ld (-sigma %d:%lu)\n",
@@ -606,7 +605,7 @@ int process_results(mpz_t *factors, int *array_found,
 
   mpz_init(modulo);
   mpz_clear(x_final);
-  mpz_clear(y_final);
+  mpz_clear(z_final);
 
 #ifdef IS_DEV_BUILD
   if (errors)
