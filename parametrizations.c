@@ -394,15 +394,25 @@ get_curve_from_param3 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpz_mul (tmp, sigma, tmp);
   mpz_mod (tmp, tmp, n->orig_modulus);
 
-  /* TODO add d!=-1/8*/
-  if (mpz_sgn (tmp) == 0 || mpz_cmp_ui (tmp, 1) == 0)
+  if (mpz_sgn (tmp) == 0 || mpz_cmp_ui (tmp, 1) == 0) {
+      mpz_clear(tmp);
       return ECM_ERROR;
+  }
 
   mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
   mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
-      
+
   mpres_set_z (A, tmp, n);
   mpres_set_ui (x0, 2, n);
+
+  mpz_mul_2exp (tmp, tmp, 1);           /* 2*(4d-2) */
+  mpz_add_ui (tmp, tmp, 5);             /* 8*d+1    */
+
+  /* d == -1/8  <=>  8*d+1 == 0*/
+  if (mpz_divisible_p (tmp, n->orig_modulus)) {
+      mpz_clear(tmp);
+      return ECM_ERROR;
+  }
 
   mpz_clear(tmp);
   return ECM_NO_FACTOR_FOUND;
