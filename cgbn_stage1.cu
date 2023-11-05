@@ -206,17 +206,31 @@ class curve_t {
     uint32_t q = t1_0 * np0;
     uint32_t carry_t2 = cgbn_mul_ui32(_env, temp, modulus, q);
 
+    // Can I call dshift_right(1) directly?
     cgbn_shift_right(_env, r, r, 32);
     cgbn_shift_right(_env, temp, temp, 32);
     // Add back overflow carry
     cgbn_insert_bits_ui32(_env, r, r, params::BITS-32, 32, carry_t1);
     cgbn_insert_bits_ui32(_env, temp, temp, params::BITS-32, 32, carry_t2);
 
-    // This needs to be measured at block containing top bit of modulus
+    if (VERIFY_NORMALIZED) {
+        // (uint32 * X) >> 32 is always less than X
+        assert_normalized(r, modulus);
+        assert_normalized(temp, modulus);
+    }
+
+    // Can't overflow because of CARRY_BITS
     int32_t carry_q = cgbn_add(_env, r, r, temp);
     carry_q += cgbn_add_ui32(_env, r, r, t1_0 != 0); // add 1
-    while (carry_q != 0) {
-        carry_q -= cgbn_sub(_env, r, r, modulus);
+
+    if (carry_q > 0) {
+        // This should never happen,
+        // if CHECK_ERROR, no need for the conditional call to cgbn_sub
+        if (CHECK_ERROR) {
+            _context.report_error(cgbn_positive_overflow);
+        } else {
+            cgbn_sub(_env, r, r, modulus);
+        }
     }
 
     // 0 <= r, temp < modulus => r + temp + 1 < 2*modulus
@@ -247,7 +261,9 @@ class curve_t {
     bn_t t, CB, DA, AA, BB, K, dK;
 
     /* Can maybe use one more bit if cgbn_add subtracts when carry happens */
+    /* Might be nice to add a macro that verifies no carry out of cgbn_add */
 
+    // Is there anything interesting like only one of these can overflow?
     cgbn_add(_env, t, v, w); // t = (bZ + bX)
     normalize_addition(t, modulus);
     if (cgbn_sub(_env, v, v, w)) // v = (bZ - bX)
@@ -284,7 +300,7 @@ class curve_t {
 
     // q = aX is finalized
     cgbn_mont_mul(_env, q, AA, BB, modulus, np0); // AA*BB
-        normalize_addition(q, modulus);
+    normalize_addition(q, modulus);
         assert_normalized(q, modulus);
 
     if (cgbn_sub(_env, K, AA, BB)) // K = AA-BB
@@ -307,7 +323,7 @@ class curve_t {
 
     // u = aZ is finalized
     cgbn_mont_mul(_env, u, K, u, modulus, np0); // K(BB+dK)
-        normalize_addition(u, modulus);
+    normalize_addition(u, modulus);
         assert_normalized(u, modulus);
 
     cgbn_add(_env, w, DA, CB); // DA + CB
@@ -321,11 +337,11 @@ class curve_t {
 
     // w = bX is finalized
     cgbn_mont_sqr(_env, w, w, modulus, np0); // (DA+CB)^2 mod N
-        normalize_addition(w, modulus);
+    normalize_addition(w, modulus);
         assert_normalized(w, modulus);
 
     cgbn_mont_sqr(_env, v, v, modulus, np0); // (DA-CB)^2 mod N
-        normalize_addition(v, modulus);
+    normalize_addition(v, modulus);
         assert_normalized(v, modulus);
 
     // v = bZ is finalized
