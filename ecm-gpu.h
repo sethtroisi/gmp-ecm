@@ -28,9 +28,6 @@ int gpu_ecm (mpz_t, mpz_t, int, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 #else
 int gpu_ecm ();
 #endif
-#define gpu_ecm_stage1 __ECM(gpu_ecm_stage1)
-int gpu_ecm_stage1 (mpz_t *, int *, mpz_t, mpz_t, unsigned int, unsigned int, 
-                    float *, int);
 
 #endif
 
