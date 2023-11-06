@@ -173,10 +173,28 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
 #endif
     }
   else if (p->method == ECM_PM1)
-    res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,
-               p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,
-               p->chkfilename, p->TreeFilename, p->maxmem, p->rng,
-               p->stop_asap);
+    {
+      if (p->gpu == 0)
+        {
+            res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,
+                       p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,
+                       p->chkfilename, p->TreeFilename, p->maxmem, p->rng,
+                       p->stop_asap);
+        }
+      else
+        {
+#ifdef WITH_GPU
+          res = gpu_pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,
+                         p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,
+                         p->chkfilename, p->TreeFilename, p->maxmem, p->rng,
+                         p->stop_asap, p->gpu_device, &(p->gpu_device_init),
+                         &(p->gpu_number_of_curves));
+#else
+          assert(0); // Compiled without --enable-gpu
+#endif
+        }
+      printf("ECM_PM1 return: %d\n", res);
+    }
   else if (p->method == ECM_PP1)
     res = pp1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,
                p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,

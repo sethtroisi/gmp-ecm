@@ -34,8 +34,22 @@ extern "C" {
 int get_device_prop(int device, struct cudaDeviceProp *deviceProp);
 int select_and_init_GPU (int, unsigned int*, int);
 
+// CGBN stuff
+
+/*
+struct cgbn_error_report_t;
+
+#define CGBN_CHECK(report) cgbn_check(report, __FILE__, __LINE__)
+void cgbn_check(cgbn_error_report_t *, const char *, int32_t);
+
+void CGBN_to_mpz(mpz_t r, const uint32_t *x, uint32_t count);
+void CGBN_from_mpz(const mpz_t s, uint32_t *x, uint32_t count);
+*/
+
 #ifdef __cplusplus
 }
 #endif
+
+
 
 #endif /* _CUDACOMMON_H */

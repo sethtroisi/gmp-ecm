@@ -1512,6 +1512,7 @@ main (int argc, char *argv[])
           cnt --; /* one more curve performed */
       else
         {
+          assert(params->gpu_number_of_curves > 0);
           if (cnt <= params->gpu_number_of_curves)
               cnt = 0;
           else

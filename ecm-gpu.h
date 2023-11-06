@@ -18,14 +18,17 @@
 
 #ifndef _DO_NOT_INCLUDE_ECM_IMPL_H
 
+#ifdef WITH_GPU
+
 /* cudawrapper.c */
 #define gpu_ecm __ECM(gpu_ecm)
-#ifdef WITH_GPU
-int gpu_ecm (mpz_t, const ecm_params, ecm_params, mpz_t, double);
-#else
-int gpu_ecm ();
-#endif
+#define gpu_pm1 __ECM(gpu_pm1)
 
-#endif
+int gpu_ecm (mpz_t, const ecm_params, ecm_params, mpz_t, double);
+int gpu_pm1 (mpz_t, const ecm_params, ecm_params, mpz_t, double);
+
+#endif /* WITH_GPU */
+
+#endif /* _DO_NOT_INCLUDE_ECM_IMPL_H */
 
 #endif /* _ECM_GPU_H */

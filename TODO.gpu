@@ -26,6 +26,9 @@ Big improvements
   `np0` would have to become an array.
   `n_log2` becames `max_n_log2`.
 
+* For P-1 (and small ECM) it's nicer to do 1792 numbers at the same time instead of 1792 curves.
+  Initial P-1 testing 20-40x latency, but 40-60x throughput.
+
 Testing
 
 1. Improve carry bit testing (see overflow test in check_gpuecm.sage)

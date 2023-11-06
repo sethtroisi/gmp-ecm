@@ -42,7 +42,7 @@ typedef struct {
 /* prime powers are accumulated up to about n^L1 */
 #define L1 16
 
-/*** Cascaded multiply ***/
+/*** Cascaded multiply (Product-Tree esque) ***/
 
 /* return NULL if an error occurred */
 static mul_casc *
@@ -84,7 +84,8 @@ mulcascade_mul_d (mul_casc *c, const double n, ATTRIBUTE_UNUSED mpz_t t)
   mpz_mul_d (c->val[0], c->val[0], n, t);
   if (mpz_size (c->val[0]) <= CASCADE_THRES)
     return;
-  
+
+  /* Binary Product Tree, after 2^n calls will have n entries. */
   for (i = 1; i < c->size; i++) 
     {
       if (mpz_sgn (c->val[i]) == 0) 
@@ -149,6 +150,7 @@ static int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done, 
             mpz_t go, int (*stop_asap)(void), char *chkfilename)
 {
+  /* double is to work around 32 bit machines */
   double p, q, r, cascade_limit, last_chkpnt_p;
   mpz_t g, d;
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -165,6 +167,9 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   size_n = mpz_sizeinbase (n->orig_modulus, 2);
   max_size = L1 * size_n;
 
+  gmp_printf("generator: %Zd and %Zd\n", a, go);
+
+  // Why do this this way?
   mpres_get_z (g, a, n);
   if (mpz_fits_uint_p (g))
     smallbase = mpz_get_ui (g);
@@ -199,7 +204,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
      i.e. B1 > 25e14 for CASCADE_MAX=5e7.
   */
 
-  /* if the user knows that P-1 has a given divisor, he can supply it */
+  /* if the user knows that P-1 has a given divisor, they can supply it */
   if (mpz_cmp_ui (go, 1) > 0)
     mulcascade_set (cascade, go);
   
@@ -229,7 +234,15 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   mulcascade_free (cascade);
   outputf (OUTPUT_DEVVERBOSE, "Exponent has %u bits\n", 
            mpz_sizeinbase (g, 2));
-  
+ 
+  if (test_verbose(OUTPUT_VERBOSE)) { 
+      printf("p-1 middle a,g,n\n");
+      gmp_printf("a: %Zd\n", a);
+      gmp_printf("g: %Zd\n", g);
+      printf("repr: %d\n", n->repr);
+      gmp_printf("n: %Zd\n", n->orig_modulus);
+  }
+
   if (smallbase)
     {
       outputf (OUTPUT_DEVVERBOSE, "Using mpres_ui_pow, base %u\n", smallbase);
@@ -294,6 +307,14 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
           }
       }
   }
+
+  /*
+  printf("p-1 a,g,n\n");
+  gmp_printf("a: %Zd\n", a);
+  gmp_printf("g: %Zd\n", g);
+  printf("repr: %d\n", n->repr);
+  gmp_printf("n: %Zd\n", n->orig_modulus);
+  */
 
   mpres_pow (a, a, g, n);
   

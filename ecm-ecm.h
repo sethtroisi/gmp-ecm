@@ -33,6 +33,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include "ecm.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Structure for candidate usage.  This is much more powerful than using a
    simple mpz_t to hold the candidate.  This structure also houses the 
    expression (in raw form), and will modify the expression as factors 
@@ -193,5 +197,9 @@ long PeakMemusage (void);
                  Use mpz_probab_prime_p if n has more digits than cutoff2 */
 #define APRCL_CUTOFF2 500 /* for more than APRCL_CUTOFF2 digits, perform
                               a pseudo-primality test */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ECM_ECM_H */

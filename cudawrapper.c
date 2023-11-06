@@ -397,6 +397,7 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   /* GMP documentation says mpz_sizeinbase(op, 2) is always the exact value. */
   size_t n_bits = mpz_sizeinbase(n, 2);
 
+  // TODO is this needed if a factor is found?
   /* Save stage 1 residues as x = x0 + x1 * 2^bits + ... + xk * 2^(bits*k) */
   mpz_set_ui (mutable_params->x, 0);
   /* Equivalent to using mpz_mul_2exp and mpz_add while avoiding O(n*k) limp copies */
@@ -549,6 +550,193 @@ end_gpu_ecm2:
   mpres_clear (P.y, modulus);
   mpres_clear (P.x, modulus);
   mpmod_clear (modulus);
+
+  return youpi;
+}
+
+int
+gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
+         double *B1done, double B1, mpz_t B2min_parm ATTRIBUTE_UNUSED, mpz_t B2_parm ATTRIBUTE_UNUSED,
+         unsigned long k ATTRIBUTE_UNUSED, int verbose, int repr, int use_ntt ATTRIBUTE_UNUSED, FILE *os, FILE *es, 
+         char *chkfilename ATTRIBUTE_UNUSED, char *TreeFilename ATTRIBUTE_UNUSED, double maxmem ATTRIBUTE_UNUSED,
+         gmp_randstate_t rng ATTRIBUTE_UNUSED,
+         int (*stop_asap)(void) ATTRIBUTE_UNUSED, 
+         int device, int *device_init, unsigned int *nb_curves)
+{
+  unsigned int i;
+  int youpi = ECM_NO_FACTOR_FOUND;
+  long st;
+  float gputime = 0.0;
+  mpz_t *factors = NULL; /* Contains either a factor of n either end-of-stage-1
+                         residue (depending of the value of array_found */
+  int *array_found = NULL;
+  mpz_t batch_s;
+
+  //mpmod_t modulus;
+
+  ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
+
+  /* Set global VERBOSE to avoid the need to explicitly passing verbose */
+  set_verbose (verbose);
+  ECM_STDOUT = (os == NULL) ? stdout : os;
+  ECM_STDERR = (es == NULL) ? stdout : es;
+
+
+  /* Check that N is not too big */
+  size_t max_bits = ECM_GPU_CGBN_MAX_BITS - 6;
+  if (mpz_sizeinbase (n, 2) > max_bits)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, input number should be stricly lower"
+                             " than 2^%d\n", max_bits);
+      return ECM_ERROR;
+    }
+
+  /* check that repr == ECM_MOD_DEFAULT or ECM_MOD_BASE2 (only for stage 2) */
+  if (repr != ECM_MOD_DEFAULT && repr != ECM_MOD_BASE2)
+      outputf (OUTPUT_ERROR, "GPU: Warning, the value of repr will be ignored "
+      "for step 1 on GPU.\n");
+
+  // IS THIS CODE NEEDED?
+//          /* It is only for stage 2, it is not taken into account for GPU code */
+//          if (mpmod_init (modulus, n, repr) != 0)
+//            return ECM_ERROR;
+
+//          /* See what kind of number we have as that may influence optimal parameter 
+//             selection. Test for base 2 number. Note: this was already done by
+//             mpmod_init. */
+//
+//          if (modulus->repr == ECM_MOD_BASE2)
+//            base2 = modulus->bits;
+
+  /* Cannot do resume on GPU */
+  if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, cannot resume on GPU.\n");
+      return ECM_ERROR;
+    }
+
+  /* Initialize the GPU if necessary and determine nb_curves */
+  if (!*device_init)
+    {
+      st = cputime ();
+      youpi = select_and_init_GPU (device, nb_curves,
+                                   test_verbose (OUTPUT_VERBOSE));
+
+      if (youpi != 0)
+        {
+          youpi = ECM_ERROR;
+          goto end_gpu_pm1_2;
+        }
+
+      outputf (OUTPUT_VERBOSE, "GPU: Selection and initialization of the device "
+                               "took %ldms\n", elltime (st, cputime ()));
+      /* TRICKS: If initialization of the device is too long (few seconds), */
+      /* try running 'nvidia-smi -q -l' on the background .                 */
+      *device_init = 1;
+    }
+
+  /* Init arrays */
+  factors = (mpz_t *) malloc (*nb_curves * sizeof (mpz_t));
+  ASSERT_ALWAYS (factors != NULL);
+
+  array_found = (int *) malloc (*nb_curves * sizeof (int));
+  ASSERT_ALWAYS (array_found != NULL);
+
+  for (i = 0; i < *nb_curves; i++)
+    {
+      mpz_init (factors[i]);
+      array_found[i] = ECM_NO_FACTOR_FOUND;
+    }
+
+  if (go != NULL && mpz_cmp_ui (go, 1) > 0)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, option -go is not allowed\n");
+      youpi= ECM_ERROR;
+      goto end_gpu_pm1_1;
+    }
+
+  // TODO P-1 statistics
+  /*
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      if (mpz_cmp_d (B2min, B1) != 0)
+        {
+          outputf (OUTPUT_VERBOSE, 
+            "Can't compute success probabilities for B1 <> B2min\n");
+        }
+      else
+        {
+          rhoinit (256, 10);
+          print_expcurves (B1, B2, dF, k, root_params.S, param);
+        }
+    }
+  */
+
+  /* Compute s */
+  // TODO consider bload
+  st = cputime ();
+  /* construct the batch exponent */
+  mpz_init(batch_s);
+  compute_s (batch_s, B1, NULL);
+  outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
+                           " bits) of primes up to B1=%1.0f took %ldms\n",
+                           mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
+
+  st = cputime ();
+
+  youpi = cgbn_pm1_stage1 (factors, array_found, n, batch_s, *nb_curves, &gputime, verbose);
+
+  outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
+                          "%.0fms of GPU time\n", *nb_curves, 
+                                           elltime (st, cputime ()), gputime);
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f numbers per second ", 
+                                                 1000 * (*nb_curves)/gputime);
+  outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n", 
+                                                        gputime/(*nb_curves));
+  *B1done=B1;
+
+  mpz_clear(batch_s);
+
+  /* GMP documentation says mpz_sizeinbase(op, 2) is always the exact value. */
+  size_t n_bits = mpz_sizeinbase(n, 2);
+
+  /* Save stage 1 residues as x = x0 + x1 * 2^bits + ... + xk * 2^(bits*k) */
+  mpz_set_ui (x, 0);
+  for (i = 0; i < *nb_curves; i++)
+    {
+      mpz_mul_2exp (x, x, n_bits);
+      mpz_add (x, x, factors[*nb_curves - 1 - i]);
+    }
+
+  /* was a factor found in stage 1 ? */
+
+  reducefactors(factors, array_found, *nb_curves);
+
+  /* If f0, ,fk are the factors found (in stage 1 or 2) 
+   * f = f0 + f1*n + .. + fk*n^k
+   * The purpose of this construction is to be able to return more than one
+   * factor if needed without breaking the lib interface (as gcd(f,n)=gcd(f0,n).
+   */
+  mpz_set_ui (f, 0);
+  for (i = 0; i < *nb_curves; i++)
+  {
+    /* invert order of factors so they are processed in same order found */
+    if (array_found[*nb_curves-1-i] != ECM_NO_FACTOR_FOUND)
+      {
+        mpz_mul (f, f, n);
+        mpz_add (f, f, factors[*nb_curves-1-i]);
+      }
+  }
+
+end_gpu_pm1_1:
+  for (i = 0; i < *nb_curves; i++)
+      mpz_clear (factors[i]);
+
+  free (array_found);
+  free (factors);
+
+end_gpu_pm1_2:
+  //mpmod_clear (modulus);
 
   return youpi;
 }
