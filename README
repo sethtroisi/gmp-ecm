@@ -357,8 +357,8 @@ syntax that is handled:
 9. Simple Primorial using the # character with example of 11# == 2*3*5*7*11
 10. Reduced Primorial n#m with example of 17#5 == 5.7.11.13.17
 11. Functions are possible with the expression parser. Currently, the only 
-    available function is Phi(x,n), however other functions should be easy
-    to add in the future.
+    available function is Phi(n,x), which is the value of the n-th cyclotomic
+    polynomial at x, however other functions should be easy to add.
 
 Note: Expressions are maintained as much as possible (even if the expression
 becomes longer than the decimal expansion). Expressions are output as cofactors
