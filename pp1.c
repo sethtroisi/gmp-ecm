@@ -30,8 +30,8 @@ Lucas chains, Peter L. Montgomery, December 1983, revised January 1992. */
 
 #include <math.h>
 #include <stdlib.h>
+#include <primesieve.h>
 #include "ecm-impl.h"
-#include "getprime_r.h"
 
 #ifdef HAVE_LIMITS_H
 # include <limits.h>
@@ -129,7 +129,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
   int youpi = ECM_NO_FACTOR_FOUND;
   unsigned int max_size, size_n;
   long last_chkpnt_time;
-  prime_info_t prime_info;
+  primesieve_iterator it;
 
   mpz_init (g);
   mpres_init (P, n);
@@ -168,8 +168,8 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
   last_chkpnt_p = 2.;
   last_chkpnt_time = cputime ();
   /* first loop through small primes <= sqrt(B1) */
-  prime_info_init (prime_info);
-  for (p = 2.0; p <= B0; p = (double) getprime_mt (prime_info))
+  primesieve_init (&it);
+  for (p = 2.0; p <= B0; p = (double) primesieve_next_prime (&it))
     {
       for (q = 1, r = p; r <= B1; r *= p)
         if (r > *B1done) q *= p;
@@ -194,12 +194,15 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
   /* All primes sqrt(B1) < p <= B1 appear with exponent 1. All primes <= B1done
      are already included with exponent at least 1, so it's safe to skip 
      ahead to B1done+1. */
-  
-  while (p <= *B1done)
-    p = (double) getprime_mt (prime_info);
+ 
+  if (p <= *B1done) {
+    primesieve_skipto (&it, *B1done, primesieve_get_max_stop());
+    p = primesieve_next_prime (&it);
+    ASSERT( p > *B1done );
+  }
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
-  for (; p <= B1; p = (double) getprime_mt (prime_info))
+  for (; p <= B1; p = (double) primesieve_next_prime (&it))
     {
       pp1_mul_prac (P0, (ecm_uint) p, n, P, Q, R, S, T);
   
@@ -229,7 +232,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
 clear_and_exit:
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_PP1, p, n, NULL, P0, NULL, NULL);
-  prime_info_clear (prime_info); /* free the prime table */
+  primesieve_free_iterator (&it); /* free the prime iterator */
   mpres_clear (Q, n);
   mpres_clear (R, n);
   mpres_clear (S, n);

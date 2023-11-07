@@ -22,8 +22,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include <math.h>
 #include <stdlib.h>
+#include <primesieve.h>
 #include "ecm-impl.h"
-#include "getprime_r.h"
 
 #define CASCADE_THRES 3
 #define CASCADE_MAX 50000000.0
@@ -157,7 +157,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   mul_casc *cascade;
   long last_chkpnt_time;
   const double B0 = sqrt (B1);
-  prime_info_t prime_info;
+  primesieve_iterator it;
 
   mpz_init (g);
   mpz_init (d);
@@ -210,8 +210,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
      primes */
   /* Add small primes <= MIN(sqrt(B1), cascade_limit) in the appropriate 
      power to the cascade */
-  prime_info_init (prime_info);
-  for (p = 2.; p <= MIN(B0, cascade_limit); p = (double) getprime_mt (prime_info))
+  primesieve_init(&it);
+  for (p = 2.; p <= MIN(B0, cascade_limit); p = (double) primesieve_next_prime (&it))
     {
       for (q = 1., r = p; r <= B1; r *= p)
         if (r > *B1done) q *= p;
@@ -220,7 +220,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
 
   /* If B0 < cascade_limit, we can add some primes > sqrt(B1) with 
      exponent 1 to the cascade */
-  for ( ; p <= cascade_limit; p = (double) getprime_mt (prime_info))
+  for ( ; p <= cascade_limit; p = (double) primesieve_next_prime (&it))
     if (p > *B1done)
       mulcascade_mul_d (cascade, p, d);
 
@@ -243,7 +243,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
 
   /* If B0 > cascade_limit, we need to process the primes 
      cascade_limit < p < B0 in the appropriate exponent yet */
-  for ( ; p <= B0; p = (double) getprime_mt (prime_info))
+  for ( ; p <= B0; p = (double) primesieve_next_prime (&it))
     {
       for (q = 1, r = p; r <= B1; r *= p)
         if (r > *B1done) q *= p;
@@ -265,13 +265,15 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   /* All primes sqrt(B1) < p <= B1 appear with exponent 1. All primes <= B1done
      are already included with exponent at least 1, so it's safe to skip
      ahead to B1done+1. */
-
-  while (p <= *B1done)
-    p = (double) getprime_mt (prime_info);
+  if (p <= *B1done) {
+    primesieve_skipto(&it, *B1done, primesieve_get_max_stop());
+    p = primesieve_next_prime (&it);
+    ASSERT( p > *B1done );
+  }
 
   /* then remaining primes > max(sqrt(B1), cascade_limit) and taken 
      with exponent 1 */
-  for (; p <= B1; p = (double) getprime_mt (prime_info))
+  for (; p <= B1; p = (double) primesieve_next_prime (&it))
   {
     mpz_mul_d (g, g, p, d);
     if (mpz_sizeinbase (g, 2) >= max_size)
@@ -314,7 +316,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
  clear_pm1_stage1:
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_PM1, *B1done, n, NULL, a, NULL, NULL);
-  prime_info_clear (prime_info); /* free the prime table */
+  primesieve_free_iterator(&it); /* free the prime iterator */
   mpz_clear (d);
   mpz_clear (g);
 

@@ -51,7 +51,7 @@ libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
 # If any interfaces have been added, removed, or changed since the last
 # update, increment current, and set revision to 0.
 libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 1:0:0 -g
-libecm_la_LIBADD = $(MULREDCLIBRARY)
+libecm_la_LIBADD = $(MULREDCLIBRARY) -lprimesieve
 if WANT_GPU 
   libecm_la_SOURCES += cudacommon.cu
   libecm_la_SOURCES += cgbn_stage1.cu
