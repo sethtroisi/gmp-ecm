@@ -622,7 +622,7 @@ int process_results(mpz_t *factors, int *array_found,
     }
   }
 
-  mpz_init(modulo);
+  mpz_clear(modulo);
   mpz_clear(x_final);
   mpz_clear(z_final);
 

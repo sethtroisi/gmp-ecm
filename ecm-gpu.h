@@ -21,7 +21,7 @@
 /* cudawrapper.c */
 #define gpu_ecm __ECM(gpu_ecm)
 #ifdef WITH_GPU
-int gpu_ecm (mpz_t, ecm_params, mpz_t, double);
+int gpu_ecm (mpz_t, const ecm_params, ecm_params, mpz_t, double);
 #else
 int gpu_ecm ();
 #endif

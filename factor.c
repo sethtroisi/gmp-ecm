@@ -168,7 +168,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
         }
       else
         {
-          res = gpu_ecm (f, p, n, B1);
+          res = gpu_ecm (f, p, p, n, B1);
         }
 #endif
     }

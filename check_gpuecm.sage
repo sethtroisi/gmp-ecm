@@ -425,11 +425,11 @@ if __name__ == '__main__':
         for i in range(args.iterations):
             # Test smallish primes (40 bits = 12 digit) at B1 (default: 10^4)
             found += stage1Tests(args, 40, args.B1, GPU_PARAM)
-            args.seed += 1
+            args.seed += 1l
 
             # Test larger primes at 10xB1
             found += stage1Tests(args, 60, 10*args.B1, GPU_PARAM)
-            args.seed += 1
+            args.seed += 1l
 
         print('Results matched in %d tests (%d curves found factors)' %
             (2*args.iterations, found))

@@ -164,7 +164,7 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
 
 
 int
-gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
+gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, double B1)
 {
   unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -189,6 +189,9 @@ gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
   root_params_t root_params;
   unsigned int nb_curves = 0; /* Local copy of number of curves */
 
+  /* This helps keep track of when params is changed in this function. */
+  assert((void*) params == (void*) mutable_params); /* params != mutable params */
+
   ASSERT((-1 <= params->sigma_is_A) && (params->sigma_is_A <= 1));
   ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
 
@@ -208,7 +211,7 @@ gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
 
   /* Only param = ECM_PARAM_BATCH_32BITS_D is accepted on GPU */
   if (params->param == ECM_PARAM_DEFAULT)
-      params->param = ECM_PARAM_BATCH_32BITS_D;
+      mutable_params->param = ECM_PARAM_BATCH_32BITS_D;
 
   if (params->param != ECM_PARAM_BATCH_32BITS_D)
     {
@@ -271,8 +274,11 @@ gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
   mpz_init (B2);
   mpz_init (B2min);
 
-  youpi = set_stage_2_params (B2, params->B2, B2min, params->B2min, &root_params,
-                              B1, &params->k, params->S, params->use_ntt, &po2, &dF,
+  youpi = set_stage_2_params (
+          B2, params->B2,
+          B2min, params->B2min,
+          &root_params,
+          B1, &mutable_params->k, params->S, params->use_ntt, &po2, &dF,
                               params->TreeFilename, params->maxmem, Fermat, modulus);
   if (youpi == ECM_ERROR)
       goto end_gpu_ecm;
@@ -281,8 +287,10 @@ gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
   if (!params->gpu_device_init)
     {
       st = cputime ();
-      youpi = select_and_init_GPU (params->gpu_device, &params->gpu_number_of_curves,
-                                   test_verbose (OUTPUT_VERBOSE));
+      youpi = select_and_init_GPU (
+          params->gpu_device,
+          &mutable_params->gpu_number_of_curves,
+          test_verbose (OUTPUT_VERBOSE));
 
       if (youpi != 0)
         {
@@ -294,18 +302,18 @@ gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
                                "took %ldms\n", elltime (st, cputime ()));
       /* TRICKS: If initialization of the device is too long (few seconds), */
       /* try running 'nvidia-smi -q -l' on the background .                 */
-      params->gpu_device_init = 1;
+      mutable_params->gpu_device_init = 1;
     }
 
-  // Number of curves is only set now
+  /* Number of curves is only set after select_and_init_GPU */
   nb_curves = params->gpu_number_of_curves;
 
   ASSERT (params->sigma_is_A == 0);
   if (mpz_sgn (params->sigma) == 0)
     {
       /* generate random value in [2, 2^32 - nb_curves - 1] */
-      mpz_set_ui (params->sigma, (get_random_ul () %
-                               (TWO32 - 2 - nb_curves)) + 2);
+      mpz_set_ui (mutable_params->sigma,
+                  (get_random_ul () % (TWO32 - 2 - nb_curves)) + 2);
     }
   else /* sigma should be in [2, 2^32-nb_curves] */
     {
@@ -347,8 +355,6 @@ gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
         }
     }
 
-
-
   /* Init arrays */
   factors = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
   ASSERT_ALWAYS (factors != NULL);
@@ -366,11 +372,11 @@ gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
   /* Compute s */
   if (B1 != params->batch_last_B1_used || mpz_cmp_ui (params->batch_s, 1) <= 0)
     {
-      params->batch_last_B1_used = B1;
+      mutable_params->batch_last_B1_used = B1;
 
       st = cputime ();
       /* construct the batch exponent */
-      compute_s (params->batch_s, B1, NULL);
+      compute_s (mutable_params->batch_s, B1, NULL);
       outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
                                " bits) of primes up to B1=%1.0f took %ldms\n",
                                mpz_sizeinbase (params->batch_s, 2), B1, cputime () - st);
@@ -391,19 +397,19 @@ gpu_ecm (mpz_t f, ecm_params params, mpz_t n, double B1)
                            gputime/nb_curves);
   tottime = (long) gputime;
 
-  params->B1done = B1;
+  mutable_params->B1done = B1;
 
   /* GMP documentation says mpz_sizeinbase(op, 2) is always the exact value. */
   size_t n_bits = mpz_sizeinbase(n, 2);
 
   /* Save stage 1 residues as x = x0 + x1 * 2^bits + ... + xk * 2^(bits*k) */
-  mpz_set_ui (params->x, 0);
+  mpz_set_ui (mutable_params->x, 0);
   /* Equivalent to using mpz_mul_2exp and mpz_add while avoiding O(n*k) limp copies */
-  mpz_realloc2(params->x, nb_curves * n_bits);
+  mpz_realloc2(mutable_params->x, nb_curves * n_bits);
   for (i = 0; i < nb_curves; i++)
     for (size_t j = 0; j < n_bits; j++)
       if (mpz_tstbit (factors[i], j))
-        mpz_setbit(params->x, j + n_bits * i);
+        mpz_setbit(mutable_params->x, j + n_bits * i);
 
   /* was a factor found in stage 1 ? */
   if (youpi != ECM_NO_FACTOR_FOUND)
