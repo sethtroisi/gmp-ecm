@@ -40,7 +40,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "cudacommon.h"
 
 #include "ecm.h"
-#include "ecm-ecm.h"
 #include "ecm-gpu.h"
 
 
@@ -354,7 +353,7 @@ class curve_t {
 };
 
 static
-uint32_t* set_ec_p_2p(const mpz_t N,
+uint32_t* set_gpu_p_2p(const mpz_t N,
                      uint32_t curves, uint32_t sigma,
                      uint32_t BITS, size_t *data_size) {
   /**
@@ -790,7 +789,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
   assert( sizeof(curve_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
   assert( sizeof(curve_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
-  data = set_ec_p_2p(N, curves, sigma, BITS, &data_size);
+  data = set_gpu_p_2p(N, curves, sigma, BITS, &data_size);
 
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
   // Why compute this? to verify understanding of CGBN internals?
@@ -975,11 +974,11 @@ __global__ void kernel_pm1_partial(
 
   /* Cast uint32_t array to mem_t */
   typename power_mod_t<params>::mem_t *data_cast = (typename power_mod_t<params>::mem_t*) data;
-
   cgbn_monitor_t monitor = CHECK_ERROR ? cgbn_report_monitor : cgbn_no_checks;
-
   power_mod_t<params> exp(monitor, report, instance_i);
+
   typename power_mod_t<params>::bn_t  modulus, const_base, partial_base, partial_result, temp;
+
 
   uint32_t np0;
 
@@ -989,6 +988,10 @@ __global__ void kernel_pm1_partial(
       cgbn_load(exp._env, const_base,     &data_cast[4*instance_i+1]);
       cgbn_load(exp._env, partial_base,   &data_cast[4*instance_i+2]);
       cgbn_load(exp._env, partial_result, &data_cast[4*instance_i+3]);
+
+      // Check if number is 0 and ignore if so
+      if (cgbn_equals_ui32(exp._env, modulus, 0))
+          return;
 
       /* Convert to mont, has a miniscule bit of overhead with batching. */
       np0 = cgbn_bn2mont(exp._env, const_base, const_base, modulus);
@@ -1083,68 +1086,57 @@ __global__ void kernel_pm1_partial(
 
 static
 uint32_t* set_gpu_pm1_data(
-        const mpz_t N, uint32_t instances, uint32_t BITS, size_t *data_size) {
+        mpz_t p, const mpz_t *numbers,
+        uint32_t instances, uint32_t BITS, size_t *data_size) {
   /**
    * Store 4 numbers per curve:
    * N, Base, partial Base, partial Result
-   *
-   * TODO base from go? for now base = 3
    */
-  uint64_t BASE = 3;
 
   const size_t limbs_per = BITS/32;
   *data_size = 5 * instances * limbs_per * sizeof(uint32_t);
   uint32_t *data = (uint32_t*) malloc(*data_size);
   uint32_t *datum = data;
 
-  mpcandi_t temp;
-  mpcandi_t_init(&temp);
-  //FILE *fd = fopen("test_pm1.txt", "r");
-  FILE *fd = fopen("random_composites.txt", "r");
-
-  mpz_t x, p;
+  mpz_t x;
   mpz_init(x);
-  mpz_init(p);
-  mpz_set_ui(p, 30);
+
   for(int index = 0; index < instances; index++) {
-      // Modulo (N)
-      from_mpz(N, datum + 0 * limbs_per, BITS/32);
-
-      if (0) {
-          // 2 ^ prime -1
-          mpz_nextprime(p, p);
-          assert(mpz_get_ui(p) < BITS);
-          mpz_ui_pow_ui(x, 2, mpz_get_ui(p));
-          mpz_sub_ui(x, x, 1);
-          for (uint64_t k = 1; k < 10000; k++) {
-              if (mpz_divisible_ui_p(x, 2 * k * mpz_get_ui(p) + 1))
-                  mpz_divexact_ui(x, x, 2 * k * mpz_get_ui(p) + 1);
-          }
-          from_mpz(x, datum + 0 * limbs_per, BITS/32);
-          //outputf (OUTPUT_VERBOSE, "index %d => %Zd\n", index, x);
-          // TODO temp only
-          outputf (OUTPUT_VERBOSE, "index %d => %d\n", index, mpz_get_ui(p));
-      }
-      if (1) {
-          read_number(&temp, fd, 1);
-          outputf (OUTPUT_VERBOSE, "index %d => %Zd\n", index, temp.n);
-          from_mpz(temp.n, datum + 0 * limbs_per, BITS/32);
+      // Some numbers may be zero at end of batch
+      if (mpz_cmp_ui(numbers[index], 0)) {
+        // Set base and result to 0 also
+        mpz_set_ui (x, 0);
+        from_mpz(x, datum + 0 * limbs_per, BITS/32);
+        from_mpz(x, datum + 1 * limbs_per, BITS/32);
+        from_mpz(x, datum + 2 * limbs_per, BITS/32);
+        from_mpz(x, datum + 3 * limbs_per, BITS/32);
+        continue;
       }
 
-      // Base
-      mpz_set_ui(x, BASE);
+      /* Modulo (n) */
+      from_mpz(numbers[index], datum + 0 * limbs_per, BITS/32);
+
+      // TODO make sure not -1
+      /* Base, make sure base mod n {1, -1} */
+      mpz_mod (x, p, numbers[index]);
+      if (mpz_cmp_ui (x, 1) == 0)
+        {
+          // increment one
+          mpz_add_ui (x, x, 1);
+          outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd for %d=%Zd\n",
+                   x, index, numbers[index]);
+        }
       from_mpz(x, datum + 1 * limbs_per, BITS/32);
       from_mpz(x, datum + 2 * limbs_per, BITS/32);
 
-      // Result
-      mpz_set_ui(x, 1);
+      /* Result */
+      mpz_set_ui (x, 1);
       from_mpz(x, datum + 3 * limbs_per, BITS/32);
 
       // outputf (OUTPUT_TRACE, "index %d => %Zd\n", index, x);
       datum += 4 * limbs_per;
   }
   mpz_clear(x);
-  mpz_clear(p);
   return data;
 }
 
@@ -1166,7 +1158,7 @@ int find_pm1_factor(mpz_t factor, const mpz_t N, const mpz_t a) {
 
 static
 int process_pm1_results(mpz_t *factors, int *array_found,
-                    const mpz_t N,
+                    mpz_t *numbers,
                     const uint32_t *data, uint32_t cgbn_bits,
                     int instances) {
   mpz_t modulo, base, result;
@@ -1183,7 +1175,7 @@ int process_pm1_results(mpz_t *factors, int *array_found,
 
     // Make sure we were testing the right number.
     to_mpz(modulo, datum + 0 * limbs_per, limbs_per);
-    //assert(mpz_cmp(modulo, N) == 0);
+    assert(mpz_cmp(numbers[i], modulo) == 0);
 
     to_mpz(base, datum + 2 * limbs_per, limbs_per);
     to_mpz(result, datum + 3 * limbs_per, limbs_per);
@@ -1196,10 +1188,11 @@ int process_pm1_results(mpz_t *factors, int *array_found,
     }
 
     /* Very suspicious for base, result to match initial value */
-    if (mpz_cmp_ui (base, 3) == 0 && mpz_cmp_ui(result, 1) == 0) {
+    if (mpz_cmp_ui(modulo, 0) != 0 && mpz_cmp_ui (base, 3) == 0 && mpz_cmp_ui(result, 1) == 0) {
       errors += 1;
       if (errors < 10 || errors % 100 == 1)
         outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute or found input?\n", i);
+        outputf (OUTPUT_ERROR, "GPU: curve %d %Zd", modulo);
     }
 
     array_found[i] = find_pm1_factor(factors[i], modulo, result);
@@ -1229,9 +1222,10 @@ int process_pm1_results(mpz_t *factors, int *array_found,
   return youpi;
 }
 
-int cgbn_pm1_stage1(mpz_t *factors, int *array_found,
-             const mpz_t N, const mpz_t s,
-             uint32_t instances, float *gputime, int verbose)
+int cgbn_pm1_stage1(mpz_t p,
+                    mpz_t *factors, int *array_found,
+                    mpz_t *numbers, const mpz_t s,
+                    uint32_t instances, float *gputime, int verbose)
 {
   uint64_t s_num_bits;
   uint32_t *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
@@ -1264,6 +1258,18 @@ int cgbn_pm1_stage1(mpz_t *factors, int *array_found,
 
   size_t    data_size;
   uint32_t *data, *gpu_data;
+
+  // Find Largest N
+  size_t n_log2 = 0;
+  size_t largest_i = 0;
+  for (size_t i = 1; i < instances; i++)
+      if (mpz_cmp(numbers[i], numbers[largest_i]) > 0)
+          largest_i = i;
+
+  n_log2 = mpz_sizeinbase(numbers[largest_i], 2);
+  assert(n_log2 > 1);
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Largest number input %lu, %lu bits\n",
+           largest_i+1, n_log2);
 
   uint32_t  BITS = 0;        // kernel bits
   int32_t   TPB=TPB_DEFAULT; // Always the same default
@@ -1316,7 +1322,6 @@ int cgbn_pm1_stage1(mpz_t *factors, int *array_found,
   available_kernels.push_back((uint32_t)cgbn_params_4096::BITS);
 #endif
 
-  size_t n_log2 = mpz_sizeinbase(N, 2);
   for (int k_i = 0; k_i < available_kernels.size(); k_i++) {
     uint32_t kernel_bits = available_kernels[k_i];
     if (kernel_bits >= n_log2 + CARRY_BITS) {
@@ -1375,7 +1380,7 @@ int cgbn_pm1_stage1(mpz_t *factors, int *array_found,
     }
   }
 
-  int youpi = verify_size_of_n(N, BITS);
+  int youpi = verify_size_of_n(numbers[largest_i], BITS);
   if (youpi != ECM_NO_FACTOR_FOUND) {
     return youpi;
   }
@@ -1383,7 +1388,7 @@ int cgbn_pm1_stage1(mpz_t *factors, int *array_found,
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
   assert( sizeof(power_mod_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
   assert( sizeof(power_mod_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
-  data = set_gpu_pm1_data(N, instances, BITS, &data_size);
+  data = set_gpu_pm1_data(p, numbers, instances, BITS, &data_size);
 
   // Copy data
   outputf (OUTPUT_VERBOSE, "Copying %'lu bytes of instances data to GPU\n", data_size);
@@ -1480,7 +1485,7 @@ int cgbn_pm1_stage1(mpz_t *factors, int *array_found,
 
   cudaEventElapsedTime (gputime, global_start, stop);
 
-  youpi = process_pm1_results(factors, array_found, N, data, BITS, instances);
+  youpi = process_pm1_results(factors, array_found, numbers, data, BITS, instances);
 
   // clean up
   CUDA_CHECK(cudaFree(gpu_s_bits));

@@ -58,6 +58,7 @@ pm1_random_seed (mpz_t a, mpz_t n, gmp_randstate_t randstate)
 {
   mpz_t q;
 
+  // TODO improve -1 check here
   init_randstate (randstate);
   mpz_init (q);
   do

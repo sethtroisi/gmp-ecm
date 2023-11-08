@@ -79,6 +79,8 @@ ecm_init (ecm_params q)
   q->gpu_device = -1; 
   q->gpu_device_init = 0; 
   q->gpu_number_of_curves = 0; 
+  q->gpu_return1 = NULL;
+  q->gpu_return2 = NULL;
   q->gw_k = 0.0;
   q->gw_b = 0;
   q->gw_n = 0;

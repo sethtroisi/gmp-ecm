@@ -117,6 +117,8 @@ typedef struct
             /* Else, the parameters beginning by gpu_* have no meaning */
   int gpu_device; /* Which device do we use */
   int gpu_device_init; /* Is the device initialized?*/
+  mpz_t *gpu_return1;
+  mpz_t *gpu_return2;
   unsigned int gpu_number_of_curves; 
   double gw_k;         /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_b;  /* use for gwnum stage 1 if input has form k*b^n+c */

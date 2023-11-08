@@ -1331,6 +1331,11 @@ main (int argc, char *argv[])
                            "****** Warning: input is probably prime ******\n", 
                            n.n, n.ndigits);
 
+      if (params->method == ECM_PM1 && params->gpu && go.containsN)
+        {
+          fprintf (stderr, "Error, the -go option with N unsupported for GPU P-1\n");
+          exit (EXIT_FAILURE);
+        }
       mpgocandi_fixup_with_N (&go, &n);
 
       if (param != ECM_PARAM_DEFAULT && method != ECM_ECM)
@@ -1509,9 +1514,6 @@ main (int argc, char *argv[])
 
 
 
-
-
-
       if (result == ECM_ERROR)
         {
           fprintf (stderr, "Please report internal errors at <%s>.\n",
@@ -1523,11 +1525,13 @@ main (int argc, char *argv[])
           cnt --; /* one more curve performed */
       else
         {
-          assert(params->gpu_number_of_curves > 0);
+          // If trivial factor found gpu_number_of_curves might not be set
+          assert (params->gpu_number_of_curves > 0 ||
+                  result != ECM_NO_FACTOR_FOUND);
           if (cnt <= params->gpu_number_of_curves)
               cnt = 0;
           else
-              cnt -= params->gpu_number_of_curves; 
+              cnt -= params->gpu_number_of_curves;
         }
 
       /* When GPU is used we need to have the value of N before it is 

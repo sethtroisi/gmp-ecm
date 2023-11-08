@@ -5,6 +5,7 @@
 #include "cudacommon.h"
 
 #include "cgbn_stage1.h"
+#include "ecm-ecm.h"
 
 
 #define TWO32 4294967296 /* 2^32 */
@@ -174,8 +175,8 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   unsigned int firstsigma_ui;
   float gputime = 0.0;
   mpz_t tmp_A;
-  mpz_t *factors = NULL; /* Contains either a factor of n either end-of-stage-1
-                         residue (depending of the value of array_found */
+  mpz_t *factors = NULL; /* Contains either factor(s) of n or end-of-stage-1
+                            residue (depending of the value of array_found */
   int *array_found = NULL;
   /* Only for stage 2 */
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -556,8 +557,19 @@ end_gpu_ecm2:
 
 
 // TODO trying to get two arrays out. residuals (in x) and n's in???
+/* Input: p is the initial generator (sigma), if 0, generate it at random.
+          N is the number to factor
+          B1 is the stage 1 bound
+          B2 is the stage 2 bound
+          B1done is the stage 1 limit to which supplied residue has
+            already been computed
+          k is the number of blocks for stage 2
+          verbose is the verbosity level
+   Output: f is the factor found, p is the residue at end of stage 1
+   Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
+*/
 int
-gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
+gpu_pm1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go,
          double *B1done, double B1, mpz_t B2min_parm ATTRIBUTE_UNUSED, mpz_t B2_parm ATTRIBUTE_UNUSED,
          unsigned long k ATTRIBUTE_UNUSED, int verbose, int repr, int use_ntt ATTRIBUTE_UNUSED, FILE *os, FILE *es, 
          char *chkfilename ATTRIBUTE_UNUSED, char *TreeFilename ATTRIBUTE_UNUSED, double maxmem ATTRIBUTE_UNUSED,
@@ -569,8 +581,9 @@ gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
   int youpi = ECM_NO_FACTOR_FOUND;
   long st;
   float gputime = 0.0;
+  mpz_t *numbers = NULL;
   mpz_t *factors = NULL; /* Contains either a factor of n either end-of-stage-1
-                         residue (depending of the value of array_found */
+                            residue (depending of the value of array_found */
   int *array_found = NULL;
   mpz_t batch_s;
 
@@ -597,6 +610,11 @@ gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
   if (repr != ECM_MOD_DEFAULT && repr != ECM_MOD_BASE2)
       outputf (OUTPUT_ERROR, "GPU: Warning, the value of repr will be ignored "
       "for step 1 on GPU.\n");
+
+  if (mpz_cmp_ui(n, 123) != 0) {
+      outputf (OUTPUT_ERROR, "GPU: N must be 123\n");
+      return ECM_ERROR;
+  }
 
   // IS THIS CODE NEEDED?
 //          /* It is only for stage 2, it is not taken into account for GPU code */
@@ -637,9 +655,20 @@ gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
       *device_init = 1;
     }
 
+  if (mpz_cmp_ui (p, 0) == 0)
+    {
+      mpz_t temp;
+      mpz_init_set_ui(temp, 0xFFFFFFFF);
+      __ecm_pm1_random_seed (p, temp, rng);
+      outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd\n",p);
+      mpz_clear(temp);
+    }
+
   /* Init arrays */
   factors = (mpz_t *) malloc (*nb_curves * sizeof (mpz_t));
   ASSERT_ALWAYS (factors != NULL);
+  numbers = (mpz_t *) malloc (*nb_curves * sizeof (mpz_t));
+  ASSERT_ALWAYS (numbers != NULL);
 
   array_found = (int *) malloc (*nb_curves * sizeof (int));
   ASSERT_ALWAYS (array_found != NULL);
@@ -647,7 +676,22 @@ gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
   for (i = 0; i < *nb_curves; i++)
     {
       mpz_init (factors[i]);
+      mpz_init (numbers[i]);
       array_found[i] = ECM_NO_FACTOR_FOUND;
+    }
+
+  /* TODO figure out interface for this */
+  mpcandi_t temp;
+  mpcandi_t_init(&temp);
+  //FILE *fd = fopen("test_pm1.txt", "r");
+  FILE *fd = fopen("random_composites.txt", "r");
+
+  for (i = 0; i < *nb_curves; i++)
+    {
+      if (read_number(&temp, fd, 1))
+        mpz_swap(numbers[i], temp.n);
+      else
+        mpz_set_ui(numbers[i], 0);
     }
 
   if (go != NULL && mpz_cmp_ui (go, 1) > 0)
@@ -686,7 +730,10 @@ gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
 
   st = cputime ();
 
-  youpi = cgbn_pm1_stage1 (factors, array_found, n, batch_s, *nb_curves, &gputime, verbose);
+  youpi = cgbn_pm1_stage1 (
+      p,
+      factors, array_found, numbers,
+      batch_s, *nb_curves, &gputime, verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n", *nb_curves, 
@@ -702,12 +749,12 @@ gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
   /* GMP documentation says mpz_sizeinbase(op, 2) is always the exact value. */
   size_t n_bits = mpz_sizeinbase(n, 2);
 
-  /* Save stage 1 residues as x = x0 + x1 * 2^bits + ... + xk * 2^(bits*k) */
-  mpz_set_ui (x, 0);
+  /* Save stage 1 residues as p = x0 + x1 * 2^bits + ... + xk * 2^(bits*k) */
+  mpz_set_ui (p, 0);
   for (i = 0; i < *nb_curves; i++)
     {
-      mpz_mul_2exp (x, x, n_bits);
-      mpz_add (x, x, factors[*nb_curves - 1 - i]);
+      mpz_mul_2exp (p, p, n_bits);
+      mpz_add (p, p, factors[*nb_curves - 1 - i]);
     }
 
   /* was a factor found in stage 1 ? */
