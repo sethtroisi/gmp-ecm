@@ -33,14 +33,12 @@ chain_element *get_working_chain_ptr(void)
 		working_chain[0].value = 1;
 
 		working_chain[1].value = 2;
-		working_chain[1].gcd = 1;
 		working_chain[1].comp_offset_1 = 0;
 		working_chain[1].comp_offset_2 = 0;
 		working_chain[1].dif_offset = 0; /* 2 is the only doubled chain element with component offsets both = 0 */
 		working_chain[1].chain_dbl_count = 1;
 
 		working_chain[2].value = 3;
-		working_chain[2].gcd = 1;
 		working_chain[2].comp_offset_1 = 0;
 		working_chain[2].comp_offset_2 = 1;
 		working_chain[2].dif_offset = 1;
@@ -62,6 +60,32 @@ chain_element *get_candidate_list_ptr(void)
 	static chain_element candidate_list[MAX_CAND_LIST_COUNT];
 	return candidate_list;
 }
+
+chain_element *get_raw_c_list_ptr(void)
+{
+	static chain_element raw_c_list[MAX_CANDIDATE_COUNT];
+	return raw_c_list;
+}
+
+u_int64_t	*get_raw_c_counts_ptr(void)
+{
+	static u_int64_t raw_c_counts[MAX_CANDIDATE_COUNT];
+	return raw_c_counts;
+}
+
+u_int8_t *get_check_result_ptr(void)
+{
+	static u_int8_t check_result[MAX_CANDIDATE_COUNT];
+	return check_result;
+}
+
+u_int8_t *get_check_index_ptr(void)
+{
+	static u_int8_t check_index;
+	return &check_index;
+}
+
+
 
 /* target primes for a length n chain, such that any prime in the list is <= Fib[n+2]
 	and no chain of any shorter length leads to this prime */
@@ -187,12 +211,6 @@ u_int16_t *get_current_c_index_ptr(void)
 {
 	static u_int16_t current_c_index;
 	return &current_c_index;
-}
-
-u_int64_t *get_next_step_c_list_ptr(void)
-{
-	static u_int64_t next_step_c_list[MAX_CANDIDATE_COUNT];
-	return next_step_c_list;
 }
 
 double *get_index_count_per_val_ptr(void)
@@ -438,6 +456,7 @@ u_int32_t prime_count( u_int32_t *sieve_space_start_index, u_int32_t *dif_table_
 	return p_count;
 }
 
+#ifndef HAVE_ASM_GCD
 /* simple gcd for small arguments */
 u_int64_t gcd(u_int64_t arg1, u_int64_t arg2)
 {
@@ -552,6 +571,7 @@ label_2:
 	}
 	while(1);
 }
+#endif
 
 void copy_candidate_to_working_chain(void)
 {
@@ -575,7 +595,6 @@ void copy_candidate_to_working_chain(void)
 	c_index = *current_c_index;
 
 	working_chain[w_index].value           = candidate_list[c_index].value;
-	working_chain[w_index].gcd             = candidate_list[c_index].gcd;
 	working_chain[w_index].comp_offset_1   = candidate_list[c_index].comp_offset_1;
 	working_chain[w_index].comp_offset_2   = candidate_list[c_index].comp_offset_2;
 	working_chain[w_index].dif_offset      = candidate_list[c_index].dif_offset;
@@ -1407,9 +1426,9 @@ For chain elements ai , i >= 6, we use the following:
 
 u_int64_t encode_Lchain(void)
 {
-	static chain_element *working_chain, *candidate_list;
+	static chain_element *working_chain, *raw_c_list;
 	static u_int8_t *current_partial_length;
-	static u_int16_t *current_c_index;
+	static u_int8_t *check_index;
 	static u_int8_t *code_length;
 	static u_int8_t init = 0;
 
@@ -1424,8 +1443,8 @@ u_int64_t encode_Lchain(void)
 	{
 		working_chain = get_working_chain_ptr();
 		current_partial_length = get_current_partial_length_ptr();
-		candidate_list = get_candidate_list_ptr();
-		current_c_index = get_current_c_index_ptr();
+		raw_c_list = get_raw_c_list_ptr();
+		check_index = get_check_index_ptr();
 		code_length = get_code_length_ptr();
 		init = 1;
 	}
@@ -1441,9 +1460,9 @@ u_int64_t encode_Lchain(void)
 
 	if(len > 5)
 	{
-		/* set indexes for top element (candidate_list[*current_c_index]) */
-		index1 = candidate_list[*current_c_index].comp_offset_1;
-		index2 = candidate_list[*current_c_index].comp_offset_2;
+		/* set indexes for top element (raw_c_list[*check_index]) */
+		index1 = raw_c_list[*check_index].comp_offset_1;
+		index2 = raw_c_list[*check_index].comp_offset_2;
 
 		/* ignore consecutive maximal steps at the top end (largest elements) of the chain */
 		if( (index1 == 0) && (index2 == 1) )
@@ -1771,21 +1790,21 @@ u_int64_t encode_Lchain(void)
 	switch( *current_partial_length )
 	{
 		case 2:
-			val3 = candidate_list[*current_c_index].value;
+			val3 = raw_c_list[*check_index].value;
 			val4 = val3 + 3;
 			val5 = val4 + val3;
 			break;
 
 		case 3:
 			val3 = working_chain[3].value;
-			val4 = candidate_list[*current_c_index].value;
+			val4 = raw_c_list[*check_index].value;
 			val5 = val4 + val3;
 			break;
 
 		case 4:
 			val3 = working_chain[3].value;
 			val4 = working_chain[4].value;
-			val5 = candidate_list[*current_c_index].value;
+			val5 = raw_c_list[*check_index].value;
 			break;
 
 		default:
@@ -1918,7 +1937,7 @@ u_int64_t encode_Lchain(void)
 		return 0;
 }
 
-u_int8_t check_candidate(void)
+void check_candidate(void)
 {
 	/* First, throw out a candidate if the maximum possible continuation
 	 * of the chain including it cannot reach the smallest target prime.
@@ -1932,15 +1951,14 @@ u_int8_t check_candidate(void)
 	 * can be bypassed immediately. Always returns 0 since we are done with
 	 * this particular chain */
 	static chain_element *working_chain;
-	static chain_element *candidate_list;
-	static u_int16_t *current_c_index;
+	static chain_element *raw_c_list;
 	static target_prime *tgt_prime_list;
+	static u_int8_t *check_result, *check_index;
 	static u_int64_t *chain_code_list;
 	static u_int32_t *chain_code_list_start_index;
 	static u_int32_t *chain_count, *tgt_p_count;
 	static u_int64_t *Fib;
 	static u_int64_t *chain_values;
-	static u_int64_t *next_step_c_list;
 	static u_int16_t *chain_count_max_dbls;
 	static u_int8_t *chain_max_dbl_count, *current_partial_length;
 	static u_int8_t *code_length;
@@ -1953,16 +1971,20 @@ u_int8_t check_candidate(void)
 	u_int64_t gcd_c_p;
 	u_int64_t c, max_val, p_val, compare_val;
 	u_int32_t k, k_old, code_index;
-	u_int64_t beta, upper_limit_1_step, a1, a2;
+	u_int64_t beta, upper_limit_1_step = 0, a1, a2 = 0;
 	u_int8_t kk, steps_to_go, c_length, element_count, doubles_count;
 	u_int8_t compare_val_in_chain, next_c_count, max_c_flag;
+	u_int64_t next_step_c_list[MAX_CANDIDATE_COUNT];
+	u_int64_t cand, dif;
+	u_int8_t i, j, c_flag, ii;
 
 	if( init == 0 )
 	{
 		working_chain = get_working_chain_ptr();
 		chain_values = get_chain_values_ptr();
-		candidate_list = get_candidate_list_ptr();
-		current_c_index = get_current_c_index_ptr();
+		raw_c_list = get_raw_c_list_ptr();
+		check_index = get_check_index_ptr();
+		check_result = get_check_result_ptr();
 		tgt_prime_list = get_tgt_prime_list_ptr();
 		chain_code_list = get_chain_code_list_ptr();
 		chain_code_list_start_index = get_chain_code_list_start_index_ptr();
@@ -1975,19 +1997,21 @@ u_int8_t check_candidate(void)
 		tgt_prime_code_length = get_tgt_prime_code_length_ptr();
 		code_length_problem_count = get_code_length_problem_count_ptr();
 		w_chain_length = get_w_chain_length_ptr();
-		next_step_c_list = get_next_step_c_list_ptr();
 		Fib = get_Fib_ptr();
 		index_count_per_val = get_index_count_per_val_ptr();
 		init = 1;
 	}
 
-	c = candidate_list[*current_c_index].value;
+	c = raw_c_list[*check_index].value;
 	steps_to_go = (u_int8_t)(*w_chain_length - *current_partial_length - 1);
 	max_val = Fib[steps_to_go + 1]*c + Fib[steps_to_go]*chain_values[0];
 	/* note that max_val == c when steps_to_go == 0 */
 
 	if( (max_val < tgt_prime_list[0].prime) || (c > tgt_prime_list[*tgt_p_count - 1].prime) )
-		return 0;
+	{
+		check_result[*check_index] = 0;
+		return;
+	}
 
 	gcd_c_p = gcd( c, chain_values[0] );
 
@@ -2036,7 +2060,10 @@ u_int8_t check_candidate(void)
 				while( chain_values[k] > p_val/2 );
 
 				if(compare_val_in_chain == 0) /* the 2x3x theorem applies; we can ignore the candidate */
-					return 0;
+				{
+					check_result[*check_index] = 0;
+					return;
+				}
 
 			} /* end check if 2x3x chain theorem applies */
 
@@ -2082,40 +2109,88 @@ u_int8_t check_candidate(void)
 				}
 
 				/* divisibility theorem applies; toss candidate out */
-				return 0;
+				check_result[*check_index] = 0;
+				return;
 			}
 		} /* end if gcd_c_p > 1 */
 
 bypass:
 		/* check if the one-step upper limit lemma applies */
-		next_c_count = gen_next_step_candidates();
 
+		/* get a list of all candidates for the next chain including c
+		   which are greater than or equal to 2*chain_values[0] */
+		next_step_c_list[0] = 2*chain_values[0];
+		next_c_count = 1;
+
+		j = 0;
+		do
+		{
+			cand = c + chain_values[j];
+			if( cand <= next_step_c_list[0] )
+				break;
+
+			dif = c - chain_values[j];
+			if( dif > chain_values[0] )
+				break;
+
+			/* check if dif is an element in the chain */
+			k = 0;
+			do
+			{
+				if( dif >= chain_values[k] )
+				{
+					if( dif == chain_values[k] )
+					{
+						/* make sure that cand is not already in the candidate list */
+						c_flag = 1;
+						ii = 0;
+						while( ii < next_c_count )
+						{
+							if( cand == next_step_c_list[ii] )
+							{
+								c_flag = 0;
+								break;
+							}
+							ii++;
+						}
+						if( c_flag )
+						{
+							/* add cand to the list */
+							next_step_c_list[next_c_count] = cand;
+							next_c_count++;
+						}
+					}
+					break;
+				}
+				k++;
+			}
+			while( 1 );
+			j++;
+		}
+		while( j <= (*current_partial_length) );
+
+		/* bubble sort the list to get largest to smallest */
+		for( i = (next_c_count - 1); i > 0; i--)
+		{
+			for(j=0;j<i;j++)
+			{
+				if(next_step_c_list[j] < next_step_c_list[j+1])
+				{
+					dif = next_step_c_list[j];
+					next_step_c_list[j] = next_step_c_list[j+1];
+					next_step_c_list[j+1] = dif;
+				}
+			}
+		}
+
+		/* find beta (the largest candidate strictly less than the maximal element) */
 		if( next_step_c_list[0] == ( c + chain_values[0] ) )
 		{
-			/* sanity check - NO chain with a maximal candidate
-			 * should ever have less than 3 candidates */
-			if(next_c_count < 3)
-			{
-				printf("Curious chain with less than 3 candidates:  %lu", c);
-				for(k = 0;k <= *current_partial_length;k++)
-					printf(" %lu", chain_values[k]);
-				printf("\n");
-			}
-
 			max_c_flag = 1; /* maximum chain continuation exists */
 			beta = next_step_c_list[1];
 		}
 		else /* next_step_c_list[0] < (c + chain_values[0]) */
 		{
-			/* sanity check - NO chain should ever have less than 2 candidates */
-			if(next_c_count < 2)
-			{
-				printf("Curious chain with less than 2 candidates:  %lu", c);
-				for(k = 0;k <= *current_partial_length;k++)
-					printf(" %lu", chain_values[k]);
-				printf("\n");
-			}
-
 			max_c_flag = 0; /* maximal chain continuation does not exist */
 			beta = next_step_c_list[0];
 		}
@@ -2143,18 +2218,25 @@ bypass:
 		}
 
 		if(upper_limit_1_step >= tgt_prime_list[0].prime)
-			return 1;
+		{
+			check_result[*check_index] = 1;
+			return;
+		}
 		else
 		{
 			if( max_val > tgt_prime_list[*tgt_p_count - 1].prime )
-				return 0; /* an upcoming interval will catch this one */
+			{
+				check_result[*check_index] = 0; /* an upcoming interval will catch this one */
+				return;
+			}
+
 
 			if( (max_c_flag == 1) && ((max_val & 1) != 0) )
 			{
 				/* check if max_val is on the target list */
 				if( (gcd_c_p == 1) && (gcd( max_val, 15015 ) == 1) )
 				{
-					doubles_count = candidate_list[*current_c_index].chain_dbl_count;
+					doubles_count = raw_c_list[*check_index].chain_dbl_count;
 
 					/* the code blitzes through the shorter lengths so fast
 					 * that we don't need to adjust the start point for k */
@@ -2252,14 +2334,15 @@ bypass:
 					}
 				}
 			}
-			return 0;
+			check_result[*check_index] = 0; /* this candidate has been resolved */
+			return;
 		}
 	} /* end if steps_to_go > 0 */
 	else /* steps_to_go == 0 */
 	{
-		if( ((c & 1) != 0) && ((gcd_c_p == 1) && (gcd( c, 15015 ) == 1)) )
+		if(  (gcd_c_p == 1) && (gcd( c, 15015 ) == 1) )
 		{
-			doubles_count = candidate_list[*current_c_index].chain_dbl_count;
+			doubles_count = raw_c_list[*check_index].chain_dbl_count;
 
 			/* the code blitzes through the shorter lengths so fast
 			 * that we don't need to adjust the start point for k */
@@ -2355,49 +2438,74 @@ bypass:
 				k++;
 			}
 		}
-		return 0; /* we are done with this candidate */
+		check_result[*check_index] = 0; /* this candidate has been resolved */
+		return;
 	} /* end steps_to_go == 0 */
 }
 
-/* Given the current working chain and candidate c, produce a sorted list
- * of candidates for the following step. Returns # of candidates */
-u_int8_t gen_next_step_candidates()
+/* find all candidates to extend the working chain that pass
+ * the filters in check_candidate(). If steps_to_go == 1, valid candidates
+ * will be compared to the list of target primes and all successes will be recorded */
+u_int16_t gen_candidate_list(void)
 {
 	static chain_element *candidate_list;
-	static u_int16_t *current_c_index;
-	static u_int64_t *global_chain_values;
+	static chain_element *raw_c_list;
+	static u_int64_t *chain_values;
+	static u_int16_t *c_list_start_index;
 	static u_int8_t *current_partial_length;
-	static u_int64_t *next_step_c_list;
-	static u_int8_t init = 0;
-	u_int64_t chain_values[MAX_WORKING_CHAIN_LENGTH]; /* local, not global list */
-	u_int64_t c, dif;
-	u_int8_t i, j, k, c_flag, c_list_index, ii;
+	static u_int8_t *w_chain_length, init = 0;
+	static u_int8_t *check_result, *check_index;
+	static u_int64_t *raw_c_counts;
 
-	if(init == 0)
+	u_int64_t dif, c;
+	u_int16_t c_index, c_count, ii;
+	u_int8_t i, j, k, c_flag, doubles_count, steps_to_go, rcl_index;
+
+	if( init == 0 )
 	{
+		/* initialize pointers */
 		candidate_list = get_candidate_list_ptr();
-		current_c_index = get_current_c_index_ptr();
+		raw_c_list = get_raw_c_list_ptr();
+		check_result = get_check_result_ptr();
+		check_index = get_check_index_ptr();
+		c_list_start_index = get_c_list_start_index_ptr();
+		chain_values = get_chain_values_ptr();
 		current_partial_length = get_current_partial_length_ptr();
-		global_chain_values = get_chain_values_ptr();
-		next_step_c_list = get_next_step_c_list_ptr();
+		w_chain_length = get_w_chain_length_ptr();
+		raw_c_counts = get_raw_c_counts_ptr();
+		for( i = 0; i < 16; i++)
+		{
+			check_result[i] = 0;
+			raw_c_counts[i] = 0;
+		}
+
 		init = 1;
 	}
 
-	/* create a local working chain which includes the candidate
-	 * being evaluated in the check_candidate() routine */
-	chain_values[0] = candidate_list[*current_c_index].value;
-	for(i = 0;i <= *current_partial_length;i++)
-		chain_values[i + 1] = global_chain_values[i];
+	steps_to_go = *w_chain_length - *current_partial_length;
+	rcl_index = 0;
+
+	/* extract the chain into the chain_values array. Return value
+	 * is the # of doubled elements in the working chain */
+	doubles_count = extract_chain_values();
 
 	/* First, find all possible doubled candidates. It is easy to prove that
 		there is always at least one, namely 2*chain_values[1] */
-	c_list_index = 0;
-	i = 1;
-	while( (c = 2*chain_values[i]) > chain_values[0] )
+	if( steps_to_go > 1 ) /* if == 1, doubled candidates cannot be prime */
 	{
-		next_step_c_list[c_list_index] = c;
-		c_list_index++;
-		i++;
+		i = 1;
+		while( (c = 2*chain_values[i]) > chain_values[0] )
+		{
+			raw_c_list[rcl_index].value = c;
+			raw_c_list[rcl_index].comp_offset_1 = i;
+			raw_c_list[rcl_index].comp_offset_2 = i;
+			raw_c_list[rcl_index].dif_offset = 0; /* indicates a doubled element */
+			raw_c_list[rcl_index].chain_dbl_count = doubles_count + 1;
+			*check_index = rcl_index;
+			check_candidate(); /* results written to check_result[] array */
+			rcl_index++;
+			i++;
+		}
 	}
 
 	i = 0;
@@ -2425,199 +2533,31 @@ u_int8_t gen_next_step_candidates()
 						/* make sure that c is not already in the candidate list */
 						c_flag = 1;
 						ii = 0;
-						while( ii < c_list_index )
+						while( ii < rcl_index )
 						{
-							if( c == next_step_c_list[ii] )
+							if( c == raw_c_list[ii].value )
 							{
 								c_flag = 0;
 								break;
 							}
 							ii++;
 						}
-						if( c_flag )
+						if( c_flag && ( (steps_to_go > 1) || (c & 0x1)) ) /* don't list if steps_to_go == 1 && c is even */
 						{
-							/* add c to the list */
-							next_step_c_list[c_list_index] = c;
-							c_list_index++;
-						}
-					}
-					break;
-				}
-				k++;
-			}
-			while( 1 );
-			j++;
-		}
-		while( j <= (*current_partial_length + 1) );
-		i++;
-		j = i+1;
-	}
-	while( (chain_values[i] + chain_values[j]) > chain_values[0] );
+							/* populate the next available slot. Done this way in case
+							  the full chain, or a maximally extended partial chain,
+							  requires encoding, which is done in the check_candidate() routine */
+							raw_c_list[rcl_index].value = c;
+							raw_c_list[rcl_index].comp_offset_1 = i;
+							raw_c_list[rcl_index].comp_offset_2 = j;
+							raw_c_list[rcl_index].dif_offset = k;
+							raw_c_list[rcl_index].chain_dbl_count = doubles_count;
+							*check_index = rcl_index;
+							check_candidate(); /* results written to check_result[] array */
+							rcl_index++;
+							if( rcl_index == MAX_CANDIDATE_COUNT )
+								printf("\nALERT: rcl_index reached maximum of %d - increase maximum\n\n", (int)MAX_CANDIDATE_COUNT );
 
-	/* bubble sort the list to get largest to smallest */
-	for(i=(c_list_index - 1);i>0;i--)
-	{
-		for(j=0;j<i;j++)
-		{
-			if(next_step_c_list[j] < next_step_c_list[j+1])
-			{
-				dif = next_step_c_list[j];
-				next_step_c_list[j] = next_step_c_list[j+1];
-				next_step_c_list[j+1] = dif;
-			}
-		}
-	}
-
-	return c_list_index; /* length of list */
-}
-
-/* find all candidates to extend the working chain that pass
- * the filters in check_candidate(). If steps_to_go == 1, valid candidates
- * will be compared to the list of target primes and all successes will be recorded */
-u_int16_t gen_candidate_list(void)
-{
-	static chain_element *candidate_list;
-	static u_int64_t *chain_values;
-	static u_int16_t *c_list_start_index;
-	static u_int16_t *current_c_index;
-	static u_int8_t *current_partial_length;
-	static u_int8_t *w_chain_length, init = 0;
-
-	u_int64_t dif, c, retired_list[MAX_CANDIDATE_COUNT];
-	u_int16_t c_index, c_count, ii, retired_list_index;
-	u_int8_t i, j, k, c_flag, doubles_count, steps_to_go;
-
-	if( init == 0 )
-	{
-		/* initialize pointers */
-		candidate_list = get_candidate_list_ptr();
-		c_list_start_index = get_c_list_start_index_ptr();
-		current_c_index = get_current_c_index_ptr();
-		chain_values = get_chain_values_ptr();
-		current_partial_length = get_current_partial_length_ptr();
-		w_chain_length = get_w_chain_length_ptr();
-		init = 1;
-	}
-
-	steps_to_go = *w_chain_length - *current_partial_length;
-	c_index = *c_list_start_index;
-	c_count = 0;
-	retired_list_index = 0;
-
-	/* extract the chain into the chain_values array. Return value
-	 * is the # of doubled elements in the working chain */
-	doubles_count = extract_chain_values();
-
-	/* First, find all possible doubled candidates. It is easy to prove that
-		there is always at least one, namely 2*chain_values[1] */
-	if( steps_to_go > 1 ) /* if == 1, doubled candidates cannot be prime */
-	{
-		i = 1;
-		while( (c = 2*chain_values[i]) > chain_values[0] )
-		{
-			candidate_list[c_index].value = c;
-			candidate_list[c_index].gcd = gcd( c, chain_values[0] );
-			candidate_list[c_index].comp_offset_1 = i;
-			candidate_list[c_index].comp_offset_2 = i;
-			candidate_list[c_index].dif_offset = 0; /* indicates a doubled element */
-			candidate_list[c_index].chain_dbl_count = doubles_count + 1;
-			*current_c_index = c_index;
-			c_flag = check_candidate();
-			if( c_flag )
-			{
-				c_index++;
-				c_count++;
-				if(c_index == MAX_CAND_LIST_COUNT)
-				{
-					printf("Candidate array is full. Increase MAX_CAND_LIST_COUNT\n");
-					return c_count;
-				}
-			}
-			else /* make sure we don't duplicate c below and test it again */
-			{
-				retired_list[retired_list_index] = c;
-				retired_list_index++;
-			}
-			i++;
-		}
-	}
-
-	i = 0;
-	j = 1;
-	do
-	{
-		do
-		{
-			c = chain_values[i] + chain_values[j];
-			if( c <= chain_values[0] )
-				break;
-
-			dif = chain_values[i] - chain_values[j];
-			if( dif > chain_values[i + 1] )
-				break;
-
-			/* check if dif is an element in the chain */
-			k = i + 1;
-			do
-			{
-				if( dif >= chain_values[k] )
-				{
-					if( dif == chain_values[k] )
-					{
-						/* make sure that c is not already in the candidate list
-						 * OR in the retired list */
-						c_flag = 1;
-						ii = *c_list_start_index;
-						while( ii < c_index )
-						{
-							if( c == candidate_list[ii].value )
-							{
-								c_flag = 0;
-								break;
-							}
-							ii++;
-						}
-						if(c_flag)
-						{
-							ii = 0;
-							while( ii < retired_list_index )
-							{
-								if( c == retired_list[ii] )
-								{
-									c_flag = 0;
-									break;
-								}
-								ii++;
-							}
-						}
-						if( c_flag )
-						{
-							/* populate the first available slot. Done this way in case
-							   steps_to_go == 1, and i, j, k are needed for chain encoding,
-							   which is done in the check_candidate() routine */
-							candidate_list[c_index].value = c;
-							candidate_list[c_index].gcd = gcd( c, chain_values[0] );
-							candidate_list[c_index].comp_offset_1 = i;
-							candidate_list[c_index].comp_offset_2 = j;
-							candidate_list[c_index].dif_offset = k;
-							candidate_list[c_index].chain_dbl_count = doubles_count;
-							*current_c_index = c_index;
-							c_flag = check_candidate();
-							if( c_flag )
-							{
-								c_index++;
-								c_count++;
-								if(c_index == MAX_CAND_LIST_COUNT)
-								{
-									printf("Candidate array is full. Increase MAX_CAND_LIST_COUNT\n");
-									return c_count;
-								}
-							}
-							else /* make sure we don't duplicate c and test it again */
-							{
-								retired_list[retired_list_index] = c;
-								retired_list_index++;
-							}
 						}
 					}
 					break;
@@ -2633,6 +2573,29 @@ u_int16_t gen_candidate_list(void)
 	}
 	while( (chain_values[i] + chain_values[j]) > chain_values[0] );
 
+/*	if( steps_to_go > 1 ) */
+		raw_c_counts[rcl_index]++;
+	c_index = *c_list_start_index;
+	c_count = 0;
+	for(i = 0; i < rcl_index; i++)
+	{
+		if( check_result[i] )
+		{
+			check_result[i] = 0;
+			candidate_list[c_index].value = raw_c_list[i].value;
+			candidate_list[c_index].comp_offset_1 = raw_c_list[i].comp_offset_1;
+			candidate_list[c_index].comp_offset_2 = raw_c_list[i].comp_offset_2;
+			candidate_list[c_index].dif_offset = raw_c_list[i].dif_offset;
+			candidate_list[c_index].chain_dbl_count = raw_c_list[i].chain_dbl_count;
+			c_index++;
+			c_count++;
+			if(c_index == MAX_CAND_LIST_COUNT)
+			{
+				printf("Candidate array is full. Increase MAX_CAND_LIST_COUNT\n");
+				return c_count;
+			}
+		}
+	}
 	return c_count; /* total # of valid candidates to extend the current partial working chain */
 }
 
@@ -2709,6 +2672,7 @@ int32_t main( int argc, char *argv[])
 	u_int32_t j, last_j;
 	u_int32_t *tgt_p_count, *chain_count;
 	u_int64_t *Fib, *Luc;
+/*	u_int64_t a, b, c; */
 	u_int64_t excp_1_val, exception_list_1_step[40];
 	int32_t i;
 	u_int32_t k;
@@ -2751,7 +2715,9 @@ int32_t main( int argc, char *argv[])
 	static const char *file_6 = "current_status.dat";
 	static const char *old_target_prime_filename, *new_target_prime_filename;
 	static const char *old_pending_code_filename, *new_pending_code_filename;
+	static u_int64_t *raw_c_counts;
 	size_t dum;
+
 
 	B1_in = 0;
     if( argc < 2 ) /* no arguments? */
@@ -2780,6 +2746,13 @@ int32_t main( int argc, char *argv[])
     B1 = (u_int64_t)B1_in;
     printf("\nGenerator upper limit B1 = %lu\n\n", B1);
 
+    /* test gcd */
+/*    b = 2570;
+    a = 19937;
+    c = gcd(a, b);
+    printf("gcd(%lu, %lu) = %lu\n", a, b, c);
+    return 0; */
+
     /* keep the compiler happy */
     old_tgt_p_list_read_file = (FILE *)NULL;
     old_pending_code_list_read_file = (FILE *)NULL;
@@ -2805,6 +2778,7 @@ int32_t main( int argc, char *argv[])
 	max_code_length = get_max_code_length_ptr();
 	tgt_prime_code_length = get_tgt_prime_code_length_ptr();
 	code_length_problem_count = get_code_length_problem_count_ptr();
+	raw_c_counts = get_raw_c_counts_ptr();
 
 	/* initialize the difference table and primes used for sieving */
 	sieve_prime_count = sieve_init();
@@ -3629,6 +3603,10 @@ int32_t main( int argc, char *argv[])
 			dum = (size_t)system("rm -f Pending_Lchain_code_list_1.dat");
 			dum = (size_t)system("rm -f Pending_Lchain_code_list_2.dat");
 			dum = (size_t)system("rm -f current_status.dat");
+
+			for( i = 0; i < MAX_CANDIDATE_COUNT; i++ )
+				printf("raw candidate count[%d] = %lu\n", i, raw_c_counts[i]);
+
 			return EXIT_SUCCESS;
 		}
 	}

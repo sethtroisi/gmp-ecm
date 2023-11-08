@@ -8,6 +8,8 @@
 #ifndef LUCASCHAINGEN_H_
 #define LUCASCHAINGEN_H_
 
+/* #define HAVE_ASM_GCD */
+
 #define FIB_LIMIT 56				/* maximum # of Fibonacci numbers */
 #define MAX_WORKING_CHAIN_LENGTH 64	/* maximum # of chain elements in the current working chain */
 #define MAX_CODE_OR_PRIME_COUNT 6000000	/* maximum size for both chain code & target prime arrays */
@@ -77,7 +79,6 @@ typedef struct
 typedef struct
 {
 	u_int64_t	value;			/* integer value of this chain element */
-	u_int64_t	gcd;			/* gcd( value, parent_value ), where "parent" is the next smaller chain element */
 	u_int8_t	comp_offset_1;	/* larger summand (summand_1) component index counting back from parent (parent = 0) */
 	u_int8_t	comp_offset_2;	/* smaller summand (summand_2) component index counting back from parent */
 	u_int8_t	dif_offset;		/* component index of (summand_1 - summand_2) counting back from parent */
@@ -93,6 +94,10 @@ chain_element	*get_working_chain_ptr(void);
 u_int8_t	*get_current_partial_length_ptr(void); /* current # of elements in the working chain */
 u_int64_t	*get_chain_values_ptr(void);
 chain_element	*get_candidate_list_ptr(void);
+chain_element	*get_raw_c_list_ptr(void);
+u_int64_t	*get_raw_c_counts_ptr(void);
+u_int8_t	*get_check_result_ptr(void);
+u_int8_t	*get_check_index_ptr(void);
 u_int16_t	*get_c_list_start_index_ptr(void); /* next available slot in the candidate list */
 u_int16_t	*get_current_c_index_ptr(void);
 target_prime	*get_tgt_prime_list_ptr(void);
@@ -105,7 +110,6 @@ u_int16_t	*get_chain_count_max_dbls_ptr(void);
 u_int64_t	*get_Fib_ptr(void);
 u_int64_t	*get_Luc_ptr(void);
 u_int8_t	*get_w_chain_length_ptr(void);
-u_int64_t	*get_next_step_c_list_ptr(void);
 double		*get_index_count_per_val_ptr(void);
 u_int8_t	*get_code_length_ptr(void);
 u_int8_t	*get_max_code_length_ptr(void);
@@ -123,7 +127,7 @@ u_int16_t	gen_candidate_list(void);
 u_int8_t	gen_next_step_candidates(void);
 u_int64_t	gcd(u_int64_t, u_int64_t);
 void		copy_candidate_to_working_chain(void);
-u_int8_t	check_candidate(void);
+void		check_candidate(void);
 u_int64_t	encode_Lchain(void);
 u_int8_t	generate_Lchain( u_int64_t, u_int64_t, chain_element *, u_int8_t *, u_int8_t *, u_int32_t * );
 void		max_continuation( chain_element *, u_int8_t *, u_int8_t );
