@@ -313,7 +313,7 @@ def verifyFactorsFoundBySigma(
             print('Results matched exactly (%d curves found factors)' %
                 expected_curves)
     else:
-        print('Wrong results for seed=%d' % seed)
+        print('Wrong results for seed=%d' % args.seed)
         print('\t' + echo_cmd + ecm_cmd)
         sys.exit(1)
 
@@ -323,7 +323,7 @@ def verifyFactorsFoundBySigma(
     return len(found_factors)
 
 
-def stage1Tests(args, prime_size, B1, param, seed):
+def stage1Tests(args, prime_size, B1, param):
     '''
     Generate N such that many sigmas (sigma_0:sigma_0+args.gpucurves) have factors
     Verify sigmas found factor in stage 1.
@@ -339,9 +339,9 @@ def stage1Tests(args, prime_size, B1, param, seed):
             prime_count, prime_size, B1))
 
     if args.verbose > 1:
-        print('\tusing seed: %s' % seed)
+        print('\tusing seed: %s' % args.seed)
 
-    random.seed(seed)
+    random.seed(args.seed)
     sigma_0 = random.randrange(1000, 2^31)
 
     primes = findPrimesOfSize(prime_count, prime_size)
@@ -351,13 +351,13 @@ def stage1Tests(args, prime_size, B1, param, seed):
         args, primes, param, sigma_0, B1, factor_by_sigma)
 
 
-def overflowTest(args, param, seed):
+def overflowTest(args, param):
     '''
     Generate N such that N is VERY close to nbits
     Verify small factors found
     '''
 
-    random.seed(seed)
+    random.seed(args.seed)
     sigma_0 = random.randrange(1000, 2^31)
 
     # Multiply a handful of small primes that "should" be found by each sigma
@@ -410,7 +410,7 @@ if __name__ == '__main__':
 
     seed = args.seed
     if seed is None:
-        seed = random.randrange(2 ^ 32)
+        args.seed = random.randrange(2 ^ 32)
 
     if args.timing:
         timingTest(args, [250, 500, 1000, 1500, 2000])
@@ -418,18 +418,18 @@ if __name__ == '__main__':
 
     # GPU needs 6 bits for carry / temp results
     args.nbits -= 6
-    overflowTest(args, GPU_PARAM, seed)
+    overflowTest(args, GPU_PARAM)
 
     if args.iterations:
         found = 0
         for i in range(args.iterations):
             # Test smallish primes (40 bits = 12 digit) at B1 (default: 10^4)
-            found += stage1Tests(args, 40, args.B1, GPU_PARAM, seed)
-            seed += 1
+            found += stage1Tests(args, 40, args.B1, GPU_PARAM)
+            args.seed += 1
 
             # Test larger primes at 10xB1
-            found += stage1Tests(args, 60, 10*args.B1, GPU_PARAM, seed)
-            seed += 1
+            found += stage1Tests(args, 60, 10*args.B1, GPU_PARAM)
+            args.seed += 1
 
         print('Results matched in %d tests (%d curves found factors)' %
             (2*args.iterations, found))
