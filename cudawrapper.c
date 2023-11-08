@@ -554,6 +554,8 @@ end_gpu_ecm2:
   return youpi;
 }
 
+
+// TODO trying to get two arrays out. residuals (in x) and n's in???
 int
 gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
          double *B1done, double B1, mpz_t B2min_parm ATTRIBUTE_UNUSED, mpz_t B2_parm ATTRIBUTE_UNUSED,
@@ -709,8 +711,7 @@ gpu_pm1 (mpz_t f, mpz_t x, mpz_t n, mpz_t go,
     }
 
   /* was a factor found in stage 1 ? */
-
-  reducefactors(factors, array_found, *nb_curves);
+  //reducefactors(factors, array_found, *nb_curves);
 
   /* If f0, ,fk are the factors found (in stage 1 or 2) 
    * f = f0 + f1*n + .. + fk*n^k

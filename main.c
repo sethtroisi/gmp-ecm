@@ -1496,10 +1496,21 @@ main (int argc, char *argv[])
       mpmod_selftest (n.n);
 #endif
 
+
+
+
       /* now call the ecm library */
       if (result == ECM_NO_FACTOR_FOUND)
         /* if torsion was used, some factor may have been found... */
         result = ecm_factor (f, n.n, B1, params);
+
+
+
+
+
+
+
+
 
       if (result == ECM_ERROR)
         {

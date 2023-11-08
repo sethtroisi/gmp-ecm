@@ -354,9 +354,9 @@ class curve_t {
 };
 
 static
-uint32_t* set_p_2p(const mpz_t N,
-                   uint32_t curves, uint32_t sigma,
-                   uint32_t BITS, size_t *data_size) {
+uint32_t* set_ec_p_2p(const mpz_t N,
+                     uint32_t curves, uint32_t sigma,
+                     uint32_t BITS, size_t *data_size) {
   /**
    * Store 5 numbers per curve:
    * N, P_a (x, z), P_b (x, z)
@@ -790,7 +790,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
   assert( sizeof(curve_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
   assert( sizeof(curve_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
-  data = set_p_2p(N, curves, sigma, BITS, &data_size);
+  data = set_ec_p_2p(N, curves, sigma, BITS, &data_size);
 
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
   // Why compute this? to verify understanding of CGBN internals?
@@ -805,7 +805,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
           "CGBN<%d, %d> running kernel<%d block x %d threads> input number is %d bits\n",
           BITS, TPI, BLOCK_COUNT, TPB, n_log2);
 
-  /* First bit (doubling) is handled in set_p_2p */
+  /* First bit (doubling) is handled in set_ec_p_2p */
   uint64_t s_partial = 1;
 
   /* Start with small batches and increase till timing is ~100ms */
@@ -984,6 +984,7 @@ __global__ void kernel_pm1_partial(
   uint32_t np0;
 
   { // Setup
+      /* const_base is used in WINDOW algorithm, partial_base is used in double and square. */
       cgbn_load(exp._env, modulus,        &data_cast[4*instance_i+0]);
       cgbn_load(exp._env, const_base,     &data_cast[4*instance_i+1]);
       cgbn_load(exp._env, partial_base,   &data_cast[4*instance_i+2]);
@@ -1000,6 +1001,7 @@ __global__ void kernel_pm1_partial(
   }
 
   if (1) {
+      /* WINDOW algorithm, MSB to LSB and mixin bits from s in groups of WINDOW_BITS. */
       static const uint32_t WINDOW_BITS = params::WINDOW_BITS;
       typename power_mod_t<params>::bn_local_t  window[1 << WINDOW_BITS];
 
@@ -1013,13 +1015,16 @@ __global__ void kernel_pm1_partial(
         exp.normalize_addition(temp, modulus);
         cgbn_store(exp._env, window+index, temp);
       }
- 
-      // TODO do something so partial_base is changed and process_result stops being suspicious
+
+      /* Partial base is modified so that process_result isn't suspicious. */
       cgbn_set_ui32(exp._env, partial_base, 0);
 
       uint32_t window_bits = 0;
       for (uint64_t b = s_bits_start; b < s_bits_start + s_bits_interval; b++) {
         cgbn_mont_sqr(exp._env, partial_result, partial_result, modulus, np0);
+        /* From https://github.com/NVlabs/CGBN/issues/15
+         * it's not clear if the redundant representation has consequences
+         * when chained */
         exp.normalize_addition(partial_result, modulus);
         exp.assert_normalized(partial_result, modulus);
 
@@ -1057,7 +1062,6 @@ __global__ void kernel_pm1_partial(
         if (bit) {
             cgbn_mont_mul(exp._env, partial_result, partial_result, partial_base, modulus, np0);
             exp.normalize_addition(partial_result, modulus);
-            // TODO link bug
             exp.assert_normalized(partial_result, modulus);
         }
         cgbn_mont_sqr(exp._env, partial_base, partial_base, modulus, np0);
@@ -1155,6 +1159,7 @@ int find_pm1_factor(mpz_t factor, const mpz_t N, const mpz_t a) {
         return ECM_FACTOR_FOUND_STEP1;
     }
 
+    mpz_set(factor, a);
     return ECM_NO_FACTOR_FOUND;
 }
 
