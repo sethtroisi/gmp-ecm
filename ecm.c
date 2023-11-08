@@ -958,9 +958,9 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
    Weierstrass form for ECM (when sigma_is_A = -1). */
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
-		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t sigma,
-		  int sigma_is_A, int Etype, 
-		  mpz_t y, int param, unsigned int nb_curves)
+		  const mpz_t B2min_param, const mpz_t B2min, const mpz_t B2,
+                  int S, const mpz_t sigma, int sigma_is_A, int Etype,
+		  const mpz_t y, int param, unsigned int nb_curves)
 {
   ASSERT ((method == ECM_ECM) || (y == NULL));
   ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
@@ -992,10 +992,11 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 	      {
 		if (nb_curves > 1) 
 		  {
-		    outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
-		    mpz_add_ui (sigma, sigma, nb_curves-1);
-		    outputf (verbosity, "-%d:%Zd", param, sigma);
-		    mpz_sub_ui (sigma, sigma, nb_curves-1);
+                    mpz_t end;
+                    mpz_init(end);
+		    mpz_add_ui (end, sigma, nb_curves-1);
+		    outputf (verbosity, ", sigma=%d:%Zd-%Zd", param, sigma, end);
+                    mpz_clear(end);
 		    outputf (verbosity, " (%u curves)", nb_curves);
 		  }
 		else
@@ -1020,7 +1021,8 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 
 /* Compute parameters for stage 2 */
 int
-set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm, 
+set_stage_2_params (mpz_t B2, const mpz_t B2_parm,
+                    mpz_t B2min, const mpz_t B2min_parm,
                     root_params_t *root_params, double B1,
                     unsigned long *k, const int S, int use_ntt, int *po2,
                     unsigned long *dF, char *TreeFilename, double maxmem, 
