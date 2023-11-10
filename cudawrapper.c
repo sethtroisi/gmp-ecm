@@ -393,11 +393,12 @@ gpu_ecm (mpz_t f, mpz_t x, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   /* Save stage 1 residues as x = x0 + x1 * 2^bits + ... + xk * 2^(bits*k) */
   mpz_set_ui (x, 0);
+  /* Equivalent to using mpz_mul_2exp and mpz_add while avoiding O(n*k) limp copies */
+  mpz_realloc2(x, *nb_curves * n_bits);
   for (i = 0; i < *nb_curves; i++)
-    {
-      mpz_mul_2exp (x, x, n_bits);
-      mpz_add (x, x, factors[*nb_curves - 1 - i]);
-    }
+    for (size_t j = 0; j < n_bits; j++)
+      if (mpz_tstbit (factors[i], j))
+        mpz_setbit(x, j + n_bits * i);
 
   /* was a factor found in stage 1 ? */
   if (youpi != ECM_NO_FACTOR_FOUND)
