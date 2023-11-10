@@ -1510,7 +1510,10 @@ main (int argc, char *argv[])
         result = ecm_factor (f, n.n, B1, params);
 
 
-
+      // First attempt for PM1 is
+      //        1st call set gpu_number_of_curves and set arrays
+      //        2nd, 3rd, ... 1792 call, return a single number and single residual
+      //        1793 call????
 
 
 
