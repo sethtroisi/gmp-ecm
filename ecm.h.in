@@ -120,6 +120,7 @@ typedef struct
   mpz_t *gpu_return1;
   mpz_t *gpu_return2;
   unsigned int gpu_number_of_curves; 
+  unsigned int gpu_pm1_results_ready;
   double gw_k;         /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_b;  /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_n;  /* use for gwnum stage 1 if input has form k*b^n+c */

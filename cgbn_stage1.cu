@@ -1086,7 +1086,7 @@ __global__ void kernel_pm1_partial(
 
 static
 uint32_t* set_gpu_pm1_data(
-        const mpz_t p, const mpz_t *numbers,
+        const mpz_t x0, const mpz_t *numbers,
         uint32_t instances, uint32_t BITS, size_t *data_size) {
   /**
    * Store 4 numbers per curve:
@@ -1121,7 +1121,7 @@ uint32_t* set_gpu_pm1_data(
 
       // TODO make sure not -1
       /* Base, make sure base mod n {1, -1} */
-      mpz_mod (x, p, numbers[index]);
+      mpz_mod (x, x0, numbers[index]);
       if (mpz_cmp_ui (x, 1) == 0)
         {
           // increment one
@@ -1158,7 +1158,7 @@ int find_pm1_factor(mpz_t factor, const mpz_t N, const mpz_t a) {
 
 static
 int process_pm1_results(
-        const mpz_t p,
+        const mpz_t x0,
         mpz_t *factors, int *array_found,
         mpz_t *numbers,
         const uint32_t *data, uint32_t cgbn_bits,
@@ -1193,7 +1193,7 @@ int process_pm1_results(
       continue;
 
     /* Very suspicious for base, result to match initial value */
-    if (mpz_cmp (base, p) == 0 && mpz_cmp_ui(result, 1) == 0) {
+    if (mpz_cmp (base, x0) == 0 && mpz_cmp_ui(result, 1) == 0) {
       errors += 1;
       if (errors < 10 || errors % 100 == 1)
         outputf (OUTPUT_ERROR, "GPU: curve %d n=%Zd\n", i, modulo);
@@ -1227,7 +1227,7 @@ int process_pm1_results(
   return youpi;
 }
 
-int cgbn_pm1_stage1(mpz_t p,
+int cgbn_pm1_stage1(const mpz_t x0,
                     mpz_t *factors, int *array_found,
                     mpz_t *numbers, const mpz_t s,
                     uint32_t instances, float *gputime, int verbose)
@@ -1393,7 +1393,7 @@ int cgbn_pm1_stage1(mpz_t p,
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
   assert( sizeof(power_mod_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
   assert( sizeof(power_mod_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
-  data = set_gpu_pm1_data(p, numbers, instances, BITS, &data_size);
+  data = set_gpu_pm1_data(x0, numbers, instances, BITS, &data_size);
 
   // Copy data
   outputf (OUTPUT_VERBOSE, "Copying %'lu bytes of instances data to GPU\n", data_size);
@@ -1490,7 +1490,7 @@ int cgbn_pm1_stage1(mpz_t p,
 
   cudaEventElapsedTime (gputime, global_start, stop);
 
-  youpi = process_pm1_results(p, factors, array_found, numbers, data, BITS, instances);
+  youpi = process_pm1_results(x0, factors, array_found, numbers, data, BITS, instances);
 
   // clean up
   CUDA_CHECK(cudaFree(gpu_s_bits));

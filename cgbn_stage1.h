@@ -35,7 +35,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
              float *gputime, int verbose);
 
 int cgbn_pm1_stage1(
-             mpz_t p,
+             const mpz_t x0,
              mpz_t *factors, int *array_found,
              mpz_t *N, const mpz_t s,
              uint32_t curves,

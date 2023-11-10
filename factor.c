@@ -78,10 +78,10 @@ ecm_init (ecm_params q)
   q->gpu = 0; /* no gpu by default in library mode */
   q->gpu_device = -1; 
   q->gpu_device_init = 0; 
-  q->gpu_number_of_curves = 0; 
   q->gpu_return1 = NULL;
   q->gpu_return2 = NULL;
-  q->gpu_pm1_ready = NULL;
+  q->gpu_number_of_curves = 0;
+  q->gpu_pm1_results_ready = 0;
   q->gw_k = 0.0;
   q->gw_b = 0;
   q->gw_n = 0;
@@ -187,11 +187,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
       else
         {
 #ifdef WITH_GPU
-          res = gpu_pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,
-                         p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,
-                         p->chkfilename, p->TreeFilename, p->maxmem, p->rng,
-                         p->stop_asap, p->gpu_device, &(p->gpu_device_init),
-                         &(p->gpu_number_of_curves));
+          res = gpu_pm1 (f, p, p, n, B1);
 #else
           assert(0); // Compiled without --enable-gpu
 #endif
