@@ -80,6 +80,7 @@ ecm_init (ecm_params q)
   q->gpu_device_init = 0; 
   q->gpu_return1 = NULL;
   q->gpu_return2 = NULL;
+  q->gpu_return3 = NULL;
   q->gpu_number_of_curves = 0;
   q->gpu_pm1_results_ready = 0;
   q->gw_k = 0.0;
@@ -192,7 +193,6 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
           assert(0); // Compiled without --enable-gpu
 #endif
         }
-      printf("ECM_PM1 return: %d\n", res);
     }
   else if (p->method == ECM_PP1)
     res = pp1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,

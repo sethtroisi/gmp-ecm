@@ -1273,7 +1273,7 @@ int cgbn_pm1_stage1(const mpz_t x0,
 
   n_log2 = mpz_sizeinbase(numbers[largest_i], 2);
   assert(n_log2 > 1);
-  outputf (OUTPUT_VERBOSE, "GPU P-1: Largest number input %lu, %lu bits\n",
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Largest number line %lu, %lu bits\n",
            largest_i+1, n_log2);
 
   uint32_t  BITS = 0;        // kernel bits

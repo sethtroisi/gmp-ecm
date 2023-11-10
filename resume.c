@@ -584,11 +584,16 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
   
 
   /* Now can call write_resumefile_line to write in the file */
-  if (params->gpu == 0)
+  if (params->gpu == 0 || (params->gpu && params->method == ECM_PM1))
     {
       /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
          found */
       mpz_mod (tmp_x, params->x, n->n); 
+
+      if (orig_x0 != NULL && orig_y0 != NULL)
+        gmp_printf("orig x0/y0 %Zd %Zd\n", orig_x0, orig_y0);
+
+      gmp_printf("Hi x, y, n = %Zd, %Zd, %Zd\n", params->x, params->y, N);
 
       /* We write the B1done value to the save file. This requires that
          a correct B1done is returned by the factoring functions. */
@@ -612,20 +617,23 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
     }
   else /* gpu case */
     {
-      size_t n_bits = mpz_sizeinbase(N, 2);
-      for (i = 0; i < params->gpu_number_of_curves; i++)
+      if (params->method == ECM_ECM)
         {
-          mpz_fdiv_r_2exp (tmp_x, params->x, n_bits);
-          mpz_fdiv_q_2exp (params->x, params->x, n_bits);
-          mpz_mod (tmp_x, tmp_x, n->n);
-          write_resumefile_line (file, method, params->B1done, params->sigma,
-				 params->sigma_is_A, params->E->type,
-                                 /* since the gpu version always uses -param 3,
-                                    we hardcode it in the save file */
-				 ECM_PARAM_BATCH_32BITS_D,
-				 tmp_x, NULL, n, orig_x0, orig_y0, 
-				 comment);
-          mpz_add_ui (params->sigma, params->sigma, 1);
+          size_t n_bits = mpz_sizeinbase(N, 2);
+          for (i = 0; i < params->gpu_number_of_curves; i++)
+            {
+              mpz_fdiv_r_2exp (tmp_x, params->x, n_bits);
+              mpz_fdiv_q_2exp (params->x, params->x, n_bits);
+              mpz_mod (tmp_x, tmp_x, n->n);
+              write_resumefile_line (file, method, params->B1done, params->sigma,
+                                     params->sigma_is_A, params->E->type,
+                                     /* since the gpu version always uses -param 3,
+                                        we hardcode it in the save file */
+                                     ECM_PARAM_BATCH_32BITS_D,
+                                     tmp_x, NULL, n, orig_x0, orig_y0, 
+                                     comment);
+              mpz_add_ui (params->sigma, params->sigma, 1);
+            }
         }
     }
 

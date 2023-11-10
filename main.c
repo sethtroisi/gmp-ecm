@@ -1502,7 +1502,8 @@ main (int argc, char *argv[])
 #endif
 
 
-
+      // TODO would be nicer for GPU_PM1 if whole of mpcandi_t was passed to ecm_factor
+      // TODO need to clear n.cpExpr ...
 
       /* now call the ecm library */
       if (result == ECM_NO_FACTOR_FOUND)
@@ -1510,12 +1511,15 @@ main (int argc, char *argv[])
         result = ecm_factor (f, n.n, B1, params);
 
 
+      //gmp_printf("Hi cnt: %d | %Zd\n", cnt, n.n);
       // First attempt for PM1 is
       //        1st call set gpu_number_of_curves and set arrays
       //        2nd, 3rd, ... 1792 call, return a single number and single residual
       //        1793 call????
 
-
+      // TODO x0 is lost from P-1 when not specific on the commandline
+      // TODO B1 is being lost between iterations
+      printf("Hi %d, %f, %f\n", cnt, B1, params->B1done);
 
       if (result == ECM_ERROR)
         {
@@ -1531,10 +1535,17 @@ main (int argc, char *argv[])
           // If trivial factor found gpu_number_of_curves might not be set
           assert (params->gpu_number_of_curves > 0 ||
                   result != ECM_NO_FACTOR_FOUND);
-          if (cnt <= params->gpu_number_of_curves)
-              cnt = 0;
+
+          /* GPU ECM returns c curves, P-1 returns 1 curve at a time. */
+          if (params->method == ECM_ECM)
+            {
+              if (cnt <= params->gpu_number_of_curves)
+                  cnt = 0;
+              else
+                  cnt -= params->gpu_number_of_curves;
+            }
           else
-              cnt -= params->gpu_number_of_curves;
+            cnt -= 1;
         }
 
       /* When GPU is used we need to have the value of N before it is 

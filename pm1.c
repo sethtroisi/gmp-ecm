@@ -167,7 +167,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   size_n = mpz_sizeinbase (n->orig_modulus, 2);
   max_size = L1 * size_n;
 
-  gmp_printf("generator: %Zd and %Zd\n", a, go);
+  //gmp_printf("generator: %Zd and %Zd\n", a, go);
 
   // Why do this this way?
   mpres_get_z (g, a, n);

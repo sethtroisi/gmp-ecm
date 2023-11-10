@@ -576,6 +576,8 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   int youpi = ECM_NO_FACTOR_FOUND;
   long st;
   float gputime = 0.0;
+
+  /* Local pointers to params->gpu_return1, params->gpu_return2, params->gpu_return3. */
   mpz_t *numbers = NULL;
   mpz_t *factors = NULL; /* Contains either a factor of n either end-of-stage-1
                             residue (depending of the value of array_found */
@@ -591,6 +593,17 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   set_verbose (params->verbose);
   ECM_STDOUT = (params->os == NULL) ? stdout : params->os;
   ECM_STDERR = (params->es == NULL) ? stdout : params->es;
+
+
+  // TODO maybe remove this
+  mpz_set_ui(f, 0);
+
+  /* If pre-computed results ready from previous run */
+  if (params->gpu_pm1_results_ready)
+    {
+      goto gpu_pm1_return;
+    }
+
 
   /* Check that N is not too big */
   size_t max_bits = ECM_GPU_CGBN_MAX_BITS - 6;
@@ -664,26 +677,30 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
     {
       mpz_t temp;
       mpz_init_set_ui(temp, 0xFFFFFFFF);
-      __ecm_pm1_random_seed (mutable_params->x, temp, mutable_params->rng);
+      mpz_set_ui(mutable_params->x, 3);
+      //__ecm_pm1_random_seed (mutable_params->x, temp, mutable_params->rng);
       outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd\n", mutable_params->x);
       mpz_clear(temp);
     }
 
   /* Init arrays */
-  factors = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
-  ASSERT_ALWAYS (factors != NULL);
   numbers = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
   ASSERT_ALWAYS (numbers != NULL);
-
+  factors = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  ASSERT_ALWAYS (factors != NULL);
   array_found = (int *) malloc (nb_curves * sizeof (int));
   ASSERT_ALWAYS (array_found != NULL);
 
   for (i = 0; i < nb_curves; i++)
     {
-      mpz_init (factors[i]);
       mpz_init (numbers[i]);
+      mpz_init (factors[i]);
       array_found[i] = ECM_NO_FACTOR_FOUND;
     }
+
+  mutable_params->gpu_return1 = numbers;
+  mutable_params->gpu_return2 = factors;
+  mutable_params->gpu_return3 = array_found;
 
   /* TODO figure out interface for this */
   mpcandi_t temp;
@@ -713,7 +730,19 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
             }
         }
       else
-        mpz_set_ui(numbers[i], 0);
+        {
+            outputf (OUTPUT_VERBOSE,
+                     "GPU P-1: End of input truncating to %i curves", i);
+            // Reduce to running i curves
+            for (unsigned int j = i; j < nb_curves; j++)
+              {
+                mpz_clear (numbers[i]);
+                mpz_clear (factors[i]);
+              }
+
+            nb_curves = i;
+            mutable_params->gpu_number_of_curves = i;
+        }
     }
 
   // TODO P-1 statistics
@@ -754,6 +783,9 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
       factors, array_found, numbers,
       params->batch_s, nb_curves, &gputime, params->verbose);
 
+  if (youpi != ECM_ERROR)
+    mutable_params->gpu_pm1_results_ready = params->gpu_number_of_curves;
+
   outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n",
                           nb_curves, elltime (st, cputime ()), gputime);
@@ -761,8 +793,6 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
                                                  1000 * nb_curves/gputime);
   outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n", 
                                                         gputime/nb_curves);
-  mutable_params->B1done = B1;
-
   /* GMP documentation says mpz_sizeinbase(op, 2) is always the exact value. */
   size_t n_bits = mpz_sizeinbase(n, 2);
 
@@ -773,12 +803,44 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   // TODO handle saving found factors
   //reducefactors(factors, array_found, nb_curves);
 
-end_gpu_pm1_1:
-  for (i = 0; i < nb_curves; i++)
-      mpz_clear (factors[i]);
+gpu_pm1_return:
+  assert (params->gpu_pm1_results_ready > 0);
+  i = params->gpu_number_of_curves - params->gpu_pm1_results_ready;
 
-  free (array_found);
-  free (factors);
+  /* Has to be set each time */
+  mutable_params->B1done = B1;
+
+  /* Copy out result from saved i'th P-1 results. */
+  mpz_set(n, params->gpu_return1[i]);
+  mpz_set(mutable_params->x, params->gpu_return2[i]);
+  youpi = params->gpu_return3[i];
+  if (youpi != ECM_NO_FACTOR_FOUND)
+    {
+        // TODO currently residual is lost in this case.
+        // move some of find_pm1_factor here
+        mpz_set(f, mutable_params->x);
+        mpz_set_ui(mutable_params->x, 0);
+    }
+
+  outputf (OUTPUT_TRACE, "%d -> %Zd -> %Zd\n", i, n, f);
+
+  /* If all results are processed clear and free arrays. */
+  mutable_params->gpu_pm1_results_ready -= 1;
+  if (params->gpu_pm1_results_ready == 0)
+    {
+      for (i = 0; i < nb_curves; i++)
+        {
+          mpz_clear (mutable_params->gpu_return1[i]);
+          mpz_clear (mutable_params->gpu_return2[i]);
+        }
+        free(mutable_params->gpu_return1);
+        free(mutable_params->gpu_return2);
+        free(mutable_params->gpu_return3);
+        mutable_params->gpu_return1 = NULL;
+        mutable_params->gpu_return2 = NULL;
+        mutable_params->gpu_return3 = NULL;
+        mutable_params->gpu_pm1_results_ready = 0;
+    }
 
   return youpi;
 }
