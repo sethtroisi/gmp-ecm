@@ -72,7 +72,8 @@ typedef __ell_point_struct ell_point_t[1];
 typedef struct
 {
   int method;     /* factorization method, default is ecm */
-  mpz_t x, y;        /* starting point (if non zero) */
+  mpz_t x0, y0;   /* starting point (if non zero) */
+  mpz_t x, y;     /* starting point -> generator / residual */
   int param;      /* (ECM only) What parametrization do we used */ 
   mpz_t sigma;    /* (ECM only) The parameter for the parametrization */ 
                       /* May contains A */

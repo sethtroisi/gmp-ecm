@@ -677,6 +677,7 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
     {
       mpz_t temp;
       mpz_init_set_ui(temp, 0xFFFFFFFF);
+      mpz_set_ui(mutable_params->x0, 3);
       mpz_set_ui(mutable_params->x, 3);
       //__ecm_pm1_random_seed (mutable_params->x, temp, mutable_params->rng);
       outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd\n", mutable_params->x);
@@ -807,8 +808,9 @@ gpu_pm1_return:
   assert (params->gpu_pm1_results_ready > 0);
   i = params->gpu_number_of_curves - params->gpu_pm1_results_ready;
 
-  /* Has to be set each time */
+  /* These have to be saved and restored on each output. */
   mutable_params->B1done = B1;
+  //mutable_params->x0;
 
   /* Copy out result from saved i'th P-1 results. */
   mpz_set(n, params->gpu_return1[i]);

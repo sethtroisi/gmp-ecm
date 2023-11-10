@@ -39,6 +39,8 @@ ecm_init (ecm_params q)
   __ell_curve_struct *ptrE = (__ell_curve_struct *) malloc(sizeof(__ell_curve_struct));
 
   q->method = ECM_ECM; /* default method */
+  mpz_init_set_ui (q->x0, 0);
+  mpz_init_set_ui (q->y0, 0);
   mpz_init_set_ui (q->x, 0);
   mpz_init_set_ui (q->y, 0);
   mpz_init_set_ui (q->sigma, 0);
@@ -102,6 +104,8 @@ ecm_reset (ecm_params q)
 void
 ecm_clear (ecm_params q)
 {
+  mpz_clear (q->x0);
+  mpz_clear (q->y0);
   mpz_clear (q->x);
   mpz_clear (q->y);
   mpz_clear (q->sigma);

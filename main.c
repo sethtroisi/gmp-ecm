@@ -349,7 +349,7 @@ int
 main (int argc, char *argv[])
 {
   char **argv0 = argv;
-  mpz_t x, y, sigma, A, f, orig_x0, orig_y0, B2, B2min, startingB2min, tmp_n;
+  mpz_t x, y, sigma, A, f, B2, B2min, startingB2min, tmp_n;
   mpcandi_t n;
   mpgocandi_t go;
   mpq_t rat_x0, rat_y0, rat_A;
@@ -1111,8 +1111,6 @@ main (int argc, char *argv[])
   mpz_init (f); /* factor found */
   mpz_init (x); /* stage 1 residue */
   mpz_init (y); /* stage 1 for ECM_W or ECM_H */
-  mpz_init (orig_x0); /* starting point, for save file */
-  mpz_init (orig_y0); /* starting point, for save file */
 
   /* Install signal handlers */
 #ifdef HAVE_SIGNAL
@@ -1139,8 +1137,11 @@ main (int argc, char *argv[])
   /* Main loop */
   while ((cnt > 0 || feof (infile) == 0) && !exit_asap_value)
     {
+      /* reset some parameters */
       result = ECM_NO_FACTOR_FOUND;
       params->B1done = B1done; /* may change with resume */
+
+      /* TODO handle not reseting some params in P-1 GPU mode */
       
       if (resumefile != NULL) /* resume case */
         {
@@ -1151,7 +1152,7 @@ main (int argc, char *argv[])
               exit (EXIT_FAILURE);
             }
           if (!read_resumefile_line (&method, x, y, &n, sigma, A, 
-				     orig_x0, orig_y0, &(params->E->type), 
+				     params->x0, params->y0, &(params->E->type),
 				     &(params->param), &(params->B1done), 
 				     program, who, rtime, comment, resumefile))
             break;
@@ -1281,12 +1282,13 @@ main (int argc, char *argv[])
                   random starting point for P-1 and P+1. ECM will
                   compute a suitable value from sigma or A if x is zero. */
             mpz_set_ui (x, 0);
-         
+
           if (ECM_IS_DEFAULT_B1_DONE (B1done)) /* first time */
 	    {
-	      mpz_set (orig_x0, x);
+              printf("WHEN DOES THIS HAPPEN? no-resume, and -x0 passed\n");
+	      mpz_set (params->x0, x);
 	      if (specific_y0)
-		mpz_set (orig_y0, y);  
+		mpz_set (params->y0, y);
 	    }
         }
       if (verbose >= OUTPUT_NORMAL)
@@ -1590,7 +1592,7 @@ main (int argc, char *argv[])
         {
         /* TODO Deal with return code */
 	    write_resumefile (savefilename, method, tmp_n, params, &n, 
-			      orig_x0, orig_y0, comment);
+			      params->x0, params->y0, comment);
         }
 
       mpz_clear (tmp_n);
@@ -1627,8 +1629,6 @@ main (int argc, char *argv[])
       mpz_clear (resume_lastfac);
     }
 
-  mpz_clear (orig_y0);
-  mpz_clear (orig_x0);
   mpz_clear (y);
   mpz_clear (x);
   mpz_clear (f);
