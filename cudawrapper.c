@@ -385,8 +385,8 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
                              firstsigma_ui, &gputime, params->verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
-                          "%.0fms of GPU time\n", nb_curves,
-                          elltime (st, cputime ()), gputime);
+                          "%.0fms of GPU time\n",
+                          nb_curves, elltime (st, cputime ()), gputime);
   outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves per second ",
                            1000 * nb_curves/gputime);
   outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n",
@@ -684,12 +684,29 @@ gpu_pm1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go,
   mpcandi_t temp;
   mpcandi_t_init(&temp);
   //FILE *fd = fopen("test_pm1.txt", "r");
+  //FILE *fd = fopen("random_composites_30.txt", "r");
   FILE *fd = fopen("random_composites.txt", "r");
 
   for (i = 0; i < *nb_curves; i++)
     {
       if (read_number(&temp, fd, 1))
-        mpz_swap(numbers[i], temp.n);
+        {
+          mpz_swap(numbers[i], temp.n);
+          // Validity checks, > 1, odd
+          if (mpz_cmp_ui(numbers[i], 1) <= 0)
+            {
+              fprintf(ECM_STDERR, "Error, n= should be great than 1.\n");
+              gmp_fprintf(ECM_STDERR, "n[%u]=%Zd\n", i, numbers[i]);
+              return ECM_ERROR;
+            }
+          /* TODO figure out how to divide out 2's here and add to factors[i] */
+          if (mpz_tstbit(numbers[i], 0) == 0)
+            {
+              fprintf(ECM_STDERR, "Error, numbers should all be odd.\n");
+              gmp_fprintf(ECM_STDERR, "n[%u]=%Zd\n", i, numbers[i]);
+              return ECM_ERROR;
+            }
+        }
       else
         mpz_set_ui(numbers[i], 0);
     }
@@ -736,8 +753,8 @@ gpu_pm1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go,
       batch_s, *nb_curves, &gputime, verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
-                          "%.0fms of GPU time\n", *nb_curves, 
-                                           elltime (st, cputime ()), gputime);
+                          "%.0fms of GPU time\n",
+                          *nb_curves, elltime (st, cputime ()), gputime);
   outputf (OUTPUT_VERBOSE, "Throughput: %.3f numbers per second ", 
                                                  1000 * (*nb_curves)/gputime);
   outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n", 

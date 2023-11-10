@@ -106,9 +106,10 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
     exit(EXIT_FAILURE);
   }
 
+  for (words = 0; words < count; words++)
+      x[words] = 0;
   mpz_export (x, &words, -1, sizeof(uint32_t), 0, 0, s);
-  while(words<count)
-    x[words++]=0;
+  assert(words <= count);
 }
 
 
@@ -422,8 +423,8 @@ __global__ void kernel_double_add(
         ) {
   // decode an instance_i number from the blockIdx and threadIdx
   int32_t instance_i = (blockIdx.x*blockDim.x + threadIdx.x)/params::TPI;
-  if(instance_i >= count)
-    return;
+  if (instance_i >= count)
+      return;
 
   /* Cast uint32_t array to mem_t */
   typename curve_t<params>::mem_t *data_cast = (typename curve_t<params>::mem_t*) data;
@@ -966,11 +967,10 @@ __global__ void kernel_pm1_partial(
         uint32_t *data,
         uint32_t count
         ) {
-
   // decode an instance_i number from the blockIdx and threadIdx
   int32_t instance_i = (blockIdx.x*blockDim.x + threadIdx.x)/params::TPI;
-  if(instance_i >= count)
-    return;
+  if (instance_i >= count)
+      return;
 
   /* Cast uint32_t array to mem_t */
   typename power_mod_t<params>::mem_t *data_cast = (typename power_mod_t<params>::mem_t*) data;
@@ -989,7 +989,7 @@ __global__ void kernel_pm1_partial(
       cgbn_load(exp._env, partial_base,   &data_cast[4*instance_i+2]);
       cgbn_load(exp._env, partial_result, &data_cast[4*instance_i+3]);
 
-      // Check if number is 0 and ignore if so
+      // Ignore any n=0 that might have been filtered.
       if (cgbn_equals_ui32(exp._env, modulus, 0))
           return;
 
@@ -1086,7 +1086,7 @@ __global__ void kernel_pm1_partial(
 
 static
 uint32_t* set_gpu_pm1_data(
-        mpz_t p, const mpz_t *numbers,
+        const mpz_t p, const mpz_t *numbers,
         uint32_t instances, uint32_t BITS, size_t *data_size) {
   /**
    * Store 4 numbers per curve:
@@ -1094,16 +1094,18 @@ uint32_t* set_gpu_pm1_data(
    */
 
   const size_t limbs_per = BITS/32;
-  *data_size = 5 * instances * limbs_per * sizeof(uint32_t);
+  *data_size = 4 * instances * limbs_per * sizeof(uint32_t);
   uint32_t *data = (uint32_t*) malloc(*data_size);
   uint32_t *datum = data;
 
   mpz_t x;
   mpz_init(x);
 
-  for(int index = 0; index < instances; index++) {
+  for(int index = 0; index < instances; index++, datum += 4 * limbs_per)
+    {
       // Some numbers may be zero at end of batch
-      if (mpz_cmp_ui(numbers[index], 0)) {
+      if (mpz_sgn(numbers[index]) == 0) {
+        outputf (OUTPUT_VERBOSE, "GPU P-1: skipping %i n=0\n", index);
         // Set base and result to 0 also
         mpz_set_ui (x, 0);
         from_mpz(x, datum + 0 * limbs_per, BITS/32);
@@ -1115,6 +1117,7 @@ uint32_t* set_gpu_pm1_data(
 
       /* Modulo (n) */
       from_mpz(numbers[index], datum + 0 * limbs_per, BITS/32);
+      outputf (OUTPUT_TRACE, "GPU P-1: %d = %Zd\n", index, numbers[index]);
 
       // TODO make sure not -1
       /* Base, make sure base mod n {1, -1} */
@@ -1132,10 +1135,7 @@ uint32_t* set_gpu_pm1_data(
       /* Result */
       mpz_set_ui (x, 1);
       from_mpz(x, datum + 3 * limbs_per, BITS/32);
-
-      // outputf (OUTPUT_TRACE, "index %d => %Zd\n", index, x);
-      datum += 4 * limbs_per;
-  }
+    }
   mpz_clear(x);
   return data;
 }
@@ -1157,10 +1157,12 @@ int find_pm1_factor(mpz_t factor, const mpz_t N, const mpz_t a) {
 
 
 static
-int process_pm1_results(mpz_t *factors, int *array_found,
-                    mpz_t *numbers,
-                    const uint32_t *data, uint32_t cgbn_bits,
-                    int instances) {
+int process_pm1_results(
+        const mpz_t p,
+        mpz_t *factors, int *array_found,
+        mpz_t *numbers,
+        const uint32_t *data, uint32_t cgbn_bits,
+        int instances) {
   mpz_t modulo, base, result;
   mpz_init(modulo);
   mpz_init(base);
@@ -1187,12 +1189,15 @@ int process_pm1_results(mpz_t *factors, int *array_found,
       outputf (OUTPUT_TRACE, "index: %lu, result: %Zd\n", i, result);
     }
 
+    if (mpz_cmp_ui(modulo, 0) == 0)
+      continue;
+
     /* Very suspicious for base, result to match initial value */
-    if (mpz_cmp_ui(modulo, 0) != 0 && mpz_cmp_ui (base, 3) == 0 && mpz_cmp_ui(result, 1) == 0) {
+    if (mpz_cmp (base, p) == 0 && mpz_cmp_ui(result, 1) == 0) {
       errors += 1;
       if (errors < 10 || errors % 100 == 1)
+        outputf (OUTPUT_ERROR, "GPU: curve %d n=%Zd\n", i, modulo);
         outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute or found input?\n", i);
-        outputf (OUTPUT_ERROR, "GPU: curve %d %Zd", modulo);
     }
 
     array_found[i] = find_pm1_factor(factors[i], modulo, result);
@@ -1485,7 +1490,7 @@ int cgbn_pm1_stage1(mpz_t p,
 
   cudaEventElapsedTime (gputime, global_start, stop);
 
-  youpi = process_pm1_results(factors, array_found, numbers, data, BITS, instances);
+  youpi = process_pm1_results(p, factors, array_found, numbers, data, BITS, instances);
 
   // clean up
   CUDA_CHECK(cudaFree(gpu_s_bits));
