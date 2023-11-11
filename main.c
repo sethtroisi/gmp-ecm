@@ -1135,8 +1135,11 @@ main (int argc, char *argv[])
     infile = stdin;
 
   /* Main loop */
-  while ((cnt > 0 || feof (infile) == 0) && !exit_asap_value)
+  while (1)
     {
+      if (!((cnt > 0 || params->gpu_pm1_results_ready > 0 || feof (infile) == 0) && !exit_asap_value)) {
+          break;
+      }
       /* reset some parameters */
       result = ECM_NO_FACTOR_FOUND;
       params->B1done = B1done; /* may change with resume */
@@ -1214,7 +1217,17 @@ main (int argc, char *argv[])
         }
       else /* no-resume case */
         {
-          if (cnt) /* nothing to read: reuse old number */   
+
+          if (params->gpu_pm1_results_ready)
+            {
+              cnt = params->gpu_pm1_results_ready;
+              // TODO UGLY FIND SOMETHING BETTER
+              int i = params->gpu_number_of_curves - params->gpu_pm1_results_ready;
+              mpcandi_t_add_candidate(&n, params->gpu_return1[i], NULL, primetest);
+              if (verbose >= OUTPUT_NORMAL)
+                printf ("GPU P-1: Run %u out of %u:\n", i, params->gpu_number_of_curves);
+            }
+          else if (cnt) /* nothing to read: reuse old number */
             {
               if (verbose >= OUTPUT_NORMAL)
                 printf ("Run %u out of %u:\n", count - cnt + 1, count);
@@ -1506,6 +1519,8 @@ main (int argc, char *argv[])
       // TODO would be nicer for GPU_PM1 if whole of mpcandi_t was passed to ecm_factor
       // TODO need to clear n.cpExpr ...
 
+      //gmp_printf("Hi cnt: %d,%d | %Zd\n", cnt, count, n.n);
+
       /* now call the ecm library */
       if (result == ECM_NO_FACTOR_FOUND)
         /* if torsion was used, some factor may have been found... */
@@ -1520,7 +1535,7 @@ main (int argc, char *argv[])
 
       // TODO x0 is lost from P-1 when not specific on the commandline
       // TODO B1 is being lost between iterations
-      //printf("Hi %d, %f, %f\n", cnt, B1, params->B1done);
+      //printf("cnt: %d, ready: %u\n", cnt, params->gpu_pm1_results_ready);
 
       if (result == ECM_ERROR)
         {
@@ -1546,7 +1561,10 @@ main (int argc, char *argv[])
                   cnt -= params->gpu_number_of_curves;
             }
           else
-            cnt -= 1;
+            {
+                // Remove one curve that's done
+                cnt --;
+            }
         }
 
       /* When GPU is used we need to have the value of N before it is 

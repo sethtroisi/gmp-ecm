@@ -621,8 +621,6 @@ pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t N, doubl
   if (params->stop_asap != NULL && params->stop_asap ())
     goto clear_and_exit;
 
-  gmp_printf("N: %Zd\n", N);
-  gmp_printf("x: %Zd\n", x);
   if (youpi == ECM_NO_FACTOR_FOUND && run_stage2)
     {
       if (use_ntt)
@@ -680,6 +678,18 @@ pm1_stage2_after_gpu (
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
+  run_stage2 = mpz_cmp (B2, B2min) >= 0;
+  if (!run_stage2)
+    return youpi;
+
+  /* Determine parameters (polynomial degree etc.) */
+  /* use_ntt may not be possible */
+  use_ntt = pm1_prepare_stage2_parameters(N, B2min, B2, params, &s2_params);
+
+  if (use_ntt == ECM_ERROR) {
+    return ECM_ERROR;
+  }
+
   /* choice of modular arithmetic: if default choice, choose mpzmod which
      is always faster, since mpz_powm uses base-k sliding window exponentiation
      and mpres_pow does not */
@@ -688,33 +698,22 @@ pm1_stage2_after_gpu (
   else
     mpmod_init (modulus, N, params->repr);
 
-  run_stage2 = mpz_cmp (B2, B2min) >= 0;
 
-  if (run_stage2)
-    {
-      /* Determine parameters (polynomial degree etc.) */
-      /* use_ntt may not be possible */
-      use_ntt = pm1_prepare_stage2_parameters(N, B2min, B2, params, &s2_params);
+  // TODO add comment that after this change this only shows when running stage2
+  outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
+           "about %luMB of memory\n", s2_params.l, 
+           (use_ntt) ? "" : "out", 
+           pm1fs2_memory_use (s2_params.l, N, use_ntt) / 1048576);
 
-      if (use_ntt == ECM_ERROR) {
-        return ECM_ERROR;
-      }
-
-      // TODO add comment that after this change this only shows when running stage2
-      outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
-               "about %luMB of memory\n", s2_params.l, 
-               (use_ntt) ? "" : "out", 
-               pm1fs2_memory_use (s2_params.l, N, use_ntt) / 1048576);
-
-      /* can't mix 64-bit types and mpz_t on win32 for some reason */
-      outputf (OUTPUT_VERBOSE, "P = %" PRId64 ", l = %lu"
-                    ", s_1 = %" PRId64 ", k = s_2 = %" PRId64 ,
-             s2_params.P, s2_params.l,
-             s2_params.s_1, s2_params.s_2);
-      outputf (OUTPUT_VERBOSE, ", m_1 = %Zd\n", s2_params.m_1);
-    }
+  /* can't mix 64-bit types and mpz_t on win32 for some reason */
+  outputf (OUTPUT_VERBOSE, "P = %" PRId64 ", l = %lu"
+                ", s_1 = %" PRId64 ", k = s_2 = %" PRId64 ,
+         s2_params.P, s2_params.l,
+         s2_params.s_1, s2_params.s_2);
+  outputf (OUTPUT_VERBOSE, ", m_1 = %Zd\n", s2_params.m_1);
 
   /* Print B1, B2, polynomial and x0 */
+  /* Only do this for the first run */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_PM1, B1, params->B1done, params->B2min, B2min, 
                     B2, 1, params->x, 0, 0, NULL, 0, 0);
 
@@ -738,16 +737,11 @@ pm1_stage2_after_gpu (
   mpres_set_z (x, params->x, modulus);
 
   // pm1_stage1 normally happens here
-  gmp_printf("alt N: %Zd\n", N);
-  gmp_printf("alt x: %Zd\n", x);
 
-  if (youpi == ECM_NO_FACTOR_FOUND && run_stage2)
-    {
-      if (use_ntt)
-        youpi = pm1fs2_ntt (f, x, modulus, &s2_params);
-      else
-        youpi = pm1fs2 (f, x, modulus, &s2_params);
-    }
+  if (use_ntt)
+    youpi = pm1fs2_ntt (f, x, modulus, &s2_params);
+  else
+    youpi = pm1fs2 (f, x, modulus, &s2_params);
 
   if (test_verbose (OUTPUT_VERBOSE))
     {
@@ -759,8 +753,7 @@ pm1_stage2_after_gpu (
   mpmod_clear (modulus);
   mpz_clear (B2);
   mpz_clear (B2min);
-  if (run_stage2)
-    mpz_clear (s2_params.m_1);
+  mpz_clear (s2_params.m_1);
 
   return youpi;
 }
