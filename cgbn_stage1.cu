@@ -351,60 +351,6 @@ class curve_t {
   }
 };
 
-static
-uint32_t* set_p_2p(const mpz_t N,
-                   uint32_t curves, uint32_t sigma,
-                   uint32_t BITS, size_t *data_size) {
-  /**
-   * Store 5 numbers per curve:
-   * N, P_a (x, z), P_b (x, z)
-   *
-   * P_a is initialized with (2, 1)
-   * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
-   */
-
-  const size_t limbs_per = BITS/32;
-  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
-  uint32_t *data = (uint32_t*) malloc(*data_size);
-  uint32_t *datum = data;
-
-  mpz_t x;
-  mpz_init(x);
-  for(int index = 0; index < curves; index++) {
-      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
-      uint32_t d = sigma + index;
-
-      // Modulo (N)
-      from_mpz(N, datum + 0 * limbs_per, BITS/32);
-
-      // P1 (X, Z)
-      mpz_set_ui(x, 2);
-      from_mpz(x, datum + 1 * limbs_per, BITS/32);
-      mpz_set_ui(x, 1);
-      from_mpz(x, datum + 2 * limbs_per, BITS/32);
-
-      // 2P = P2 (X, Z)
-      // P2_x = 9
-      mpz_set_ui(x, 9);
-      from_mpz(x, datum + 3 * limbs_per, BITS/32);
-
-      // d = sigma * mod_inverse(2 ** 32, N)
-      mpz_ui_pow_ui(x, 2, 32);
-      mpz_invert(x, x, N);
-      mpz_mul_ui(x, x, d);
-      // P2_x = 64 * d + 8;
-      mpz_mul_ui(x, x, 64);
-      mpz_add_ui(x, x, 8);
-      mpz_mod(x, x, N);
-
-      outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x);
-      from_mpz(x, datum + 4 * limbs_per, BITS/32);
-      datum += 5 * limbs_per;
-  }
-  mpz_clear(x);
-  return data;
-}
-
 
 // kernel implementation using cgbn
 template<class params>
@@ -499,6 +445,7 @@ __global__ void kernel_double_add(
   }
 }
 
+
 static
 int findfactor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t z_final) {
     // XXX: combine / refactor logic with cudawrapper.c findfactor
@@ -561,6 +508,62 @@ uint32_t* allocate_and_set_s_bits(const mpz_t s, uint64_t *nbits) {
 
   return s_bits;
 }
+
+
+static
+uint32_t* set_p_2p(const mpz_t N,
+                   uint32_t curves, uint32_t sigma,
+                   uint32_t BITS, size_t *data_size) {
+  /**
+   * Store 5 numbers per curve:
+   * N, P_a (x, z), P_b (x, z)
+   *
+   * P_a is initialized with (2, 1)
+   * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
+   */
+
+  const size_t limbs_per = BITS/32;
+  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
+  uint32_t *data = (uint32_t*) malloc(*data_size);
+  uint32_t *datum = data;
+
+  mpz_t x;
+  mpz_init(x);
+  for(int index = 0; index < curves; index++) {
+      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
+      uint32_t d = sigma + index;
+
+      // Modulo (N)
+      from_mpz(N, datum + 0 * limbs_per, BITS/32);
+
+      // P1 (X, Z)
+      mpz_set_ui(x, 2);
+      from_mpz(x, datum + 1 * limbs_per, BITS/32);
+      mpz_set_ui(x, 1);
+      from_mpz(x, datum + 2 * limbs_per, BITS/32);
+
+      // 2P = P2 (X, Z)
+      // P2_x = 9
+      mpz_set_ui(x, 9);
+      from_mpz(x, datum + 3 * limbs_per, BITS/32);
+
+      // d = sigma * mod_inverse(2 ** 32, N)
+      mpz_ui_pow_ui(x, 2, 32);
+      mpz_invert(x, x, N);
+      mpz_mul_ui(x, x, d);
+      // P2_x = 64 * d + 8;
+      mpz_mul_ui(x, x, 64);
+      mpz_add_ui(x, x, 8);
+      mpz_mod(x, x, N);
+
+      outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x);
+      from_mpz(x, datum + 4 * limbs_per, BITS/32);
+      datum += 5 * limbs_per;
+  }
+  mpz_clear(x);
+  return data;
+}
+
 
 static
 int process_results(mpz_t *factors, int *array_found,
@@ -634,6 +637,7 @@ int process_results(mpz_t *factors, int *array_found,
 
   return youpi;
 }
+
 
 static
 int print_nth_batch(int n)

@@ -3,6 +3,7 @@
 
 #include "cudacommon.h"
 #include "ecm-gpu.h"
+#include "ecm-ecm.h"
 
 #include <stdio.h>
 
@@ -102,7 +103,7 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
 void
 kernel_info(const void* func, int verbose)
 {
-  if (verbose)
+  if (verbose >= OUTPUT_VERBOSE)
   {
     struct cudaFuncAttributes kernelAttr;
     cudaError_t err = cudaFuncGetAttributes (&kernelAttr, func);
