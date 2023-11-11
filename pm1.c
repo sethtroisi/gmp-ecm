@@ -235,13 +235,13 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   outputf (OUTPUT_DEVVERBOSE, "Exponent has %u bits\n", 
            mpz_sizeinbase (g, 2));
  
-  if (test_verbose(OUTPUT_VERBOSE)) { 
-      printf("p-1 middle a,g,n\n");
-      gmp_printf("a: %Zd\n", a);
-      gmp_printf("g: %Zd\n", g);
-      printf("repr: %d\n", n->repr);
-      gmp_printf("n: %Zd\n", n->orig_modulus);
-  }
+  //if (test_verbose(OUTPUT_VERBOSE)) { 
+  //    printf("p-1 middle a,g,n\n");
+  //    gmp_printf("a: %Zd\n", a);
+  //    gmp_printf("g: %Zd\n", g);
+  //    printf("repr: %d\n", n->repr);
+  //    gmp_printf("n: %Zd\n", n->orig_modulus);
+  //}
 
   if (smallbase)
     {
@@ -621,6 +621,8 @@ pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t N, doubl
   if (params->stop_asap != NULL && params->stop_asap ())
     goto clear_and_exit;
 
+  gmp_printf("N: %Zd\n", N);
+  gmp_printf("x: %Zd\n", x);
   if (youpi == ECM_NO_FACTOR_FOUND && run_stage2)
     {
       if (use_ntt)
@@ -647,3 +649,119 @@ clear_and_exit:
 
   return youpi;
 }
+
+int
+pm1_stage2_after_gpu (
+        mpz_t f,
+        const ecm_params params, ecm_params mutable_params ATTRIBUTE_UNUSED,
+        mpz_t N, double B1)
+{
+  int youpi = ECM_NO_FACTOR_FOUND;
+  int run_stage2 = 0, use_ntt = 0;
+  mpmod_t modulus;
+  mpres_t x;
+  mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
+  faststage2_param_t s2_params;
+
+  set_verbose (params->verbose);
+  ECM_STDOUT = (params->os == NULL) ? stdout : params->os;
+  ECM_STDERR = (params->es == NULL) ? stdout : params->es;
+
+  assert (!mpz_divisible_2exp_p (N, 1)); /* Handled elsewhere */
+
+  mpz_init_set (B2min, params->B2min);
+  mpz_init_set (B2, params->B2);
+
+  /* Set default B2. See ecm.c for comments */
+  if (ECM_IS_DEFAULT_B2(B2))
+    mpz_set_d (B2, pow (B1 * PM1FS2_COST, PM1FS2_DEFAULT_B2_EXPONENT));
+
+  /* set B2min */
+  if (mpz_sgn (B2min) < 0)
+    mpz_set_d (B2min, B1);
+
+  /* choice of modular arithmetic: if default choice, choose mpzmod which
+     is always faster, since mpz_powm uses base-k sliding window exponentiation
+     and mpres_pow does not */
+  if (params->repr == ECM_MOD_DEFAULT && isbase2 (N, BASE2_THRESHOLD) == 0)
+    mpmod_init (modulus, N, ECM_MOD_MPZ);
+  else
+    mpmod_init (modulus, N, params->repr);
+
+  run_stage2 = mpz_cmp (B2, B2min) >= 0;
+
+  if (run_stage2)
+    {
+      /* Determine parameters (polynomial degree etc.) */
+      /* use_ntt may not be possible */
+      use_ntt = pm1_prepare_stage2_parameters(N, B2min, B2, params, &s2_params);
+
+      if (use_ntt == ECM_ERROR) {
+        return ECM_ERROR;
+      }
+
+      // TODO add comment that after this change this only shows when running stage2
+      outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
+               "about %luMB of memory\n", s2_params.l, 
+               (use_ntt) ? "" : "out", 
+               pm1fs2_memory_use (s2_params.l, N, use_ntt) / 1048576);
+
+      /* can't mix 64-bit types and mpz_t on win32 for some reason */
+      outputf (OUTPUT_VERBOSE, "P = %" PRId64 ", l = %lu"
+                    ", s_1 = %" PRId64 ", k = s_2 = %" PRId64 ,
+             s2_params.P, s2_params.l,
+             s2_params.s_1, s2_params.s_2);
+      outputf (OUTPUT_VERBOSE, ", m_1 = %Zd\n", s2_params.m_1);
+    }
+
+  /* Print B1, B2, polynomial and x0 */
+  print_B1_B2_poly (OUTPUT_NORMAL, ECM_PM1, B1, params->B1done, params->B2min, B2min, 
+                    B2, 1, params->x, 0, 0, NULL, 0, 0);
+
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      if (mpz_sgn (params->B2min) >= 0)
+        {
+          outputf (OUTPUT_VERBOSE, 
+            "Can't compute success probabilities for B1 <> B2min\n");
+        }
+      else
+        {
+          rhoinit (256, 10);
+          print_prob (B1, B2, 0, params->k, 1, params->go);
+        }
+    }
+
+  mpres_init (x, modulus);
+
+  // params->x has residue from stage1
+  mpres_set_z (x, params->x, modulus);
+
+  // pm1_stage1 normally happens here
+  gmp_printf("alt N: %Zd\n", N);
+  gmp_printf("alt x: %Zd\n", x);
+
+  if (youpi == ECM_NO_FACTOR_FOUND && run_stage2)
+    {
+      if (use_ntt)
+        youpi = pm1fs2_ntt (f, x, modulus, &s2_params);
+      else
+        youpi = pm1fs2 (f, x, modulus, &s2_params);
+    }
+
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      if (mpz_sgn (params->B2min) < 0)
+        rhoinit (1, 0); /* Free memory of rhotable */
+    }
+
+  mpres_clear (x, modulus);
+  mpmod_clear (modulus);
+  mpz_clear (B2);
+  mpz_clear (B2min);
+  if (run_stage2)
+    mpz_clear (s2_params.m_1);
+
+  return youpi;
+}
+

@@ -616,6 +616,8 @@ double ecmprob (double, double, double, double, int);
 double pm1prob (double, double, double, double, int, const mpz_t);
 
 /* pm1.c */
+int pm1_stage2_after_gpu (mpz_t, const ecm_params, ecm_params, mpz_t, double);
+
 void print_prob (double, const mpz_t, unsigned long, unsigned long, int,
                  const mpz_t);
 

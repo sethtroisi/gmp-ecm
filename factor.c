@@ -189,7 +189,12 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
       else
         {
 #ifdef WITH_GPU
+          // GPU only does stage1.
           res = gpu_pm1 (f, p, p, n, B1);
+
+          // Call stage2 if needed
+          if (res == ECM_NO_FACTOR_FOUND)
+                res = pm1_stage2_after_gpu(f, p, p, n, B1);
 #else
           assert(0); // Compiled without --enable-gpu
 #endif

@@ -1285,7 +1285,6 @@ main (int argc, char *argv[])
 
           if (ECM_IS_DEFAULT_B1_DONE (B1done)) /* first time */
 	    {
-              printf("WHEN DOES THIS HAPPEN? no-resume, and -x0 passed\n");
 	      mpz_set (params->x0, x);
 	      if (specific_y0)
 		mpz_set (params->y0, y);
@@ -1521,7 +1520,7 @@ main (int argc, char *argv[])
 
       // TODO x0 is lost from P-1 when not specific on the commandline
       // TODO B1 is being lost between iterations
-      printf("Hi %d, %f, %f\n", cnt, B1, params->B1done);
+      //printf("Hi %d, %f, %f\n", cnt, B1, params->B1done);
 
       if (result == ECM_ERROR)
         {

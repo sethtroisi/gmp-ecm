@@ -661,7 +661,7 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
 //          if (mpmod_init (modulus, n, repr) != 0)
 //            return ECM_ERROR;
 
-//          /* See what kind of number we have as that may influence optimal parameter 
+//          /* See what kind of number we have as that may influence optimal parameter
 //             selection. Test for base 2 number. Note: this was already done by
 //             mpmod_init. */
 //
@@ -752,7 +752,7 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
     {
       if (mpz_cmp_d (B2min, B1) != 0)
         {
-          outputf (OUTPUT_VERBOSE, 
+          outputf (OUTPUT_VERBOSE,
             "Can't compute success probabilities for B1 <> B2min\n");
         }
       else
@@ -790,19 +790,10 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n",
                           nb_curves, elltime (st, cputime ()), gputime);
-  outputf (OUTPUT_VERBOSE, "Throughput: %.3f numbers per second ", 
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f numbers per second ",
                                                  1000 * nb_curves/gputime);
-  outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n", 
+  outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n",
                                                         gputime/nb_curves);
-  /* GMP documentation says mpz_sizeinbase(op, 2) is always the exact value. */
-  size_t n_bits = mpz_sizeinbase(n, 2);
-
-  /* Save stage 1 residues as p = x0 + x1 * 2^bits + ... + xk * 2^(bits*k) */
-  // TODO handle saving residuals
-
-  /* was a factor found in stage 1 ? */
-  // TODO handle saving found factors
-  //reducefactors(factors, array_found, nb_curves);
 
 gpu_pm1_return:
   assert (params->gpu_pm1_results_ready > 0);

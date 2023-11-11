@@ -1204,7 +1204,7 @@ int process_pm1_results(
 
     if (array_found[i] != ECM_NO_FACTOR_FOUND) {
       youpi = array_found[i];
-      outputf (OUTPUT_ALWAYS, "GPU: factor %Zd found in Step 1 with curve %ld\n",
+      outputf (OUTPUT_NORMAL, "GPU P-1: factor %Zd found in Step 1 with curve %ld\n",
           factors[i], i);
       outputf (OUTPUT_VERBOSE, "Input number is %Zd\n", modulo);
       outputf (OUTPUT_VERBOSE, "********** Factor found in step 1: %Zd\n", factors[i]);
