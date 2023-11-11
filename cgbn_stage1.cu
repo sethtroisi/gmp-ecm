@@ -124,7 +124,7 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
 //   TPI             - threads per instance
 //   BITS            - number of bits per instance
 
-/* TODO test how this changes gpu_throughput_test */
+/* Doesn't seem to have any noticable impact on performance. */
 /* NOTE: >= 512 may not be supported for > 2048 bit kernels */
 const uint32_t TPB_DEFAULT = 256;
 
@@ -140,7 +140,7 @@ class cgbn_params_t {
   // parameters used locally in the application
   static const uint32_t TPI=tpi;                   // threads per instance
   static const uint32_t BITS=bits;                 // instance size
-  static const uint32_t WINDOW_BITS=7;             // For P-1
+  static const uint32_t WINDOW_BITS=7;             // For P-1, 2^N values are pre-computed
 };
 
 
@@ -642,7 +642,7 @@ int print_nth_batch(int n) {
           (n < 30 && n % 10 == 0) ||
           (n < 500 && n % 100 == 0) ||
           (n < 5000 && n % 1000 == 0) ||
-          (n % 10000 == 0))
+          (n % 10000 == 0));
 }
 
 
@@ -738,6 +738,10 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   available_kernels.push_back((uint32_t)cgbn_params_4096::BITS);
 #endif
 
+  // Default kernel so auto can be used.
+  auto kernel = kernel_double_add<cgbn_params_small>;
+  kernel = NULL;
+
   size_t n_log2 = mpz_sizeinbase(N, 2);
   for (int k_i = 0; k_i < available_kernels.size(); k_i++) {
     uint32_t kernel_bits = available_kernels[k_i];
@@ -749,26 +753,25 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       /* TODO: return kernelAttr and validate maxThreadsPerBlock. */
       if (BITS == cgbn_params_small::BITS) {
         TPI = cgbn_params_small::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_small>, verbose);
+        kernel = kernel_double_add<cgbn_params_small>;
       } else if (BITS == cgbn_params_medium::BITS) {
         TPI = cgbn_params_medium::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_medium>, verbose);
+        kernel = kernel_double_add<cgbn_params_medium>;
 #ifndef IS_DEV_BUILD
       } else if (BITS == cgbn_params_1536::BITS) {
         TPI = cgbn_params_1536::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_1536>, verbose);
+        kernel = kernel_double_add<cgbn_params_1536>;
       } else if (BITS == cgbn_params_2048::BITS) {
         TPI = cgbn_params_2048::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_2048>, verbose);
+        kernel = kernel_double_add<cgbn_params_2048>;
       } else if (BITS == cgbn_params_3072::BITS) {
         TPI = cgbn_params_3072::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_3072>, verbose);
+        kernel = kernel_double_add<cgbn_params_3072>;
       } else if (BITS == cgbn_params_4096::BITS) {
         TPI = cgbn_params_4096::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_4096>, verbose);
+        kernel = kernel_double_add<cgbn_params_4096>;
 #endif
       } else {
-        /* lowercase k to help differentiate this error from one below */
         outputf (OUTPUT_ERROR, "CGBN kernel not found for %d bits\n", BITS);
         return ECM_ERROR;
       }
@@ -779,11 +782,13 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       break;
     }
   }
+  if (BITS == 0 || kernel == NULL)
+    {
+      outputf (OUTPUT_ERROR, "No available CGBN Kernel large enough to process N(%d bits)\n", n_log2);
+      return ECM_ERROR;
+    }
 
-  if (BITS == 0) {
-    outputf (OUTPUT_ERROR, "No available CGBN Kernel large enough to process N(%d bits)\n", n_log2);
-    return ECM_ERROR;
-  }
+  kernel_info((const void*)kernel, verbose);
 
   /* Alert that recompiling with a smaller kernel would likely improve speed */
   {
@@ -851,30 +856,9 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
     CUDA_CHECK(cudaEventRecord (batch_start));
 
-    if (BITS == cgbn_params_small::BITS) {
-      kernel_double_add<cgbn_params_small><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-    } else if (BITS == cgbn_params_medium::BITS) {
-      kernel_double_add<cgbn_params_medium><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-#ifndef IS_DEV_BUILD
-    } else if (BITS == cgbn_params_1536::BITS) {
-      kernel_double_add<cgbn_params_1536><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-    } else if (BITS == cgbn_params_2048::BITS) {
-      kernel_double_add<cgbn_params_2048><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-    } else if (BITS == cgbn_params_3072::BITS) {
-      kernel_double_add<cgbn_params_3072><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-    } else if (BITS == cgbn_params_4096::BITS) {
-      kernel_double_add<cgbn_params_4096><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-#endif
-    } else {
-      outputf (OUTPUT_ERROR, "CGBN Kernel not found for %d bits\n", BITS);
-      return ECM_ERROR;
-    }
+    // Call CUDA Kernel
+    assert (kernel != NULL);
+    (*kernel)<<<BLOCK_COUNT, TPB>>>(report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
 
     s_partial += batch_size;
     batches_complete++;
