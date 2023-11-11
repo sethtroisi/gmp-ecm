@@ -88,7 +88,7 @@ static unsigned long sp_max_modulus_bits[32] =
    without running out of primes */
 
 spv_size_t
-mpzspm_max_len (mpz_t modulus)
+mpzspm_max_len (const mpz_t modulus)
 {
   int i;
   size_t b;
