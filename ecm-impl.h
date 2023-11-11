@@ -331,8 +331,8 @@ void print_B1_B2_poly (int, int, double, double, const mpz_t, const mpz_t,
                        int, unsigned int);
 #define set_stage_2_params __ECM(set_stage_2_params)
 int set_stage_2_params (mpz_t, const mpz_t, mpz_t, const mpz_t, root_params_t *,
-                        double, unsigned long *, const int, int, int *,
-                        unsigned long *, char *, double, int, mpmod_t);
+                        double, unsigned long *, const int, int,
+                        unsigned long *, char *, double, mpmod_t);
 #define print_expcurves __ECM(print_expcurves)
 void print_expcurves (double, const mpz_t, unsigned long, unsigned long, int, 
                       int);

@@ -1719,9 +1719,9 @@ int
 set_stage_2_params (mpz_t B2, const mpz_t B2_parm,
                     mpz_t B2min, const mpz_t B2min_parm,
                     root_params_t *root_params, double B1,
-                    unsigned long *k, const int S, int use_ntt, int *po2,
+                    unsigned long *k, const int S, int use_ntt,
                     unsigned long *dF, char *TreeFilename, double maxmem, 
-                    int Fermat, mpmod_t modulus)
+                    mpmod_t modulus)
 {
   mpz_set (B2min, B2min_parm);
   mpz_set (B2, B2_parm);
@@ -1752,11 +1752,8 @@ set_stage_2_params (mpz_t B2, const mpz_t B2_parm,
   /* Let bestD determine parameters for root generation and the 
      effective B2 */
 
-  if (use_ntt)
-    *po2 = 1;
-
   root_params->d2 = 0; /* Enable automatic choice of d2 */
-  if (bestD (root_params, k, dF, B2min, B2, *po2, use_ntt, maxmem, 
+  if (bestD (root_params, k, dF, B2min, B2, use_ntt, use_ntt, maxmem,
              (TreeFilename != NULL), modulus) == ECM_ERROR)
     return ECM_ERROR;
 
@@ -1770,19 +1767,11 @@ set_stage_2_params (mpz_t B2, const mpz_t B2_parm,
   root_params->S = S;
   if (root_params->S == ECM_DEFAULT_S)
     {
-      if (Fermat > 0)
-        {
-          /* For Fermat numbers, default is 1 (no Brent-Suyama) */
-          root_params->S = 1;
-        }
-      else
-        {
-          mpz_t t;
-          mpz_init (t);
-          mpz_sub (t, B2, B2min);
-          root_params->S = choose_S (t);
-          mpz_clear (t);
-        }
+      mpz_t t;
+      mpz_init (t);
+      mpz_sub (t, B2, B2min);
+      root_params->S = choose_S (t);
+      mpz_clear (t);
     }
   return ECM_NO_FACTOR_FOUND;
 }
@@ -1822,9 +1811,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
      ATTRIBUTE_UNUSED signed long gw_cl_flag)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
-  int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
-  int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
-  int po2 = 0;    /* Whether we should use power-of-2 poly degree */
   long st;
   mpmod_t modulus;
   curve P;
@@ -1935,19 +1921,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
      selection. Test for base 2 number. Note: this was already done by
      mpmod_init. */
 
-  if (modulus->repr == ECM_MOD_BASE2)
-    base2 = modulus->bits;
-
-  /* For a Fermat number (base2 a positive power of 2) */
-  for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
-  if (Fermat == 1) 
-    {
-      Fermat = base2;
-      po2 = 1;
-    }
-  else
-      Fermat = 0;
-
   mpres_init (P.x, modulus);
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
@@ -1980,7 +1953,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   mpz_init (B2min);
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm,
 			      &root_params, B1, &k, S, use_ntt,
-			      &po2, &dF, TreeFilename, maxmem, Fermat,modulus);
+			      &dF, TreeFilename, maxmem, modulus);
 
   /* if the user gave B2, print that B2 on the Using B1=..., B2=... line */
   if(!ECM_IS_DEFAULT_B2(B2_parm))

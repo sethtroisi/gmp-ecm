@@ -177,10 +177,6 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   mpz_t *factors = NULL; /* Contains either a factor of n either end-of-stage-1
                          residue (depending of the value of array_found */
   int *array_found = NULL;
-  /* Only for stage 2 */
-  int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
-  int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
-  int po2 = 0;    /* Whether we should use power-of-2 poly degree */
   /* Use only in stage 2 */
   mpmod_t modulus;
   curve P;
@@ -253,18 +249,12 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
      selection. Test for base 2 number. Note: this was already done by
      mpmod_init. */
 
-  if (modulus->repr == ECM_MOD_BASE2)
-    base2 = modulus->bits;
-
-  /* For a Fermat number (base2 a positive power of 2) */
-  for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
-  if (Fermat == 1)
+  /* Cannot do resume on GPU */
+  if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
     {
-      Fermat = base2;
-      po2 = 1;
+      outputf (OUTPUT_ERROR, "GPU: Error, cannot resume on GPU.\n");
+      return ECM_ERROR;
     }
-  else
-      Fermat = 0;
 
   /* Set parameters for stage 2 */
   mpres_init (P.x, modulus);
@@ -278,8 +268,8 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
           B2, params->B2,
           B2min, params->B2min,
           &root_params,
-          B1, &mutable_params->k, params->S, params->use_ntt, &po2, &dF,
-                              params->TreeFilename, params->maxmem, Fermat, modulus);
+          B1, &mutable_params->k, params->S, params->use_ntt, &dF,
+                              params->TreeFilename, params->maxmem, modulus);
   if (youpi == ECM_ERROR)
       goto end_gpu_ecm;
 
