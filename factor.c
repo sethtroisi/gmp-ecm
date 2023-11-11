@@ -159,10 +159,8 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
 
   if (p->method == ECM_ECM)
     {
-#ifdef WITH_GPU
       if (p->gpu == 0)
         {
-#endif
             res = ecm (f, p->x, p->y, p->param, p->sigma, n, p->go,
 		       &(p->B1done),
                        B1, p->B2min, p->B2, p->k, p->S, p->verbose,
@@ -172,22 +170,21 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
                        p->stage1time, p->rng, p->stop_asap, p->batch_s,
                        &(p->batch_last_B1_used), p->gw_k, p->gw_b, p->gw_n,
                        p->gw_c);
-#ifdef WITH_GPU
         }
       else
         {
+#ifdef WITH_GPU
           res = gpu_ecm (f, p, p, n, B1);
-        }
+#else
+          assert(0); // Compiled without --enable-gpu
 #endif
+        }
     }
   else if (p->method == ECM_PM1)
     {
       if (p->gpu == 0)
         {
-            res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,
-                       p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,
-                       p->chkfilename, p->TreeFilename, p->maxmem, p->rng,
-                       p->stop_asap);
+          res = pm1(f, p, p, n, B1);
         }
       else
         {

@@ -112,7 +112,7 @@ mulcascade_mul_d (mul_casc *c, const double n, ATTRIBUTE_UNUSED mpz_t t)
 
 /* initialize c to n (assumes c is empty) */
 static void
-mulcascade_set (mul_casc *c, mpz_t n)
+mulcascade_set (mul_casc *c, const mpz_t n)
 {
   ASSERT(mpz_sgn (c->val[0]) == 0);
 
@@ -148,7 +148,7 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
 
 static int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done, 
-            mpz_t go, int (*stop_asap)(void), char *chkfilename)
+            const mpz_t go, int (*stop_asap)(void), char *chkfilename)
 {
   /* double is to work around 32 bit machines */
   double p, q, r, cascade_limit, last_chkpnt_p;
@@ -362,6 +362,132 @@ print_prob (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     }
 }
 
+/* Determine s2_params
+   Return use_ntt.
+ */
+static
+int pm1_prepare_stage2_parameters(
+        const mpz_t N, mpz_t B2min, mpz_t B2,
+        const ecm_params params, faststage2_param_t *s2_params)
+{
+  /* use_ntt may be set false when good parameters can't be found for the NTT code. */
+  int use_ntt = params->use_ntt;
+
+  /* Determine parameters (polynomial degree etc.) */
+  long P_ntt, P_nontt;
+  const unsigned long lmax = 1UL << 30; /* An upper bound */
+  unsigned long lmax_NTT, lmax_noNTT;
+  faststage2_param_t params_ntt, params_nontt, *better_params;
+  mpz_t effB2min_ntt, effB2_ntt, effB2min_nontt, effB2_nontt;
+
+  mpz_init (s2_params->m_1);
+  s2_params->l = 0;
+  mpz_init (params_ntt.m_1);
+  params_ntt.l = 0;
+  mpz_init (params_nontt.m_1);
+  params_nontt.l = 0;
+  mpz_init (effB2min_ntt);
+  mpz_init (effB2_ntt);
+  mpz_init (effB2min_nontt);
+  mpz_init (effB2_nontt);
+
+  /* Find out what the longest transform length is we can do at all.
+     If no maxmem is given, the non-NTT can theoretically do any length. */
+
+  lmax_NTT = 0;
+  if (use_ntt)
+    {
+      unsigned long t;
+      /* See what transform length the NTT can handle (due to limited
+         primes and limited memory) */
+      t = mpzspm_max_len (N);
+      lmax_NTT = MIN (lmax, t);
+      if (params->maxmem != 0.)
+        {
+          t = pm1fs2_maxlen (double_to_size (params->maxmem), N, use_ntt);
+          lmax_NTT = MIN (lmax_NTT, t);
+        }
+      outputf (OUTPUT_DEVVERBOSE, "NTT can handle lmax <= %lu\n", lmax_NTT);
+      P_ntt = choose_P (B2min, B2, lmax_NTT, params->k, &params_ntt,
+                        effB2min_ntt, effB2_ntt, 1, ECM_PM1);
+      if (P_ntt != ECM_ERROR)
+        outputf (OUTPUT_DEVVERBOSE,
+                 "Parameters for NTT: P=%lu, l=%lu\n",
+                 params_ntt.P, params_ntt.l);
+    }
+  else
+    P_ntt = 0; /* or GCC complains about uninitialized var */
+
+  /* See what transform length the non-NTT code can handle */
+  lmax_noNTT = lmax;
+  if (params->maxmem != 0.)
+    {
+      unsigned long t;
+      t = pm1fs2_maxlen (double_to_size (params->maxmem), N, 0);
+      lmax_noNTT = MIN (lmax_noNTT, t);
+      outputf (OUTPUT_DEVVERBOSE, "non-NTT can handle lmax <= %lu\n",
+               lmax_noNTT);
+    }
+  if (use_ntt != 2)
+    P_nontt = choose_P (B2min, B2, lmax_noNTT, params->k, &params_nontt,
+                        effB2min_nontt, effB2_nontt, 0, ECM_PM1);
+  else
+    P_nontt = ECM_ERROR;
+  if (P_nontt != ECM_ERROR)
+    outputf (OUTPUT_DEVVERBOSE,
+             "Parameters for non-NTT: P=%lu, l=%lu\n",
+             params_nontt.P, params_nontt.l);
+
+  if (((!use_ntt || P_ntt == ECM_ERROR) && P_nontt == ECM_ERROR) ||
+      (use_ntt == 2 && P_ntt == ECM_ERROR))
+    {
+      outputf (OUTPUT_ERROR,
+               "Error: cannot choose suitable P value for your stage 2 "
+               "parameters.\nTry a shorter B2min,B2 interval.\n");
+      mpz_clear (s2_params->m_1);
+      mpz_clear (params_ntt.m_1);
+      mpz_clear (params_nontt.m_1);
+      return ECM_ERROR;
+    }
+
+  /* Now decide whether to take NTT or non-NTT. Since the non-NTT code
+     uses more memory, we only use it when -no-ntt was given, or when
+     we can't find good parameters for the NTT code.
+     Warning: we only do that when B2 >= B2min. */
+  if (mpz_cmp (B2, B2min) >= 0)
+    {
+      if (use_ntt == 0 || P_ntt == ECM_ERROR)
+        {
+          better_params = &params_nontt;
+          mpz_set (B2min, effB2min_nontt);
+          mpz_set (B2, effB2_nontt);
+          use_ntt = 0;
+        }
+      else
+        {
+          better_params = &params_ntt;
+          mpz_set (B2min, effB2min_ntt);
+          mpz_set (B2, effB2_ntt);
+          use_ntt = 1;
+        }
+
+      s2_params->P = better_params->P;
+      s2_params->s_1 = better_params->s_1;
+      s2_params->s_2 = better_params->s_2;
+      s2_params->l = better_params->l;
+      mpz_set (s2_params->m_1, better_params->m_1);
+      s2_params->file_stem = params->TreeFilename;
+    }
+
+  mpz_clear (params_ntt.m_1);
+  mpz_clear (params_nontt.m_1);
+  mpz_clear (effB2min_ntt);
+  mpz_clear (effB2_ntt);
+  mpz_clear (effB2min_nontt);
+  mpz_clear (effB2_nontt);
+
+  return use_ntt;
+}
 
 
 /******************************************************************************
@@ -370,34 +496,31 @@ print_prob (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
 *                                                                             *
 ******************************************************************************/
 
-/* Input: p is the initial generator (sigma), if 0, generate it at random.
+/* Input: params->x is the initial generator (sigma), if 0, generate it at random.
           N is the number to factor
-	  B1 is the stage 1 bound
-	  B2 is the stage 2 bound
-	  B1done is the stage 1 limit to which supplied residue has 
+	  params->B1 is the stage 1 bound
+	  params->B2 is the stage 2 bound
+	  params->B1done is the stage 1 limit to which supplied residue has
 	    already been computed
-          k is the number of blocks for stage 2
-          verbose is the verbosity level
-   Output: f is the factor found, p is the residue at end of stage 1
+          params->k is the number of blocks for stage 2
+          params->verbose is the verbosity level
+   Output: f is the factor found, params->x is the residue at end of stage 1
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
-     mpz_t B2min_parm, mpz_t B2_parm, unsigned long k, 
-     int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
-     char *chkfilename, char *TreeFilename, double maxmem, 
-     gmp_randstate_t rng, int (*stop_asap)(void))
+pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t N, double B1)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   long st;
+  int run_stage2 = 0, use_ntt = 0;
   mpmod_t modulus;
   mpres_t x;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  faststage2_param_t params;
+  faststage2_param_t s2_params;
 
-  set_verbose (verbose);
-  ECM_STDOUT = (os == NULL) ? stdout : os;
-  ECM_STDERR = (es == NULL) ? stdout : es;
+  set_verbose (params->verbose);
+  ECM_STDOUT = (params->os == NULL) ? stdout : params->os;
+  ECM_STDERR = (params->es == NULL) ? stdout : params->es;
 
   /* if n is even, return 2 */
   if (mpz_divisible_2exp_p (N, 1))
@@ -408,11 +531,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   st = cputime ();
 
-  if (mpz_cmp_ui (p, 0) == 0)
-    pm1_random_seed (p, N, rng);
+  if (mpz_cmp_ui (params->x, 0) == 0)
+    pm1_random_seed (mutable_params->x, N, mutable_params->rng);
 
-  mpz_init_set (B2min, B2min_parm);
-  mpz_init_set (B2, B2_parm);
+  mpz_init_set (B2min, params->B2min);
+  mpz_init_set (B2, params->B2);
 
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
@@ -425,151 +548,44 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   /* choice of modular arithmetic: if default choice, choose mpzmod which
      is always faster, since mpz_powm uses base-k sliding window exponentiation
      and mpres_pow does not */
-  if (repr == ECM_MOD_DEFAULT && isbase2 (N, BASE2_THRESHOLD) == 0)
+  if (params->repr == ECM_MOD_DEFAULT && isbase2 (N, BASE2_THRESHOLD) == 0)
     mpmod_init (modulus, N, ECM_MOD_MPZ);
   else
-    mpmod_init (modulus, N, repr);
+    mpmod_init (modulus, N, params->repr);
 
-  /* Determine parameters (polynomial degree etc.) */
+  run_stage2 = mpz_cmp (B2, B2min) >= 0;
 
+  if (run_stage2)
     {
-      long P_ntt, P_nontt;
-      const unsigned long lmax = 1UL << 30; /* An upper bound */
-      unsigned long lmax_NTT, lmax_noNTT;
-      faststage2_param_t params_ntt, params_nontt, *better_params;
-      mpz_t effB2min_ntt, effB2_ntt, effB2min_nontt, effB2_nontt;
+      /* Determine parameters (polynomial degree etc.) */
+      /* use_ntt may not be possible */
+      use_ntt = pm1_prepare_stage2_parameters(N, B2min, B2, params, &s2_params);
 
-      mpz_init (params.m_1);
-      params.l = 0;
-      mpz_init (params_ntt.m_1);
-      params_ntt.l = 0;
-      mpz_init (params_nontt.m_1);
-      params_nontt.l = 0;
-      mpz_init (effB2min_ntt);
-      mpz_init (effB2_ntt);
-      mpz_init (effB2min_nontt);
-      mpz_init (effB2_nontt);
+      if (use_ntt == ECM_ERROR) {
+        return ECM_ERROR;
+      }
 
-      /* Find out what the longest transform length is we can do at all.
-	 If no maxmem is given, the non-NTT can theoretically do any length. */
-
-      lmax_NTT = 0;
-      if (use_ntt)
-	{
-	  unsigned long t;
-	  /* See what transform length the NTT can handle (due to limited 
-	     primes and limited memory) */
-	  t = mpzspm_max_len (N);
-	  lmax_NTT = MIN (lmax, t);
-	  if (maxmem != 0.)
-	    {
-	      t = pm1fs2_maxlen (double_to_size (maxmem), N, use_ntt);
-	      lmax_NTT = MIN (lmax_NTT, t);
-	    }
-	  outputf (OUTPUT_DEVVERBOSE, "NTT can handle lmax <= %lu\n", lmax_NTT);
-          P_ntt = choose_P (B2min, B2, lmax_NTT, k, &params_ntt, 
-                            effB2min_ntt, effB2_ntt, 1, ECM_PM1);
-          if (P_ntt != ECM_ERROR)
-            outputf (OUTPUT_DEVVERBOSE,
-	             "Parameters for NTT: P=%lu, l=%lu\n", 
-	             params_ntt.P, params_ntt.l);
-	}
-      else
-        P_ntt = 0; /* or GCC complains about uninitialized var */
-      
-      /* See what transform length the non-NTT code can handle */
-      lmax_noNTT = lmax;
-      if (maxmem != 0.)
-	{
-	  unsigned long t;
-	  t = pm1fs2_maxlen (double_to_size (maxmem), N, 0);
-	  lmax_noNTT = MIN (lmax_noNTT, t);
-	  outputf (OUTPUT_DEVVERBOSE, "non-NTT can handle lmax <= %lu\n", 
-		   lmax_noNTT);
-	}
-      if (use_ntt != 2)
-        P_nontt = choose_P (B2min, B2, lmax_noNTT, k, &params_nontt, 
-                            effB2min_nontt, effB2_nontt, 0, ECM_PM1);
-      else
-        P_nontt = ECM_ERROR;
-      if (P_nontt != ECM_ERROR)
-        outputf (OUTPUT_DEVVERBOSE,
-                 "Parameters for non-NTT: P=%lu, l=%lu\n", 
-                 params_nontt.P, params_nontt.l);
-      
-      if (((!use_ntt || P_ntt == ECM_ERROR) && P_nontt == ECM_ERROR) ||
-          (use_ntt == 2 && P_ntt == ECM_ERROR))
-        {
-          outputf (OUTPUT_ERROR, 
-                   "Error: cannot choose suitable P value for your stage 2 "
-                   "parameters.\nTry a shorter B2min,B2 interval.\n");
-          mpz_clear (params.m_1);
-          mpz_clear (params_ntt.m_1);
-          mpz_clear (params_nontt.m_1);
-          return ECM_ERROR;
-        }
-
-      /* Now decide whether to take NTT or non-NTT. Since the non-NTT code
-         uses more memory, we only use it when -no-ntt was given, or when
-         we can't find good parameters for the NTT code.
-         Warning: we only do that when B2 >= B2min. */
-      if (mpz_cmp (B2, B2min) >= 0)
-        {
-          if (use_ntt == 0 || P_ntt == ECM_ERROR)
-            {
-              better_params = &params_nontt;
-              mpz_set (B2min, effB2min_nontt);
-              mpz_set (B2, effB2_nontt);
-              use_ntt = 0;
-            }
-          else
-            {
-              better_params = &params_ntt;
-              mpz_set (B2min, effB2min_ntt);
-              mpz_set (B2, effB2_ntt);
-              use_ntt = 1;
-            }
-
-          params.P = better_params->P;
-          params.s_1 = better_params->s_1;
-          params.s_2 = better_params->s_2;
-          params.l = better_params->l;
-          mpz_set (params.m_1, better_params->m_1);
-          params.file_stem = TreeFilename;
-          params.file_stem = TreeFilename;
-        }
-
-      mpz_clear (params_ntt.m_1);
-      mpz_clear (params_nontt.m_1);
-      mpz_clear (effB2min_ntt);
-      mpz_clear (effB2_ntt);
-      mpz_clear (effB2min_nontt);
-      mpz_clear (effB2_nontt);
-      
+      // TODO add comment that after this change this only shows when running stage2
       outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
-               "about %luMB of memory\n", params.l, 
+               "about %luMB of memory\n", s2_params.l, 
                (use_ntt) ? "" : "out", 
-               pm1fs2_memory_use (params.l, N, use_ntt) / 1048576);
-    }
-  
-  /* Print B1, B2, polynomial and x0 */
-  print_B1_B2_poly (OUTPUT_NORMAL, ECM_PM1, B1, *B1done, B2min_parm, B2min, 
-                    B2, 1, p, 0, 0, NULL, 0, 0);
+               pm1fs2_memory_use (s2_params.l, N, use_ntt) / 1048576);
 
-  /* If we do a stage 2, print its parameters */
-  if (mpz_cmp (B2, B2min) >= 0)
-    {
       /* can't mix 64-bit types and mpz_t on win32 for some reason */
       outputf (OUTPUT_VERBOSE, "P = %" PRId64 ", l = %lu"
                     ", s_1 = %" PRId64 ", k = s_2 = %" PRId64 ,
-             params.P, params.l,
-             params.s_1,params.s_2);
-      outputf (OUTPUT_VERBOSE, ", m_1 = %Zd\n", params.m_1);
+             s2_params.P, s2_params.l,
+             s2_params.s_1, s2_params.s_2);
+      outputf (OUTPUT_VERBOSE, ", m_1 = %Zd\n", s2_params.m_1);
     }
+
+  /* Print B1, B2, polynomial and x0 */
+  print_B1_B2_poly (OUTPUT_NORMAL, ECM_PM1, B1, params->B1done, params->B2min, B2min, 
+                    B2, 1, params->x, 0, 0, NULL, 0, 0);
 
   if (test_verbose (OUTPUT_VERBOSE))
     {
-      if (mpz_sgn (B2min_parm) >= 0)
+      if (mpz_sgn (params->B2min) >= 0)
         {
           outputf (OUTPUT_VERBOSE, 
             "Can't compute success probabilities for B1 <> B2min\n");
@@ -577,17 +593,18 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       else
         {
           rhoinit (256, 10);
-          print_prob (B1, B2, 0, k, 1, go);
+          print_prob (B1, B2, 0, params->k, 1, params->go);
         }
     }
 
   mpres_init (x, modulus);
-  mpres_set_z (x, p, modulus);
+  mpres_set_z (x, params->x, modulus);
 
   st = cputime ();
 
-  if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done, go, stop_asap, chkfilename);
+  if (B1 > params->B1done || mpz_cmp_ui (params->go, 1) > 0)
+    youpi = pm1_stage1 (f, x, modulus, B1, &mutable_params->B1done,
+                        params->go, params->stop_asap, params->chkfilename);
 
   st = elltime (st, cputime ());
 
@@ -601,30 +618,32 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       mpz_clear (tx);
     }
 
-  if (stop_asap != NULL && (*stop_asap) ())
+  if (params->stop_asap != NULL && params->stop_asap ())
     goto clear_and_exit;
 
-  if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
+  if (youpi == ECM_NO_FACTOR_FOUND && run_stage2)
     {
       if (use_ntt)
-        youpi = pm1fs2_ntt (f, x, modulus, &params);
+        youpi = pm1fs2_ntt (f, x, modulus, &s2_params);
       else
-        youpi = pm1fs2 (f, x, modulus, &params);
+        youpi = pm1fs2 (f, x, modulus, &s2_params);
     }
 
   if (test_verbose (OUTPUT_VERBOSE))
     {
-      if (mpz_sgn (B2min_parm) < 0)
+      if (mpz_sgn (params->B2min) < 0)
         rhoinit (1, 0); /* Free memory of rhotable */
     }
 
 clear_and_exit:
-  mpres_get_z (p, x, modulus);
+  // Save stage-1 residue back to params.
+  mpres_get_z (mutable_params->x, x, modulus);
   mpres_clear (x, modulus);
   mpmod_clear (modulus);
-  mpz_clear (params.m_1);
   mpz_clear (B2);
   mpz_clear (B2min);
+  if (run_stage2)
+    mpz_clear (s2_params.m_1);
 
   return youpi;
 }
