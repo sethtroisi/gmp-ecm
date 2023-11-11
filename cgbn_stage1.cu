@@ -140,7 +140,7 @@ class cgbn_params_t {
   // parameters used locally in the application
   static const uint32_t TPI=tpi;                   // threads per instance
   static const uint32_t BITS=bits;                 // instance size
-  static const uint32_t WINDOW_BITS=6;             // For P-1
+  static const uint32_t WINDOW_BITS=7;             // For P-1
 };
 
 
@@ -353,61 +353,6 @@ class curve_t {
   }
 };
 
-static
-uint32_t* set_gpu_p_2p(const mpz_t N,
-                     uint32_t curves, uint32_t sigma,
-                     uint32_t BITS, size_t *data_size) {
-  /**
-   * Store 5 numbers per curve:
-   * N, P_a (x, z), P_b (x, z)
-   *
-   * P_a is initialized with (2, 1)
-   * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
-   */
-
-  const size_t limbs_per = BITS/32;
-  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
-  uint32_t *data = (uint32_t*) malloc(*data_size);
-  uint32_t *datum = data;
-
-  mpz_t x;
-  mpz_init(x);
-  for(int index = 0; index < curves; index++) {
-      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
-      uint32_t d = sigma + index;
-
-      // Modulo (N)
-      from_mpz(N, datum + 0 * limbs_per, BITS/32);
-
-      // P1 (X, Z)
-      mpz_set_ui(x, 2);
-      from_mpz(x, datum + 1 * limbs_per, BITS/32);
-      mpz_set_ui(x, 1);
-      from_mpz(x, datum + 2 * limbs_per, BITS/32);
-
-      // 2P = P2 (X, Z)
-      // P2_x = 9
-      mpz_set_ui(x, 9);
-      from_mpz(x, datum + 3 * limbs_per, BITS/32);
-
-      // d = sigma * mod_inverse(2 ** 32, N)
-      mpz_ui_pow_ui(x, 2, 32);
-      mpz_invert(x, x, N);
-      mpz_mul_ui(x, x, d);
-      // P2_x = 64 * d + 8;
-      mpz_mul_ui(x, x, 64);
-      mpz_add_ui(x, x, 8);
-      mpz_mod(x, x, N);
-
-      outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x);
-      from_mpz(x, datum + 4 * limbs_per, BITS/32);
-      datum += 5 * limbs_per;
-  }
-  mpz_clear(x);
-  return data;
-}
-
-
 // kernel implementation using cgbn
 template<class params>
 __global__ void kernel_double_add(
@@ -502,6 +447,61 @@ __global__ void kernel_double_add(
 }
 
 static
+uint32_t* set_gpu_p_2p(const mpz_t N,
+                     uint32_t curves, uint32_t sigma,
+                     uint32_t BITS, size_t *data_size) {
+  /**
+   * Store 5 numbers per curve:
+   * N, P_a (x, z), P_b (x, z)
+   *
+   * P_a is initialized with (2, 1)
+   * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
+   */
+
+  const size_t limbs_per = BITS/32;
+  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
+  uint32_t *data = (uint32_t*) malloc(*data_size);
+  uint32_t *datum = data;
+
+  mpz_t x;
+  mpz_init(x);
+  for(int index = 0; index < curves; index++) {
+      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
+      uint32_t d = sigma + index;
+
+      // Modulo (N)
+      from_mpz(N, datum + 0 * limbs_per, BITS/32);
+
+      // P1 (X, Z)
+      mpz_set_ui(x, 2);
+      from_mpz(x, datum + 1 * limbs_per, BITS/32);
+      mpz_set_ui(x, 1);
+      from_mpz(x, datum + 2 * limbs_per, BITS/32);
+
+      // 2P = P2 (X, Z)
+      // P2_x = 9
+      mpz_set_ui(x, 9);
+      from_mpz(x, datum + 3 * limbs_per, BITS/32);
+
+      // d = sigma * mod_inverse(2 ** 32, N)
+      mpz_ui_pow_ui(x, 2, 32);
+      mpz_invert(x, x, N);
+      mpz_mul_ui(x, x, d);
+      // P2_x = 64 * d + 8;
+      mpz_mul_ui(x, x, 64);
+      mpz_add_ui(x, x, 8);
+      mpz_mod(x, x, N);
+
+      outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x);
+      from_mpz(x, datum + 4 * limbs_per, BITS/32);
+      datum += 5 * limbs_per;
+  }
+  mpz_clear(x);
+  return data;
+}
+
+
+static
 int find_ecm_factor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t z_final) {
     /* Check if factor found */
     bool inverted = mpz_invert(factor, z_final, N);    // aZ ^ (N-2) % N
@@ -561,6 +561,7 @@ uint32_t* allocate_and_set_s_bits(const mpz_t s, uint64_t *nbits) {
 
   return s_bits;
 }
+
 
 static
 int process_ecm_results(mpz_t *factors, int *array_found,
@@ -635,6 +636,16 @@ int process_ecm_results(mpz_t *factors, int *array_found,
   return youpi;
 }
 
+static
+int print_nth_batch(int n) {
+  return ((n < 3) ||
+          (n < 30 && n % 10 == 0) ||
+          (n < 500 && n % 100 == 0) ||
+          (n < 5000 && n % 1000 == 0) ||
+          (n % 10000 == 0))
+}
+
+
 int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
              const mpz_t N, const mpz_t s,
              uint32_t curves, uint32_t sigma,
@@ -652,6 +663,9 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       outputf (OUTPUT_NORMAL, "GPU: Large B1, S = %'lu bits = %d MB\n",
                s_num_bits, s_num_bits >> 23);
   assert( s_bits != NULL );
+
+  if (s_num_bits <= 100)
+      outputf (OUTPUT_VERBOSE, "s: %Zd\n", s);
 
   cudaEvent_t global_start, batch_start, stop;
   CUDA_CHECK(cudaEventCreate (&global_start));
@@ -699,6 +713,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   /** TODO: try with const vector for BITs/TPI, see if compiler is happy */
   std::vector<uint32_t> available_kernels;
 
+  // These are ECM kernels, don't mistake them for P-1 kernels
   typedef cgbn_params_t<4, 512>   cgbn_params_small;
   typedef cgbn_params_t<8, 1024>  cgbn_params_medium;
   available_kernels.push_back((uint32_t)cgbn_params_small::BITS);
@@ -809,7 +824,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   uint64_t s_partial = 1;
 
   /* Start with small batches and increase till timing is ~100ms */
-  uint64_t batch_size = 100;
+  uint64_t batch_size = 200;
 
   int batches_complete = 0;
   /* gputime and batch_time are measured in ms */
@@ -820,11 +835,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
     batch_size = std::min(s_num_bits - s_partial, batch_size);
 
     /* print ETA with lessing frequently, 5 early + 5 per 10s + 5 per 100s + every 1000s */
-    if ((batches_complete < 3) ||
-        (batches_complete < 30 && batches_complete % 10 == 0) ||
-        (batches_complete < 500 && batches_complete % 100 == 0) ||
-        (batches_complete < 5000 && batches_complete % 1000 == 0) ||
-        (batches_complete % 10000 == 0)) {
+    if (print_nth_batch (batches_complete)) {
       outputf (OUTPUT_VERBOSE, "Computing %d bits/call, %lu/%lu (%.1f%%)",
           batch_size, s_partial, s_num_bits, 100.0 * s_partial / s_num_bits);
       if (batches_complete < 2 || *gputime < 1000) {
@@ -1303,7 +1314,8 @@ int cgbn_pm1_stage1(const mpz_t x0,
   /** TODO: try with const vector for BITs/TPI, see if compiler is happy */
   std::vector<uint32_t> available_kernels;
 
-  typedef cgbn_params_t<4, 512>   cgbn_params_small;
+  // These are P-1 kernels, don't mistake them for ECM kernels
+  typedef cgbn_params_t<8, 768>   cgbn_params_small;
   typedef cgbn_params_t<8, 1024>  cgbn_params_medium;
   available_kernels.push_back((uint32_t)cgbn_params_small::BITS);
   available_kernels.push_back((uint32_t)cgbn_params_medium::BITS);
@@ -1407,7 +1419,7 @@ int cgbn_pm1_stage1(const mpz_t x0,
   uint64_t s_partial = 0;
 
   /* Start with small batches and increase till timing is ~100ms */
-  uint64_t batch_size = 1000;
+  uint64_t batch_size = 2000;
 
   int batches_complete = 0;
   /* gputime and batch_time are measured in ms */
@@ -1418,11 +1430,7 @@ int cgbn_pm1_stage1(const mpz_t x0,
     batch_size = std::min(s_num_bits - s_partial, batch_size);
 
     /* print ETA with lessing frequently, 5 early + 5 per 10s + 5 per 100s + every 1000s */
-    if ((batches_complete < 3) ||
-        (batches_complete < 30 && batches_complete % 10 == 0) ||
-        (batches_complete < 500 && batches_complete % 100 == 0) ||
-        (batches_complete < 5000 && batches_complete % 1000 == 0) ||
-        (batches_complete % 10000 == 0)) {
+    if (print_nth_batch (batches_complete)) {
       outputf (OUTPUT_VERBOSE, "Computing %d bits/call, %lu/%lu (%.1f%%)",
           batch_size, s_partial, s_num_bits, 100.0 * s_partial / s_num_bits);
       if (batches_complete < 2 || *gputime < 1000) {

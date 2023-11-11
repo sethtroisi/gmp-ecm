@@ -706,9 +706,9 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   /* TODO figure out interface for this */
   mpcandi_t temp;
   mpcandi_t_init(&temp);
-  //FILE *fd = fopen("test_pm1.txt", "r");
+  FILE *fd = fopen("near_repundant.txt", "r");
   //FILE *fd = fopen("random_composites_30.txt", "r");
-  FILE *fd = fopen("random_composites.txt", "r");
+  //FILE *fd = fopen("random_composites.txt", "r");
 
   for (i = 0; i < nb_curves; i++)
     {
@@ -733,7 +733,7 @@ gpu_pm1 (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
       else
         {
             outputf (OUTPUT_VERBOSE,
-                     "GPU P-1: End of input truncating to %i curves", i);
+                     "GPU P-1: End of input truncating to %i curves\n", i);
             // Reduce to running i curves
             for (unsigned int j = i; j < nb_curves; j++)
               {
