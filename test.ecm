@@ -25,15 +25,41 @@ ECM="${1:-./ecm}"
 
 GMPECM_DATADIR=${GMPECM_DATADIR:-.}
 
+THIS_FILE="${0}"
+
+
+# Exit statues returned by GMP-ECM:
+# 0      Normal program termination, no factor found
+# 1      Error
+# 2      Composite factor found, cofactor is composite
+# 6      (Probable) prime factor found, cofactor is composite
+# 8      Input number found
+# 10     Composite factor found, cofactor is a (probable) prime
+# 14     (Probable) prime factor found, cofactor is a (probable) prime
+
+
 # Call with "checkcode $? n" to check that return code is n
-# (see test.pm1 for the explanation of the different return codes)              
 checkcode () {
-  if [ $1 != $2 ]
+  if [ $1 -eq $2 ]
+  then
+    return
+  fi
+
+  if [ -z ${BASH_LINENO} ]
   then
     echo "############### ERROR ###############"
     echo "Expected return code $2 but got $1"
-    exit 1
+  else
+    FROM="${BASH_LINENO[0]}"
+    printf "\n"
+    printf "################### ERROR ####################\n"
+    printf "Expected return code $2 but got $1 on line $FROM\n"
+    printf -- "----------- SOURCE LINE %-3d and %-3d ----------\n" $((FROM-1)) $FROM
+    LINE_AND_BEFORE=$(sed -n "$((FROM-1))p;$((FROM))p" "${THIS_FILE}")
+    echo "$LINE_AND_BEFORE"
+    printf "##############################################\n"
   fi
+  exit 1
 }
 
 case "$ECM"
@@ -51,16 +77,6 @@ in
   ;;
 *) VALGRIND=0
 esac
-
-# Exit statues returned by GMP-ECM:
-# 0      Normal program termination, no factor found
-# 1      Error
-# 2      Composite factor found, cofactor is composite
-# 6      (Probable) prime factor found, cofactor is composite
-# 8      Input number found
-# 10     Composite factor found, cofactor is a (probable) prime
-# 14     (Probable) prime factor found, cofactor is a (probable) prime
-
 
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
 # 2^4 * 3^3 * 29 * 2411
