@@ -1250,6 +1250,18 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
 
+  /* In resume case, set (P.x,P.y) from x. */
+  int resume = mpz_cmp_ui (x, 0);
+  if (resume)
+  {
+    /* Call get_curve_from_param0() before setting P.x otherwise it would
+       reset P.x. */
+    get_curve_from_param0 (f, P.A, P.x, sigma, modulus);
+    mpres_set_z (P.x, x, modulus);
+    mpres_set_ui (P.y, 1, modulus);
+    gmp_printf ("Px=%Zd Py=%Zd\n", P.x, P.y);
+  }
+
 #ifdef HAVE_ADDLAWS
   ell_curve_set_z (E, zE, modulus);
 #else
@@ -1269,7 +1281,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   if (youpi == ECM_ERROR)
       goto end_of_ecm;
 
-  if (sigma_is_A == 0)
+  if (!resume && sigma_is_A == 0)
     {
       if (mpz_sgn (sigma) == 0)
         {

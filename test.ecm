@@ -372,6 +372,12 @@ echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save $T
 $ECM -resume $TEST 174000 85880350
 checkcode $? 14
 
+# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+/bin/rm -f $TEST
+echo 294940575713329370427113862790368174424655176416322150390973123306949586795213 | $ECM -sigma 2215339928 -save $TEST 1000 1
+$ECM -resume $TEST 1001
+checkcode $? 6
+
 # test savea with existing file
 printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > $TEST
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea $TEST -param 0 -sigma 585928442 174000 0
