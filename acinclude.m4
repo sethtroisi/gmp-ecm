@@ -547,10 +547,12 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
       ])
 
     AS_IF([test "x$cuda_compiler" != "x" ], 
-          [NVCCFLAGS=" --compiler-bindir $cuda_compiler NVCCFLAGS"])
+          [NVCCFLAGS=" --compiler-bindir $cuda_compiler $NVCCFLAGS"],
+          [AS_IF([test "x$CC" != "x" ],
+          [NVCCFLAGS=" --compiler-bindir $CC $NVCCFLAGS"])])
  
     dnl check that gcc version is compatible with nvcc version
-    dnl (seth) How is this checking if gcc and nvcc are compatible?
+    dnl nvcc may produce an error like "unsupported GNU version! gcc versions later than 12 are not supported!"
     AC_MSG_CHECKING([for compatibility between gcc and nvcc])
     NVCC_CHECK_COMPILE([], [$NVCCFLAGS],
       [AC_MSG_RESULT([yes])],
@@ -597,7 +599,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
         #include <gmp.h>
         #include <cgbn.h>
       ],
-      [-I$cgbn_include $GMPLIB],
+      [-I$cgbn_include $GMPLIB $NVCCFLAGS],
       [AC_MSG_RESULT([yes])],
       [
         AC_MSG_RESULT([no])
