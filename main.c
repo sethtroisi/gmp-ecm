@@ -57,6 +57,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "torsions.h" /* to benefit from more torsion groups */
 #endif
 
+#ifdef WITH_GPU
+#include "ecm-gpu.h"
+#endif
 
 /* #define DEBUG */
 
@@ -1127,6 +1130,20 @@ main (int argc, char *argv[])
       params->stop_asap = &stop_asap_test;
     }
 #endif
+
+  if (infilename != NULL && use_gpu && method == ECM_PM1)
+    {
+#ifdef WITH_GPU
+        fprintf (stdout, "CALLING GPU P-1 from main\n");
+        mpcandi_t *n;
+        mpz_t *f, *x;
+        returncode = gpu_pm1(infile, &n, &f, &x, params, params, B1);
+#else
+        fprintf (stdout, "NOT COMPILED WITH -gpu???\n");
+        exit (EXIT_FAILURE);
+#endif
+        goto free_all1;
+    }
 
   /* loop for number in standard input or file */
 
