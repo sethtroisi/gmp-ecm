@@ -144,6 +144,7 @@ class cgbn_params_t {
   // parameters used locally in the application
   static const uint32_t TPI=tpi;                   // threads per instance
   static const uint32_t BITS=bits;                 // instance size
+  static const uint32_t WINDOW_BITS=7;             // For P-1, 2^N values are pre-computed
 };
 
 
@@ -924,6 +925,603 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
   return youpi;
 }
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  GPU P-1 code starts here, I tried to put this in cgbn_pm1.cu but ran     //
+//  into issues with duplicate symbols from CGBN.h (monitor and error_report)//
+///////////////////////////////////////////////////////////////////////////////
+
+template<class params>
+class power_mod_t {
+  public:
+
+  typedef cgbn_context_t<params::TPI, params>   context_t;
+  typedef cgbn_env_t<context_t, params::BITS>   env_t;
+  typedef typename env_t::cgbn_t                bn_t;
+  typedef typename env_t::cgbn_local_t          bn_local_t;
+  typedef cgbn_mem_t<params::BITS>              mem_t;
+
+  context_t _context;
+  env_t     _env;
+  int32_t   _instance; // which curve instance is this
+
+  // Constructor
+  __device__ FORCE_INLINE power_mod_t(cgbn_monitor_t monitor, cgbn_error_report_t *report, int32_t instance) :
+      _context(monitor, report, (uint32_t)instance), _env(_context), _instance(instance) {}
+
+  // Verify 0 <= r < modulus
+  __device__ FORCE_INLINE void assert_normalized(bn_t &r, const bn_t &modulus) {
+    //if (VERIFY_NORMALIZED && _context.check_errors())
+    if (VERIFY_NORMALIZED && CHECK_ERROR) {
+
+        // Negative overflow
+        if (cgbn_extract_bits_ui32(_env, r, params::BITS-1, 1)) {
+            _context.report_error(cgbn_negative_overflow);
+        }
+        // Positive overflow
+        if (cgbn_compare(_env, r, modulus) >= 0) {
+            _context.report_error(cgbn_positive_overflow);
+        }
+    }
+  }
+
+  // One step of normalization, sometimes needed after mont_mul
+  __device__ FORCE_INLINE void normalize_addition(bn_t &r, const bn_t &modulus) {
+      if (cgbn_compare(_env, r, modulus) >= 0) {
+          cgbn_sub(_env, r, r, modulus);
+      }
+  }
+};
+
+// kernel implementation using cgbn
+template<class params>
+__global__ void kernel_pm1_partial(
+        cgbn_error_report_t *report,
+        uint64_t s_bits,
+        uint64_t s_bits_start,
+        uint64_t s_bits_interval,
+        uint32_t* gpu_s_bits,
+        uint32_t *data,
+        uint32_t count
+        ) {
+  // decode an instance_i number from the blockIdx and threadIdx
+  int32_t instance_i = (blockIdx.x*blockDim.x + threadIdx.x)/params::TPI;
+  if (instance_i >= count)
+      return;
+
+  /* Cast uint32_t array to mem_t */
+  typename power_mod_t<params>::mem_t *data_cast = (typename power_mod_t<params>::mem_t*) data;
+  cgbn_monitor_t monitor = CHECK_ERROR ? cgbn_report_monitor : cgbn_no_checks;
+  power_mod_t<params> exp(monitor, report, instance_i);
+
+  typename power_mod_t<params>::bn_t  modulus, const_base, partial_base, partial_result, temp;
+
+
+  uint32_t np0;
+
+  { // Setup
+      /* const_base is used in WINDOW algorithm, partial_base is used in double and square. */
+      cgbn_load(exp._env, modulus,        &data_cast[4*instance_i+0]);
+      cgbn_load(exp._env, const_base,     &data_cast[4*instance_i+1]);
+      cgbn_load(exp._env, partial_base,   &data_cast[4*instance_i+2]);
+      cgbn_load(exp._env, partial_result, &data_cast[4*instance_i+3]);
+
+      // Ignore any n=0 that might have been filtered.
+      if (cgbn_equals_ui32(exp._env, modulus, 0))
+          return;
+
+      /* Convert to mont, has a miniscule bit of overhead with batching. */
+      np0 = cgbn_bn2mont(exp._env, const_base, const_base, modulus);
+      cgbn_bn2mont(exp._env, partial_base, partial_base, modulus);
+      cgbn_bn2mont(exp._env, partial_result, partial_result, modulus);
+
+      exp.assert_normalized(const_base, modulus);
+      exp.assert_normalized(partial_base, modulus);
+      exp.assert_normalized(partial_result, modulus);
+  }
+
+  if (1) {
+      /* WINDOW algorithm, MSB to LSB and mixin bits from s in groups of WINDOW_BITS. */
+      static const uint32_t WINDOW_BITS = params::WINDOW_BITS;
+      typename power_mod_t<params>::bn_local_t  window[1 << WINDOW_BITS];
+
+      cgbn_set_ui32(exp._env, temp, 1);
+      cgbn_store(exp._env, window+0, temp);
+      cgbn_set(exp._env, temp, const_base);
+      cgbn_store(exp._env, window+1, temp);
+      #pragma nounroll
+      for(uint16_t index = 2; index < (1 << WINDOW_BITS); index++) {
+        cgbn_mont_mul(exp._env, temp, temp, const_base, modulus, np0);
+        exp.normalize_addition(temp, modulus);
+        cgbn_store(exp._env, window+index, temp);
+      }
+
+      /* Partial base is modified so that process_result isn't suspicious. */
+      cgbn_set_ui32(exp._env, partial_base, 0);
+
+      uint32_t window_bits = 0;
+      for (uint64_t b = s_bits_start; b < s_bits_start + s_bits_interval; b++) {
+        cgbn_mont_sqr(exp._env, partial_result, partial_result, modulus, np0);
+        /* From https://github.com/NVlabs/CGBN/issues/15
+         * it's not clear if the redundant representation has consequences
+         * when chained */
+        exp.normalize_addition(partial_result, modulus);
+        exp.assert_normalized(partial_result, modulus);
+
+        /* Process bits from MSB to LSB
+         * b counts from 0 to s_num_bits */
+        uint64_t nth = s_bits - 1 - b;
+        int bit = (gpu_s_bits[nth/32] >> (nth&31)) & 1;
+
+        window_bits = (window_bits << 1) | bit;
+        if (nth % WINDOW_BITS == 0) {
+            // Can skip the mult by 1 case.
+            if (window_bits > 0) {
+                cgbn_load(exp._env, temp, window + window_bits);
+                cgbn_mont_mul(exp._env, partial_result, partial_result, temp, modulus, np0);
+                exp.normalize_addition(partial_result, modulus);
+                exp.assert_normalized(partial_result, modulus);
+            }
+            window_bits = 0;
+        }
+      }
+
+      // If any left over window_bits handle them here.
+      if (window_bits) {
+        cgbn_load(exp._env, temp, window + window_bits);
+        cgbn_mont_mul(exp._env, partial_result, partial_result, temp, modulus, np0);
+        exp.normalize_addition(partial_result, modulus);
+        exp.assert_normalized(partial_result, modulus);
+      }
+  } else {
+      for (uint64_t b = s_bits_start; b < s_bits_start + s_bits_interval; b++) {
+        /* Process bits from LSB to MSB
+         * b counts from 0 to s_num_bits */
+        uint64_t nth = b;
+        int bit = (gpu_s_bits[nth/32] >> (nth&31)) & 1;
+        if (bit) {
+            cgbn_mont_mul(exp._env, partial_result, partial_result, partial_base, modulus, np0);
+            exp.normalize_addition(partial_result, modulus);
+            exp.assert_normalized(partial_result, modulus);
+        }
+        cgbn_mont_sqr(exp._env, partial_base, partial_base, modulus, np0);
+        exp.normalize_addition(partial_base, modulus);
+        exp.assert_normalized(partial_base, modulus);
+      }
+  }
+
+  { // Final output
+    // Convert everything back to bn
+    cgbn_mont2bn(exp._env, partial_base, partial_base, modulus, np0);
+    cgbn_mont2bn(exp._env, partial_result, partial_result, modulus, np0);
+    exp.assert_normalized(partial_base, modulus);
+    exp.assert_normalized(partial_result, modulus);
+    cgbn_store(exp._env, &data_cast[4*instance_i+2], partial_base);
+    cgbn_store(exp._env, &data_cast[4*instance_i+3], partial_result);
+  }
+}
+
+static
+uint32_t* set_gpu_pm1_data(
+        const mpz_t x0, const mpz_t *numbers,
+        uint32_t instances, uint32_t BITS, size_t *data_size) {
+  /**
+   * Store 4 numbers per curve:
+   * N, Base, partial Base, partial Result
+   */
+
+  const size_t limbs_per = BITS/32;
+  *data_size = 4 * instances * limbs_per * sizeof(uint32_t);
+  uint32_t *data = (uint32_t*) malloc(*data_size);
+  uint32_t *datum = data;
+
+  mpz_t x;
+  mpz_init(x);
+
+  for(int index = 0; index < instances; index++, datum += 4 * limbs_per)
+    {
+      // Some numbers may be zero at end of batch
+      if (mpz_sgn(numbers[index]) == 0) {
+        outputf (OUTPUT_VERBOSE, "GPU P-1: skipping %i n=0\n", index);
+        // Set base and result to 0 also
+        mpz_set_ui (x, 0);
+        from_mpz(x, datum + 0 * limbs_per, BITS/32);
+        from_mpz(x, datum + 1 * limbs_per, BITS/32);
+        from_mpz(x, datum + 2 * limbs_per, BITS/32);
+        from_mpz(x, datum + 3 * limbs_per, BITS/32);
+        continue;
+      }
+
+      /* Modulo (n) */
+      from_mpz(numbers[index], datum + 0 * limbs_per, BITS/32);
+      outputf (OUTPUT_TRACE, "GPU P-1: %d = %Zd\n", index, numbers[index]);
+
+      // TODO make sure not -1
+      /* Base, make sure base mod n {1, -1} */
+      mpz_mod (x, x0, numbers[index]);
+      if (mpz_cmp_ui (x, 1) == 0)
+        {
+          // increment one
+          mpz_add_ui (x, x, 1);
+          outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd for %d=%Zd\n",
+                   x, index, numbers[index]);
+        }
+      from_mpz(x, datum + 1 * limbs_per, BITS/32);
+      from_mpz(x, datum + 2 * limbs_per, BITS/32);
+
+      /* Result */
+      mpz_set_ui (x, 1);
+      from_mpz(x, datum + 3 * limbs_per, BITS/32);
+    }
+  mpz_clear(x);
+  return data;
+}
+
+
+static
+int find_pm1_factor(mpz_t factor, const mpz_t N, const mpz_t a) {
+    /* Check if factor found */
+    mpz_sub_ui (factor, a, 1);
+    mpz_gcd (factor, factor, N);
+
+    if (mpz_cmp_ui (factor, 1) > 0) {
+        return ECM_FACTOR_FOUND_STEP1;
+    }
+
+    mpz_set(factor, a);
+    return ECM_NO_FACTOR_FOUND;
+}
+
+
+static
+int process_pm1_results(
+        const mpz_t x0,
+        const mpz_t *numbers,
+        mpz_t *factors,
+        mpz_t *residuals,
+        const uint32_t *data, uint32_t cgbn_bits,
+        int instances) {
+  mpz_t modulo, base, result;
+  mpz_init(modulo);
+  mpz_init(base);
+  mpz_init(result);
+
+  const uint32_t limbs_per = cgbn_bits / 32;
+  int youpi = ECM_NO_FACTOR_FOUND;
+  int errors = 0;
+  for(size_t i = 0; i < instances; i++) {
+    const uint32_t *datum = data + (4 * i * limbs_per);;
+
+    // Make sure we were testing the right number.
+    to_mpz(modulo, datum + 0 * limbs_per, limbs_per);
+    assert(mpz_cmp(numbers[i], modulo) == 0);
+
+    to_mpz(base, datum + 2 * limbs_per, limbs_per);
+    to_mpz(result, datum + 3 * limbs_per, limbs_per);
+
+    // TODO do this same thing to the other process_result
+    if (test_verbose (OUTPUT_TRACE) && i <= 10) {
+      outputf (OUTPUT_TRACE, "index: %lu, modulo: %Zd\n", i, modulo);
+      outputf (OUTPUT_TRACE, "index: %lu, base: %Zd\n", i, base);
+      outputf (OUTPUT_TRACE, "index: %lu, result: %Zd\n", i, result);
+    }
+
+    if (mpz_cmp_ui(modulo, 0) == 0)
+      continue;
+
+    /* Very suspicious for base, result to match initial value */
+    if (mpz_cmp (base, x0) == 0 && mpz_cmp_ui(result, 1) == 0) {
+      errors += 1;
+      if (errors < 10 || errors % 100 == 1)
+        outputf (OUTPUT_ERROR, "GPU: curve %d n=%Zd\n", i, modulo);
+        outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute or found input?\n", i);
+    }
+
+    mpz_set(residuals[i], result);
+    int found = find_pm1_factor(factors[i], modulo, result);
+
+    if (found != ECM_NO_FACTOR_FOUND) {
+      outputf (OUTPUT_NORMAL, "GPU P-1: factor %Zd found in Step 1 with curve %ld\n",
+          factors[i], i);
+      outputf (OUTPUT_VERBOSE, "Input number is %Zd\n", modulo);
+      outputf (OUTPUT_VERBOSE, "********** Factor found in step 1: %Zd\n", factors[i]);
+    }
+  }
+
+  mpz_init(modulo);
+  mpz_clear(base);
+  mpz_clear(result);
+
+#ifdef IS_DEV_BUILD
+  if (errors)
+        outputf (OUTPUT_ERROR, "Had %d errors. Try `make clean; make` or reducing TPB_DEFAULT\n",
+            errors);
+#endif
+
+  if (errors > 2)
+      return ECM_ERROR;
+
+  return youpi;
+}
+
+
+int cgbn_pm1_stage1(
+     const mpz_t *numbers, mpz_t *factors, mpz_t *residuals,
+     const mpz_t s, const mpz_t x0, 
+     uint32_t instances, float *gputime, int verbose)
+{
+  uint64_t s_num_bits;
+  uint32_t *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
+  if (s_num_bits >= 4000000000)
+      outputf (OUTPUT_ALWAYS, "GPU: Very Large B1! Check magnitute of B1.\n");
+
+  if (s_num_bits >= 100000000)
+      outputf (OUTPUT_NORMAL, "GPU: Large B1, S = %'lu bits = %d MB\n",
+               s_num_bits, s_num_bits >> 23);
+  assert( s_bits != NULL );
+
+  if (s_num_bits <= 100)
+      outputf (OUTPUT_VERBOSE, "s: %Zd\n", s);
+
+  cudaEvent_t global_start, batch_start, stop;
+  CUDA_CHECK(cudaEventCreate (&global_start));
+  CUDA_CHECK(cudaEventCreate (&batch_start));
+  CUDA_CHECK(cudaEventCreate (&stop));
+  CUDA_CHECK(cudaEventRecord (global_start));
+
+  // Copy s_bits
+  uint32_t *gpu_s_bits;
+  uint32_t s_words = (s_num_bits + 31) / 32;
+  CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, sizeof(uint32_t) * s_words));
+  CUDA_CHECK(cudaMemcpy(gpu_s_bits, s_bits, sizeof(uint32_t) * s_words, cudaMemcpyHostToDevice));
+
+  cgbn_error_report_t *report;
+  // create a cgbn_error_report for CGBN to report back errors
+  CUDA_CHECK(cgbn_error_report_alloc(&report));
+
+  size_t    data_size;
+  uint32_t *data, *gpu_data;
+
+  // Find Largest N
+  size_t n_log2 = 0;
+  size_t largest_i = 0;
+  for (size_t i = 1; i < instances; i++)
+      if (mpz_cmp(numbers[i], numbers[largest_i]) > 0)
+          largest_i = i;
+
+  n_log2 = mpz_sizeinbase(numbers[largest_i], 2);
+  assert(n_log2 > 1);
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Largest number line %lu, %lu bits\n",
+           largest_i+1, n_log2);
+
+  uint32_t  BITS = 0;        // kernel bits
+  int32_t   TPB=TPB_DEFAULT; // Always the same default
+  int32_t   TPI;
+  int32_t   IPB;             // IPB = TPB / TPI, instances per block
+  size_t    BLOCK_COUNT;     // How many blocks to cover all instances
+
+  /**
+   * Smaller TPI is faster, Larger TPI is needed for large inputs.
+   * N > 512 TPI=8 | N > 2048 TPI=16 | N > 8192 TPI=32
+   *
+   * Larger takes longer to compile (and increases binary size)
+   * No GPU, No CGBN | ecm 3.4M, 2 seconds to compile
+   * GPU, No CGBN    | ecm 3.5M, 3 seconds
+   * (8, 1024)       | ecm 3.8M, 12 seconds
+   * (16,8192)       | ecm 4.2M, 1 minute
+   * (32,16384)      | ecm 4.2M, 1 minute
+   * (32,32768)      | ecm 5.2M, 4.7 minutes
+   */
+  /* NOTE: Custom kernel changes here
+   * For "Compiling custom kernel for %d bits should be XX% faster"
+   * Change the 512 in cgbn_params_t<4, 512> cgbn_params_small;
+   * to the suggested value (a multiple of 32 >= bits + 6).
+   * You may need to change the 4 to an 8 (or 16) if bits >512, >2048
+   */
+  /** TODO: try with const vector for BITs/TPI, see if compiler is happy */
+  std::vector<uint32_t> available_kernels;
+
+  /* These are P-1 kernels, don't mistake them for ECM kernels */
+  typedef cgbn_params_t<8, 768>   cgbn_params_small;
+  typedef cgbn_params_t<8, 1024>  cgbn_params_medium;
+  available_kernels.push_back((uint32_t)cgbn_params_small::BITS);
+  available_kernels.push_back((uint32_t)cgbn_params_medium::BITS);
+
+#ifndef IS_DEV_BUILD
+  /**
+   * TPI and BITS have to be set at compile time. Adding multiple cgbn_params
+   * (and their associated kernels) allows for better dynamic selection based
+   * on the size of N (e.g. N < 1024, N < 2048, N < 4096) but increase compile
+   * time and binary size. A few reasonable sizes are included and a verbose
+   * warning is printed when a particular N might benefit from a custom sized
+   * kernel.
+   */
+  typedef cgbn_params_t<8, 1536>  cgbn_params_1536;
+  typedef cgbn_params_t<8, 2048>  cgbn_params_2048;
+  typedef cgbn_params_t<16, 3072> cgbn_params_3072;
+  typedef cgbn_params_t<16, 4096> cgbn_params_4096;
+  available_kernels.push_back((uint32_t)cgbn_params_1536::BITS);
+  available_kernels.push_back((uint32_t)cgbn_params_2048::BITS);
+  available_kernels.push_back((uint32_t)cgbn_params_3072::BITS);
+  available_kernels.push_back((uint32_t)cgbn_params_4096::BITS);
+#endif
+
+  for (int k_i = 0; k_i < available_kernels.size(); k_i++) {
+    uint32_t kernel_bits = available_kernels[k_i];
+    if (kernel_bits >= n_log2 + CARRY_BITS) {
+      BITS = kernel_bits;
+      assert( BITS % 32 == 0 );
+
+      /* Print some debug info about kernel. */
+      /* TODO: return kernelAttr and validate maxThreadsPerBlock. */
+      if (BITS == cgbn_params_small::BITS) {
+        TPI = cgbn_params_small::TPI;
+        kernel_info((const void*)kernel_pm1_partial<cgbn_params_small>, verbose);
+      } else if (BITS == cgbn_params_medium::BITS) {
+        TPI = cgbn_params_medium::TPI;
+        kernel_info((const void*)kernel_pm1_partial<cgbn_params_medium>, verbose);
+#ifndef IS_DEV_BUILD
+      } else if (BITS == cgbn_params_1536::BITS) {
+        TPI = cgbn_params_1536::TPI;
+        kernel_info((const void*)kernel_pm1_partial<cgbn_params_1536>, verbose);
+      } else if (BITS == cgbn_params_2048::BITS) {
+        TPI = cgbn_params_2048::TPI;
+        kernel_info((const void*)kernel_pm1_partial<cgbn_params_2048>, verbose);
+      } else if (BITS == cgbn_params_3072::BITS) {
+        TPI = cgbn_params_3072::TPI;
+        kernel_info((const void*)kernel_pm1_partial<cgbn_params_3072>, verbose);
+      } else if (BITS == cgbn_params_4096::BITS) {
+        TPI = cgbn_params_4096::TPI;
+        kernel_info((const void*)kernel_pm1_partial<cgbn_params_4096>, verbose);
+#endif
+      } else {
+        /* lowercase k to help differentiate this error from one below */
+        outputf (OUTPUT_ERROR, "CGBN kernel not found for %d bits\n", BITS);
+        return ECM_ERROR;
+      }
+
+      IPB = TPB / TPI;
+      BLOCK_COUNT = (instances + IPB - 1) / IPB;
+
+      break;
+    }
+  }
+
+  if (BITS == 0) {
+    outputf (OUTPUT_ERROR, "No available CGBN Kernel large enough to process N(%d bits)\n", n_log2);
+    return ECM_ERROR;
+  }
+
+  /* Alert that recompiling with a smaller kernel would likely improve speed */
+  {
+    size_t optimized_bits = ((n_log2 + CARRY_BITS + 127)/128) * 128;
+    /* Assume speed is roughly O(N) but slightly slower for not being a power of two */
+    float pct_faster = 90 * BITS / optimized_bits;
+
+    if (pct_faster > 110) {
+      outputf (OUTPUT_VERBOSE, "Compiling custom kernel for %d bits should be ~%.0f%% faster see README.gpu\n",
+              optimized_bits, pct_faster);
+    }
+  }
+
+  int youpi = verify_size_of_n(numbers[largest_i], BITS);
+  if (youpi != ECM_NO_FACTOR_FOUND) {
+    return youpi;
+  }
+
+  /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
+  assert( sizeof(power_mod_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
+  assert( sizeof(power_mod_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
+  data = set_gpu_pm1_data(x0, numbers, instances, BITS, &data_size);
+
+  // Copy data
+  outputf (OUTPUT_VERBOSE, "Copying %'lu bytes of instances data to GPU\n", data_size);
+  CUDA_CHECK(cudaMalloc((void **)&gpu_data, data_size));
+  CUDA_CHECK(cudaMemcpy(gpu_data, data, data_size, cudaMemcpyHostToDevice));
+
+  outputf (OUTPUT_VERBOSE,
+          "CGBN<%d, %d> running kernel<%d block x %d threads> input number is %d bits\n",
+          BITS, TPI, BLOCK_COUNT, TPB, n_log2);
+
+  uint64_t s_partial = 0;
+
+  /* Start with small batches and increase till timing is ~100ms */
+  uint64_t batch_size = 2000;
+
+  int batches_complete = 0;
+  /* gputime and batch_time are measured in ms */
+  float batch_time = 0;
+
+  while (s_partial < s_num_bits) {
+    /* decrease batch_size for final batch if needed */
+    batch_size = std::min(s_num_bits - s_partial, batch_size);
+    /* print ETA with lessing frequently, 5 early + 5 per 10s + 5 per 100s + every 1000s */
+    if (print_nth_batch (batches_complete)) {
+      outputf (OUTPUT_VERBOSE, "Computing %d bits/call, %lu/%lu (%.1f%%)",
+          batch_size, s_partial, s_num_bits, 100.0 * s_partial / s_num_bits);
+      if (batches_complete < 2 || *gputime < 1000) {
+        outputf (OUTPUT_VERBOSE, "\n");
+      } else {
+        float estimated_total = (*gputime) * ((float) s_num_bits) / s_partial;
+        float eta = estimated_total - (*gputime);
+        outputf (OUTPUT_VERBOSE, ", ETA %.f + %.f = %.f seconds (~%.f ms/instances)\n",
+                eta / 1000, *gputime / 1000, estimated_total / 1000,
+                estimated_total / instances);
+      }
+    }
+
+    CUDA_CHECK(cudaEventRecord (batch_start));
+
+    if (BITS == cgbn_params_small::BITS) {
+      kernel_pm1_partial<cgbn_params_small><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+    } else if (BITS == cgbn_params_medium::BITS) {
+      kernel_pm1_partial<cgbn_params_medium><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+#ifndef IS_DEV_BUILD
+    } else if (BITS == cgbn_params_1536::BITS) {
+      kernel_pm1_partial<cgbn_params_1536><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+    } else if (BITS == cgbn_params_2048::BITS) {
+      kernel_pm1_partial<cgbn_params_2048><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+    } else if (BITS == cgbn_params_3072::BITS) {
+      kernel_pm1_partial<cgbn_params_3072><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+    } else if (BITS == cgbn_params_4096::BITS) {
+      kernel_pm1_partial<cgbn_params_4096><<<BLOCK_COUNT, TPB>>>(
+          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+#endif
+    } else {
+      outputf (OUTPUT_ERROR, "CGBN Kernel not found for %d bits\n", BITS);
+      return ECM_ERROR;
+    }
+
+    s_partial += batch_size;
+    batches_complete++;
+
+    /* error report uses managed memory, sync the device and check for cgbn errors */
+    CUDA_CHECK(cudaDeviceSynchronize());
+    if (report->_error)
+      outputf (OUTPUT_ERROR, "\n\nerror: %d\n", report->_error);
+    CGBN_CHECK(report);
+
+    CUDA_CHECK(cudaEventRecord (stop));
+    CUDA_CHECK(cudaEventSynchronize (stop));
+    cudaEventElapsedTime (&batch_time, batch_start, stop);
+    cudaEventElapsedTime (gputime, global_start, stop);
+    /* Adjust batch_size to aim for 100ms */
+    if (batch_time < 80) {
+      batch_size = 11*batch_size/10;
+    } else if (batch_time > 120) {
+      batch_size = max(100ul, 9*batch_size / 10);
+    }
+  }
+
+  // Copy data back from GPU memory
+  outputf (OUTPUT_VERBOSE, "Copying results back to CPU ...\n");
+  CUDA_CHECK(cudaMemcpy(data, gpu_data, data_size, cudaMemcpyDeviceToHost));
+
+  cudaEventElapsedTime (gputime, global_start, stop);
+
+  youpi = process_pm1_results(x0, numbers, factors, residuals, data, BITS, instances);
+
+  // clean up
+  CUDA_CHECK(cudaFree(gpu_s_bits));
+  CUDA_CHECK(cudaFree(gpu_data));
+  CUDA_CHECK(cgbn_error_report_free(report));
+  CUDA_CHECK(cudaEventDestroy (global_start));
+  CUDA_CHECK(cudaEventDestroy (batch_start));
+  CUDA_CHECK(cudaEventDestroy (stop));
+
+  free(s_bits);
+  free(data);
+
+  return youpi;
+}
+
+
 
 #ifdef __CUDA_ARCH__
   #if __CUDA_ARCH__ < 350

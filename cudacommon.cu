@@ -93,9 +93,9 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
     }
 
   /* First call to a global function initialize the device */
-  cuda_check (cudaSetDeviceFlags (cudaDeviceScheduleBlockingSync));
+  CUDA_CHECK (cudaSetDeviceFlags (cudaDeviceScheduleBlockingSync));
   Cuda_Init_Device<<<1, 1>>> ();
-  cuda_check (cudaGetLastError());
+  CUDA_CHECK (cudaGetLastError());
 
   return 0;
 }

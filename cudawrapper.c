@@ -5,6 +5,7 @@
 #include "cudacommon.h"
 
 #include "cgbn_stage1.h"
+#include "ecm-ecm.h"
 
 
 #define TWO32 4294967296 /* 2^32 */
@@ -174,8 +175,8 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   unsigned int firstsigma_ui;
   float gputime = 0.0;
   mpz_t tmp_A;
-  mpz_t *factors = NULL; /* Contains either a factor of n either end-of-stage-1
-                         residue (depending of the value of array_found */
+  mpz_t *factors = NULL; /* Contains either a factor(s) of n or end-of-stage-1
+                            residue (depending of the value of array_found). */
   int *array_found = NULL;
   /* Only for stage 2 */
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -312,8 +313,8 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   if (mpz_sgn (params->sigma) == 0)
     {
       /* generate random value in [2, 2^32 - nb_curves - 1] */
-      mpz_set_ui (mutable_params->sigma,
-                  (get_random_ul () % (TWO32 - 2 - nb_curves)) + 2);
+      //mpz_set_ui (mutable_params->sigma,
+      //            (get_random_ul () % (TWO32 - 2 - nb_curves)) + 2);
     }
   else /* sigma should be in [2, 2^32-nb_curves] */
     {
@@ -543,6 +544,206 @@ end_gpu_ecm:
   mpz_clear (B2min);
 
   return youpi;
+}
+
+
+// TODO trying to get two arrays out. residuals (in x) and n's in???
+/* Input: infile file containing a series of unique numbers
+          B1 is the stage 1 bound
+          params is ecm_parameters
+   Output: n is array of candidates numbers,
+           f is array of factors found,
+           x is array of stage-1 residual,
+           mutable_params->gpu_number_of_curves determines length of array
+   Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
+*/
+int
+gpu_pm1 (FILE * infile, mpcandi_t **n, mpz_t **f, mpz_t **x,
+         const ecm_params params, ecm_params mutable_params, double B1)
+{
+  unsigned int i;
+  int youpi = ECM_NO_FACTOR_FOUND;
+  long st;
+  float gputime = 0.0;
+
+  /* Local pointers to params->gpu_return1, params->gpu_return2, params->gpu_return3. */
+  mpcandi_t *inputs = NULL;
+  mpz_t *numbers = NULL;
+  mpz_t *factors = NULL; 
+  mpz_t *residuals = NULL; 
+
+  unsigned int nb_curves = 0; /* Local copy of number of curves */
+
+  /* This helps keep track of when params is changed in this function. */
+  assert((void*) params == (void*) mutable_params); /* params != mutable params */
+
+  ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
+
+  /* Set global VERBOSE to avoid the need to explicitly passing verbose */
+  set_verbose (params->verbose);
+  ECM_STDOUT = (params->os == NULL) ? stdout : params->os;
+  ECM_STDERR = (params->es == NULL) ? stdout : params->es;
+
+  /* Check for things GPU P-1 doesn't currently support */
+  if (params->go != NULL && mpz_cmp_ui (params->go, 1) > 0)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, option -go is not allowed\n");
+      return ECM_ERROR;
+    }
+
+  if (mpz_cmp_ui (params->B2, 0) != 0)
+    {
+      outputf (OUTPUT_ERROR, "GPU P-1: Only supports stage 1, requires B2=0\n");
+      return ECM_ERROR;
+    }
+
+  /* check that repr == ECM_MOD_DEFAULT or ECM_MOD_BASE2 (only for stage 2) */
+  if (params->repr != ECM_MOD_DEFAULT && params->repr != ECM_MOD_BASE2)
+      outputf (OUTPUT_ERROR, "GPU: Warning, the value of repr will be ignored "
+      "for step 1 on GPU.\n");
+
+  /* Cannot do resume on GPU */
+  if (!ECM_IS_DEFAULT_B1_DONE(params->B1done) && params->B1done < B1)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, cannot resume on GPU.\n");
+      return ECM_ERROR;
+    }
+
+  /* Cannot do resume on GPU */
+  if (infile == NULL || feof(infile))
+    {
+      printf("Hi %d\n", feof(infile));
+      outputf (OUTPUT_ERROR, "GPU: Must pass -inp file for GPU P-1.\n");
+      return ECM_ERROR;
+    }
+
+  /* Initialize the GPU if necessary and determine nb_curves */
+  if (!params->gpu_device_init)
+    {
+      st = cputime ();
+      youpi = select_and_init_GPU (
+              params->gpu_device,
+              &mutable_params->gpu_number_of_curves,
+              test_verbose (OUTPUT_VERBOSE));
+      if (youpi != 0)
+        return ECM_ERROR;
+
+      outputf (OUTPUT_VERBOSE, "GPU: Selection and initialization of the device "
+                               "took %ldms\n", elltime (st, cputime ()));
+      /* TRICKS: If initialization of the device is too long (few seconds), */
+      /* try running 'nvidia-smi -q -l' on the background .                 */
+      mutable_params->gpu_device_init = 1;
+    }
+  // Set local copy of number of curves
+  nb_curves = params->gpu_number_of_curves;
+
+  if (mpz_cmp_ui (params->x, 0) == 0)
+    {
+      mpz_t temp;
+      mpz_init_set_ui(temp, 0xFFFFFFFF);
+      // TODO figure out random include
+      mpz_set_ui(mutable_params->x, 3);
+      //__ecm_pm1_random_seed (mutable_params->x, temp, mutable_params->rng);
+      // TODO OUTPUT_VERBOSE
+      outputf (OUTPUT_ALWAYS, "GPU P-1: Using x0=%Zd\n", mutable_params->x);
+      mpz_clear(temp);
+    }
+
+  /* Init arrays */
+  inputs =  (mpcandi_t *) malloc(nb_curves * sizeof (mpcandi_t));
+  ASSERT_ALWAYS (inputs != NULL);
+  numbers = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  ASSERT_ALWAYS (numbers != NULL);
+  factors = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  ASSERT_ALWAYS (factors != NULL);
+  residuals = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  ASSERT_ALWAYS (residuals != NULL);
+
+  *n = inputs;
+  *f = factors;
+  *x = residuals;
+
+  /* TODO figure out interface for this */
+  assert (infile != NULL);
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Loading numbers from 'TODO'\n");
+
+  for (i = 0; i < nb_curves; i++)
+    {
+      mpcandi_t_init(&inputs[i]);
+      if (read_number(&inputs[i], infile, 1))
+        {
+          mpz_init_set (numbers[i], inputs[i].n);
+          mpz_init (factors[i]);
+          mpz_init (residuals[i]);
+           
+          // Validity checks, > 1, odd
+          if (mpz_cmp_ui(numbers[i], 1) <= 0)
+            {
+              fprintf(ECM_STDERR, "Error, n= should be great than 1.\n");
+              gmp_fprintf(ECM_STDERR, "n[%u]=%Zd\n", i, numbers[i]);
+              // GOTO FREE
+              return ECM_ERROR;
+            }
+          /* TODO figure out how to divide out 2's here and add to factors[i] */
+          if (mpz_tstbit(numbers[i], 0) == 0)
+            {
+              fprintf(ECM_STDERR, "Error, numbers should all be odd.\n");
+              gmp_fprintf(ECM_STDERR, "n[%u]=%Zd\n", i, numbers[i]);
+              // GOTO FREE
+              return ECM_ERROR;
+            }
+        }
+      else
+        {
+            mpcandi_t_free(&inputs[i]);
+
+            outputf (OUTPUT_VERBOSE,
+                     "GPU P-1: End of input truncating to %i curves\n", i);
+            // Reduce to running i curves
+            nb_curves = i;
+            mutable_params->gpu_number_of_curves = i;
+            break;
+        }
+    }
+
+  /* Compute s */
+  // TODO consider bload
+  ASSERT_ALWAYS (B1 != params->batch_last_B1_used);
+  ASSERT_ALWAYS (mpz_cmp_ui (params->batch_s, 1) <= 0);
+
+
+  st = cputime ();
+  /* construct the batch exponent */
+  compute_s (mutable_params->batch_s, B1, NULL);
+  outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
+                           " bits) of primes up to B1=%1.0f took %ldms\n",
+                           mpz_sizeinbase (params->batch_s, 2), B1, cputime () - st);
+  mutable_params->batch_last_B1_used = B1;
+
+  st = cputime ();
+
+  youpi = cgbn_pm1_stage1 (
+      numbers, factors, residuals,
+      params->batch_s, params->x, nb_curves, &gputime, params->verbose);
+
+  outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
+                          "%.0fms of GPU time\n",
+                          nb_curves, elltime (st, cputime ()), gputime);
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f numbers per second ",
+                                                 1000 * nb_curves/gputime);
+  outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n",
+                                                        gputime/nb_curves);
+
+  /* These have to be saved and restored on each output. */
+  mutable_params->B1done = B1;
+
+  /* Copy out result from saved i'th P-1 results. */
+  for (i = 0; i < nb_curves; i++)
+    {
+      outputf (OUTPUT_TRACE, "%d -> %Zd -> %Zd | %Zd\n", i, numbers[i], factors[i], residuals[i]);
+    }
+
+  // TODO save numbers or something
 }
 
 #endif /* HAVE_GPU */
