@@ -121,8 +121,8 @@ int  read_resumefile_line (int *, mpz_t, mpz_t, mpcandi_t *,
 			   mpz_t, mpz_t,
 			   mpz_t, mpz_t, int *, int *,
                            double *, char *, char *, char *, char *, FILE *);
-int write_resumefile (char *, int, mpz_t, ecm_params params,
-		      mpcandi_t *, mpz_t, mpz_t, 
+int write_resumefile (char *, int, ecm_params params,
+		      mpcandi_t *, const mpz_t, const mpz_t, const mpz_t,
 		      const char *);
 int write_s_in_file (char *, mpz_t);
 int read_s_from_file (mpz_t, char *, double); 

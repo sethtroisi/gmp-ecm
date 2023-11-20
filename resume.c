@@ -411,9 +411,9 @@ error:
 
 /* Append a residue in file. */
 static void  
-write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma, 
-                       int sigma_is_A, int Etype, int param, mpz_t x, mpz_t y,
-		       mpcandi_t *n, mpz_t x0, mpz_t y0, const char *comment)
+write_resumefile_line (FILE *file, int method, double B1, const mpz_t sigma,
+                       int sigma_is_A, int Etype, int param, const mpz_t x, const mpz_t y,
+		       const mpcandi_t *n, const mpz_t x0, const mpz_t y0, const char *comment)
 {
   mpz_t checksum;
   time_t t;
@@ -527,10 +527,12 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
 
 /* Call write_resumefile_line for each residue in x.
    x = x0 + x1*2^(bits) + ... + xk*2^(bits*k), xi are the residues (this is a hack for GPU)
+   orig_n is n before division by any found factors, used only by GPU code.
    Returns 1 on success, 0 on error */
 int  
-write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
-		  mpcandi_t *n, mpz_t orig_x0, mpz_t orig_y0, 
+write_resumefile (char *fn, int method, ecm_params params,
+		  mpcandi_t *n,
+                  const mpz_t orig_n, const mpz_t orig_x0, const mpz_t orig_y0,
 		  const char *comment)
 {
   FILE *file;
@@ -581,14 +583,13 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
 
   fseek (file, 0, SEEK_END);
 #endif
-  
 
   /* Now can call write_resumefile_line to write in the file */
   if (params->gpu == 0)
     {
       /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
          found */
-      mpz_mod (tmp_x, params->x, n->n); 
+      mpz_mod (tmp_x, params->x, n->n);
 
       /* We write the B1done value to the save file. This requires that
          a correct B1done is returned by the factoring functions. */
@@ -612,7 +613,9 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
     }
   else /* gpu case */
     {
-      size_t n_bits = mpz_sizeinbase(N, 2);
+      ASSERT_ALWAYS (mpz_cmp(orig_n, n->n) == 0 || mpz_divisible_p(orig_n, n->n));
+
+      size_t n_bits = mpz_sizeinbase(orig_n, 2);
       for (i = 0; i < params->gpu_number_of_curves; i++)
         {
           mpz_fdiv_r_2exp (tmp_x, params->x, n_bits);
@@ -627,6 +630,7 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
 				 comment);
           mpz_add_ui (params->sigma, params->sigma, 1);
         }
+      mpz_sub_ui (params->sigma, params->sigma, params->gpu_number_of_curves);
     }
 
   /* closing the file */
