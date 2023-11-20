@@ -62,7 +62,7 @@ nb_digits (const mpz_t n)
   return size;
 }
 
-/* Tries to read a number from a line from fd and stores it in r.
+/* Tries to read a number from a line from fd and stores it in n.
    Keeps reading lines until a number is found. Lines beginning with "#"
      are skipped.
    Returns 1 if a number was successfully read, 0 if no number can be read

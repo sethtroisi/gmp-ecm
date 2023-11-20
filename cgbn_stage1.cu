@@ -64,6 +64,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #endif
 
 // support routine copied from  "CGBN/samples/utility/support.h"
+static
 void cgbn_check(cgbn_error_report_t *report, const char *file=NULL, int32_t line=0) {
   // check for cgbn errors
 
@@ -105,9 +106,11 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
     exit(EXIT_FAILURE);
   }
 
+  /* Zero all words just to be safe */
+  for (words = 0; words < count; words++)
+      x[words] = 0;
   mpz_export (x, &words, -1, sizeof(uint32_t), 0, 0, s);
-  while(words<count)
-    x[words++]=0;
+  assert (words <= count);
 }
 
 
@@ -116,14 +119,14 @@ void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
 
 // The CGBN context uses the following three parameters:
 //   TBP             - threads per block (zero means to use the blockDim.x)
-//   MAX_ROTATION    - must be small power of 2, imperically, 4 works well
+//   MAX_ROTATION    - must be small power of 2, empirically, 4 works well
 //   CONSTANT_TIME   - require constant time algorithms (currently, constant time algorithms are not available)
 
 // Locally it will also be helpful to have several parameters:
 //   TPI             - threads per instance
 //   BITS            - number of bits per instance
 
-/* TODO test how this changes gpu_throughput_test */
+/* Doesn't seem to have any noticeable impact on performance. */
 /* NOTE: >= 512 may not be supported for > 2048 bit kernels */
 const uint32_t TPB_DEFAULT = 256;
 
@@ -371,7 +374,7 @@ __global__ void kernel_double_add(
         ) {
   // decode an instance_i number from the blockIdx and threadIdx
   int32_t instance_i = (blockIdx.x*blockDim.x + threadIdx.x)/params::TPI;
-  if(instance_i >= count)
+  if (instance_i >= count)
     return;
 
   /* Cast uint32_t array to mem_t */
@@ -454,9 +457,7 @@ __global__ void kernel_double_add(
 
 
 static
-int findfactor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t z_final) {
-    // XXX: combine / refactor logic with cudawrapper.c findfactor
-
+int find_ecm_factor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t z_final) {
     /* Check if factor found */
 
     bool inverted = mpz_invert(factor, z_final, N);    // aZ ^ (N-2) % N
@@ -518,9 +519,9 @@ uint32_t* allocate_and_set_s_bits(const mpz_t s, uint64_t *nbits) {
 
 
 static
-uint32_t* set_p_2p(const mpz_t N,
-                   uint32_t curves, uint32_t sigma,
-                   uint32_t BITS, size_t *data_size) {
+uint32_t* set_gpu_p_2p(const mpz_t N,
+                       uint32_t curves, uint32_t sigma,
+                       uint32_t BITS, size_t *data_size) {
   /**
    * Store 5 numbers per curve:
    * N, P_a (x, z), P_b (x, z)
@@ -573,7 +574,7 @@ uint32_t* set_p_2p(const mpz_t N,
 
 
 static
-int process_results(mpz_t *factors, int *array_found,
+int process_ecm_results(mpz_t *factors, int *array_found,
                     const mpz_t N,
                     const uint32_t *data, uint32_t cgbn_bits,
                     int curves, uint32_t sigma) {
@@ -591,15 +592,15 @@ int process_results(mpz_t *factors, int *array_found,
 
     if (test_verbose (OUTPUT_TRACE) && i == 0) {
       to_mpz(modulo, datum + 0 * limbs_per, limbs_per);
-      outputf (OUTPUT_TRACE, "index: 0 modulo: %Zd\n", modulo);
+      outputf (OUTPUT_TRACE, "index: %lu modulo: %Zd\n", i, modulo);
 
       to_mpz(x_final, datum + 1 * limbs_per, limbs_per);
       to_mpz(z_final, datum + 2 * limbs_per, limbs_per);
-      outputf (OUTPUT_TRACE, "index: 0 pA: (%Zd, %Zd)\n", x_final, z_final);
+      outputf (OUTPUT_TRACE, "index: %lu pA: (%Zd, %Zd)\n", i, x_final, z_final);
 
       to_mpz(x_final, datum + 3 * limbs_per, limbs_per);
       to_mpz(z_final, datum + 4 * limbs_per, limbs_per);
-      outputf (OUTPUT_TRACE, "index: 0 pB: (%Zd, %Zd)\n", x_final, z_final);
+      outputf (OUTPUT_TRACE, "index: %lu pB: (%Zd, %Zd)\n", i, x_final, z_final);
     }
 
     // Make sure we were testing the right number.
@@ -621,7 +622,7 @@ int process_results(mpz_t *factors, int *array_found,
         outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute?\n", i);
     }
 
-    array_found[i] = findfactor(factors[i], N, x_final, z_final);
+    array_found[i] = find_ecm_factor(factors[i], N, x_final, z_final);
     if (array_found[i] != ECM_NO_FACTOR_FOUND) {
       youpi = array_found[i];
       outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with curve %ld (-sigma %d:%lu)\n",
@@ -713,13 +714,13 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
    */
   /* NOTE: Custom kernel changes here
    * For "Compiling custom kernel for %d bits should be XX% faster"
-   * Change the 512 in cgbn_params_t<4, 512> cgbn_params_small;
+   * Change the 1024 in cgbn_params_t<8, 1024> cgbn_params_medium;
    * to the suggested value (a multiple of 32 >= bits + 6).
-   * You may need to change the 4 to an 8 (or 16) if bits >512, >2048
+   * You may need to change the 8 to 16 if bits >2048.
    */
-  /** TODO: try with const vector for BITs/TPI, see if compiler is happy */
   std::vector<uint32_t> available_kernels;
 
+  /* ECM kernels */
   typedef cgbn_params_t<4, 512>   cgbn_params_small;
   typedef cgbn_params_t<8, 1024>  cgbn_params_medium;
   available_kernels.push_back((uint32_t)cgbn_params_small::BITS);
@@ -809,7 +810,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       return ECM_ERROR;
     }
 
-  kernel_info((const void*)kernel_double_add<cgbn_params_medium>, verbose);
+  kernel_info((const void*)kernel, verbose);
 
   /* Alert that recompiling with a smaller kernel would likely improve speed */
   {
@@ -831,8 +832,9 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
   assert( sizeof(curve_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
   assert( sizeof(curve_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
-  data = set_p_2p(N, curves, sigma, BITS, &data_size);
+  data = set_gpu_p_2p(N, curves, sigma, BITS, &data_size);
 
+  /* Why is this computed? Consider removing */
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
   uint32_t np0 = find_np0(N);
 
@@ -845,7 +847,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
           "CGBN<%d, %d> running kernel<%d block x %d threads> input number is %d bits\n",
           BITS, TPI, BLOCK_COUNT, TPB, n_log2);
 
-  /* First bit (doubling) is handled in set_p_2p */
+  /* First bit (doubling) is handled in set_gpu_p_2p */
   uint64_t s_partial = 1;
 
   /* Start with small batches and increase till timing is ~100ms */
@@ -907,7 +909,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
   cudaEventElapsedTime (gputime, global_start, stop);
 
-  youpi = process_results(factors, array_found, N, data, BITS, curves, sigma);
+  youpi = process_ecm_results(factors, array_found, N, data, BITS, curves, sigma);
 
   // clean up
   CUDA_CHECK(cudaFree(gpu_s_bits));
