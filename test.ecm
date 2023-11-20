@@ -378,6 +378,21 @@ echo 294940575713329370427113862790368174424655176416322150390973123306949586795
 $ECM -resume $TEST 1001
 checkcode $? 6
 
+# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+/bin/rm -f $TEST
+echo 399168730698221569893043643349449251777 | ecm -save $TEST -sigma 1:101 300 1
+ecm -resume $TEST 300
+
+# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+/bin/rm -f $TEST
+echo 399168730698221569893043643349449251777 | ecm -save $TEST -sigma 2:103 200 1
+ecm -resume $TEST 200
+
+# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+/bin/rm -f $TEST
+echo 399168730698221569893043643349449251777 | ecm -save $TEST -sigma 3:101 200 1
+ecm -resume $TEST 200
+
 # test savea with existing file
 printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > $TEST
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea $TEST -param 0 -sigma 585928442 174000 0
