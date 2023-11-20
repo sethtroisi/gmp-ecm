@@ -52,14 +52,13 @@ libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
 # update, increment current, and set revision to 0.
 libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 1:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY)
-if WANT_GPU 
-  libecm_la_SOURCES += cudacommon.cu
-  libecm_la_SOURCES += cgbn_stage1.cu
+libecm_la_LIBADD += $(GMPLIB)
+if WANT_GPU
+  libecm_la_SOURCES += cudacommon.cu cgbn_stage1.cu
   libecm_la_LIBADD += $(CUDALIB)
   libecm_la_LDFLAGS += $(CUDALDFLAGS)
   ecm_LDFLAGS = $(CUDARPATH)
 endif
-libecm_la_LIBADD += $(GMPLIB)
 
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor bench_mulredc aprcl

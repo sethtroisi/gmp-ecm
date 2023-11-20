@@ -24,7 +24,11 @@ Big improvements
 * Consider what changes would be needed to run multiple numbers at a time.
   `set_p_2p`, `findfactor`, and `process_results` seem easy to change
   `np0` would have to become an array.
-  `n_log2` becames `max_n_log2`.
+  `n_log2` becomes `max_n_log2`.
+
+* For P-1 (and small ECM) it's nicer to do 1792 numbers at the same time instead of 1792 curves.
+  Initial P-1 testing 20-40x latency, but 40-60x throughput. Two attempts made to structure code
+  elegantly have failed.
 
 Testing
 
