@@ -349,7 +349,7 @@ int
 main (int argc, char *argv[])
 {
   char **argv0 = argv;
-  mpz_t x, y, sigma, A, f, orig_x0, orig_y0, B2, B2min, startingB2min, tmp_n;
+  mpz_t x, y, sigma, A, f, orig_x0, orig_y0, B2, B2min, startingB2min, orig_n;
   mpcandi_t n;
   mpgocandi_t go;
   mpq_t rat_x0, rat_y0, rat_A;
@@ -1518,9 +1518,9 @@ main (int argc, char *argv[])
               cnt -= params->gpu_number_of_curves; 
         }
 
-      /* When GPU is used we need to have the value of N before it is 
+      /* When GPU is used we need to have the value of N before it is
         divided by potential factor in f */
-      mpz_init_set (tmp_n, n.n);
+      mpz_init_set (orig_n, n.n);
 
       if (result != ECM_NO_FACTOR_FOUND)
         {
@@ -1531,7 +1531,7 @@ main (int argc, char *argv[])
             {
               if (params->gpu)
                   /* gpu returns multiple factors as f = f0 + f1*n + ... + fk*n^k */
-                  mpz_fdiv_qr (f, tmp_factor, f, tmp_n);
+                  mpz_fdiv_qr (f, tmp_factor, f, orig_n);
               else
                   mpz_set (tmp_factor, f);
 
@@ -1559,11 +1559,11 @@ main (int argc, char *argv[])
       if (savefilename != NULL && !n.isPrp)
         {
         /* TODO Deal with return code */
-	    write_resumefile (savefilename, method, tmp_n, params, &n, 
-			      orig_x0, orig_y0, comment);
+	    write_resumefile (savefilename, method, params, &n,
+			      orig_n, orig_x0, orig_y0, comment);
         }
 
-      mpz_clear (tmp_n);
+      mpz_clear (orig_n);
 
       /* Save the batch exponent s if requested */
       if (savefile_s != NULL)
