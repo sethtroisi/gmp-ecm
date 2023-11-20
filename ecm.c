@@ -1256,10 +1256,16 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   {
     /* Call get_curve_from_param0() before setting P.x otherwise it would
        reset P.x. */
-    get_curve_from_param0 (f, P.A, P.x, sigma, modulus);
+    if (param == ECM_PARAM_SUYAMA)
+      get_curve_from_param0 (f, P.A, P.x, sigma, modulus);
+    else if (param == ECM_PARAM_BATCH_SQUARE)
+      get_curve_from_param1 (P.A, P.x, sigma, modulus);
+    else if (param == ECM_PARAM_BATCH_2)
+      get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
+    else
+      get_curve_from_param3 (P.A, P.x, sigma, modulus);
     mpres_set_z (P.x, x, modulus);
     mpres_set_ui (P.y, 1, modulus);
-    gmp_printf ("Px=%Zd Py=%Zd\n", P.x, P.y);
   }
 
 #ifdef HAVE_ADDLAWS

@@ -382,16 +382,19 @@ checkcode $? 6
 /bin/rm -f $TEST
 echo 399168730698221569893043643349449251777 | ecm -save $TEST -sigma 1:101 300 1
 ecm -resume $TEST 300
+checkcode $? 14
 
 # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
 /bin/rm -f $TEST
 echo 399168730698221569893043643349449251777 | ecm -save $TEST -sigma 2:103 200 1
 ecm -resume $TEST 200
+checkcode $? 14
 
 # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
 /bin/rm -f $TEST
 echo 399168730698221569893043643349449251777 | ecm -save $TEST -sigma 3:101 200 1
 ecm -resume $TEST 200
+checkcode $? 14
 
 # test savea with existing file
 printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > $TEST
