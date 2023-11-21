@@ -585,7 +585,7 @@ write_resumefile (char *fn, int method, ecm_params params,
 #endif
 
   /* Now can call write_resumefile_line to write in the file */
-  if (params->gpu == 0)
+  if (params->gpu == 0 || params->method != ECM_ECM)
     {
       /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
          found */
@@ -616,21 +616,22 @@ write_resumefile (char *fn, int method, ecm_params params,
       ASSERT_ALWAYS (mpz_cmp(orig_n, n->n) == 0 || mpz_divisible_p(orig_n, n->n));
 
       size_t n_bits = mpz_sizeinbase(orig_n, 2);
+      mpz_t curve_sigma;
+      mpz_init_set (curve_sigma, params->sigma);
       for (i = 0; i < params->gpu_number_of_curves; i++)
         {
           mpz_fdiv_r_2exp (tmp_x, params->x, n_bits);
           mpz_fdiv_q_2exp (params->x, params->x, n_bits);
           mpz_mod (tmp_x, tmp_x, n->n);
-          write_resumefile_line (file, method, params->B1done, params->sigma,
+          write_resumefile_line (file, method, params->B1done, curve_sigma,
 				 params->sigma_is_A, params->E->type,
                                  /* since the gpu version always uses -param 3,
                                     we hardcode it in the save file */
 				 ECM_PARAM_BATCH_32BITS_D,
 				 tmp_x, NULL, n, orig_x0, orig_y0, 
 				 comment);
-          mpz_add_ui (params->sigma, params->sigma, 1);
+          mpz_add_ui (curve_sigma, curve_sigma, 1);
         }
-      mpz_sub_ui (params->sigma, params->sigma, params->gpu_number_of_curves);
     }
 
   /* closing the file */
