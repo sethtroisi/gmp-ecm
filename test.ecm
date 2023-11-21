@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # test file for ECM
 #
@@ -54,7 +54,7 @@ checkcode () {
     printf "\n"
     printf "################### ERROR ####################\n"
     printf "Expected return code $2 but got $1 on line $FROM\n"
-    printf -- "----------- SOURCE LINE %-3d and %-3d ----------\n" $((FROM-1)) $FROM
+    printf -- "----------- SOURCE LINES %-2d and %-2d ----------\n" $((FROM-1)) $FROM
     LINE_AND_BEFORE=$(sed -n "$((FROM-1))p;$((FROM))p" "${THIS_FILE}")
     echo "$LINE_AND_BEFORE"
     printf "##############################################\n"
