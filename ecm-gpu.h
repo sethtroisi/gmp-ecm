@@ -24,7 +24,7 @@
 #define gpu_ecm __ECM(gpu_ecm)
 #ifdef WITH_GPU
 int gpu_ecm (mpz_t, const ecm_params, ecm_params, mpz_t, double);
-int gpu_pm1 (FILE *, mpcandi_t **, mpz_t **, mpz_t **,
+int gpu_pm1 (FILE *, char *, mpcandi_t **, mpz_t **, mpz_t **,
              const ecm_params, ecm_params, double);
 
 #endif

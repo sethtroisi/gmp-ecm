@@ -313,8 +313,8 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   if (mpz_sgn (params->sigma) == 0)
     {
       /* generate random value in [2, 2^32 - nb_curves - 1] */
-      //mpz_set_ui (mutable_params->sigma,
-      //            (get_random_ul () % (TWO32 - 2 - nb_curves)) + 2);
+      mpz_set_ui (mutable_params->sigma,
+                  (get_random_ul () % (TWO32 - 2 - nb_curves)) + 2);
     }
   else /* sigma should be in [2, 2^32-nb_curves] */
     {
@@ -558,7 +558,7 @@ end_gpu_ecm:
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-gpu_pm1 (FILE * infile, mpcandi_t **n, mpz_t **f, mpz_t **x,
+gpu_pm1 (FILE * infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
          const ecm_params params, ecm_params mutable_params, double B1)
 {
   unsigned int i;
@@ -737,13 +737,65 @@ gpu_pm1 (FILE * infile, mpcandi_t **n, mpz_t **f, mpz_t **x,
   /* These have to be saved and restored on each output. */
   mutable_params->B1done = B1;
 
+  /* Variables needed for write_resumefile */
+  mpz_t x0;
+  char comment[2] = "";
+  mpz_init_set(x0, params->x);
+
+  int factors_found = 0;
+  for (i = 0; i < nb_curves; i++)
+      factors_found += mpz_cmp_ui(factors[i], 1) > 0;
+
+  if (factors_found)
+      fprintf(ECM_STDOUT, "\n\n");
+
   /* Copy out result from saved i'th P-1 results. */
   for (i = 0; i < nb_curves; i++)
     {
       outputf (OUTPUT_TRACE, "%d -> %Zd -> %Zd | %Zd\n", i, numbers[i], factors[i], residuals[i]);
+      ASSERT_ALWAYS (mpz_cmp (numbers[i], inputs[i].n) == 0);
+
+      if (savefilename != NULL)
+        {
+          if (mpz_cmp_ui (factors[i], 1) > 0) {
+              ASSERT_ALWAYS (mpz_divisible_p (inputs[i].n, factors[i]));
+
+              // TODO this or possible just mpcandi_t_addfactor and some print statements
+
+              unsigned int fake_cnt = 1;
+              mpz_t fake_lastfac;
+              mpz_init(fake_lastfac);
+              // TODO not sure what these should be set to
+              int resume_wasPrp = 0;
+
+              process_newfactor (
+                      factors[i], ECM_FACTOR_FOUND_STEP1, &inputs[i], ECM_PM1,
+                      /* returncode */ 0, /* gpu (TODO change var to is_ecm_gpu) */ 0,
+                      &fake_cnt, &resume_wasPrp, fake_lastfac, /* resumefile */ NULL,
+                      params->verbose, /* deep */ 0);
+
+              mpz_clear (fake_lastfac);
+          }
+
+
+          /* write_resumefile expects residual in params->x */
+          mpz_set(mutable_params->x, residuals[i]);
+
+          write_resumefile (savefilename, ECM_PM1, mutable_params, &inputs[i],
+                  /* orig_n */ numbers[i], /* orig_x0 */ x0, /* orig_y0 */ NULL, comment);
+        }
     }
 
-  // TODO save numbers or something
+  mpz_set(mutable_params->x, x0);
+  mpz_clear(x0);
+
+  if (factors_found)
+    {
+      fprintf(ECM_STDOUT, "\n\n");
+      return ECM_FACTOR_FOUND_STEP1;
+    }
+
+  return ECM_NO_FACTOR_FOUND;
 }
 
 #endif /* HAVE_GPU */

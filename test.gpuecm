@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -x
+
 # test file for ECM on GPU
 #
 # Copyright 2012
@@ -82,6 +84,7 @@ checkcode $? 6
 
 # test default param
 echo "2^349-1" | $ECM 587 0
+# TODO checkcode
 
 # test param=1
 echo "2^349-1" | $ECM -param 1 587 0
