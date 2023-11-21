@@ -54,7 +54,7 @@ libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 1:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 libecm_la_LIBADD += $(GMPLIB)
 if WANT_GPU
-  libecm_la_SOURCES += cudacommon.cu cgbn_stage1.cu auxi.c candi.c eval.c
+  libecm_la_SOURCES += cudacommon.cu cgbn_stage1.cu auxi.c candi.c eval.c resume.c
   libecm_la_LIBADD += $(CUDALIB)
   libecm_la_LDFLAGS += $(CUDALDFLAGS)
   ecm_LDFLAGS = $(CUDARPATH)

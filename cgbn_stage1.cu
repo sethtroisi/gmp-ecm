@@ -1055,6 +1055,7 @@ __global__ void kernel_pm1_partial(
         int bit = (gpu_s_bits[nth/32] >> (nth&31)) & 1;
 
         window_bits = (window_bits << 1) | bit;
+        // Can do simplier test that ((window_bits << 1) + 1) <= (1 << WINDOW_BITS)
         if (nth % WINDOW_BITS == 0) {
             // Can skip the mult by 1 case.
             if (window_bits > 0) {
@@ -1161,7 +1162,7 @@ uint32_t* set_gpu_pm1_data(
 
 static
 int find_pm1_factor(mpz_t factor, const mpz_t N, const mpz_t a) {
-    /* Check if factor found */
+    /* Check if factor found <=> gcd(x0^g, N) > 1 */
     mpz_sub_ui (factor, a, 1);
     mpz_gcd (factor, factor, N);
 
@@ -1169,7 +1170,7 @@ int find_pm1_factor(mpz_t factor, const mpz_t N, const mpz_t a) {
         return ECM_FACTOR_FOUND_STEP1;
     }
 
-    mpz_set(factor, a);
+    mpz_set_ui (factor, 1);
     return ECM_NO_FACTOR_FOUND;
 }
 
