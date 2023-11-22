@@ -644,10 +644,9 @@ gpu_pm1 (FILE * infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
       // TODO figure out random include
       mpz_set_ui(mutable_params->x, 3);
       //__ecm_pm1_random_seed (mutable_params->x, temp, mutable_params->rng);
-      // TODO OUTPUT_VERBOSE
-      outputf (OUTPUT_ALWAYS, "GPU P-1: Using x0=%Zd\n", mutable_params->x);
       mpz_clear(temp);
     }
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd\n", mutable_params->x);
 
   /* Init arrays */
   inputs =  (mpcandi_t *) malloc(nb_curves * sizeof (mpcandi_t));
