@@ -68,7 +68,8 @@ LDADD = libecm.la $(GMPLIB)
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_CFLAGS = $(OPENMP_CFLAGS) -g
-ecm_SOURCES = auxi.c candi.c eval.c main.c resume.c addlaws.c torsions.c \
+ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c main.c resume.c \
+	      addlaws.c torsions.c \
               getprime_r.c champions.h aprtcle/mpz_aprcl.c memusage.c
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
@@ -80,7 +81,7 @@ tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 ecmfactor_CFLAGS = $(OPENMP_CFLAGS) -lpthread
 
 # multiecm_CPPFLAGS = -DOUTSIDE_LIBECM
-# multiecm_SOURCES = auxi.c candi.c eval.c random.c multiecm.c \
+# multiecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c multiecm.c \
 #               resume.c getprime_r.c addlaws.c torsions.c aprtcle/mpz_aprcl.c
 # multiecm_CFLAGS = $(OPENMP_CFLAGS)
 
