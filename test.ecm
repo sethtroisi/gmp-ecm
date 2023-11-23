@@ -82,6 +82,9 @@ esac
 # 2^4 * 3^3 * 29 * 2411
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
 
+# check -I option
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 -I 1 -c 2 3 0-1e6; checkcode $? 14
+
 # exercise the -timestamp option
 echo 2050449353925555290706354283 | $ECM -timestamp -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
 
@@ -115,6 +118,9 @@ echo 2050449353925555290706354283 | $ECM -v -v -v -v -param 0 -sigma 7 -k 1 30 1
 # check the -treefile option
 echo 2050449353925555290706354283 | $ECM -param 0 -treefile tree -sigma 7 -k 1 30 1e6; checkcode $? 14
 
+# check the -I f option
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -I 1 -c 3 100; checkcode $? 14
+
 # check the -chkpnt option
 TEST=test.ecm.chk$$
 echo 2050449353925555290706354283 | $ECM -chkpnt $TEST -param 0 -sigma 7 30 1e6
@@ -126,7 +132,7 @@ checkcode $C 14
 # check the -inp option
 TEST=test.ecm.inp$$
 echo 2050449353925555290706354283 > $TEST
-$ECM -inp $TEST -param 0 -sigma 7 -c 3 200
+$ECM -inp $TEST -param 0 -sigma 7 -I 1 -c 3 100
 C=$?
 /bin/rm -f $TEST
 checkcode $C 14
@@ -197,6 +203,9 @@ echo "2^1123-1" | $ECM -A 1.2 11000; checkcode $? 1
 
 # exercise "Error, -A requires a starting point (-x0 x)." error message
 echo "2^1123-1" | $ECM -A 1234567890 11e3; checkcode $? 1
+
+# exercise "Error, the -I f option requires f > 0" error message
+echo "2^1123-1" | $ECM -I -1 11000; checkcode $? 1
 
 # exercise "Can't find input file" error message
 $ECM -inp 1; checkcode $? 1
