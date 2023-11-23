@@ -24,5 +24,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 double
 calc_B1_AutoIncrement (double cur_B1, double incB1val)
 {
-  return cur_B1 + incB1val * sqrt (cur_B1);
+  double newB1 = cur_B1 + incB1val * sqrt (cur_B1);
+  // round to an integer
+  newB1 = round (newB1);
+  return newB1;
 }
