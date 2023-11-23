@@ -113,9 +113,6 @@ void getprime_clear ();
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 #define FREE_PRIME_TABLE -1.0
 
-/* b1_ainc.c */
-double calc_B1_AutoIncrement(double cur_B1, double incB1val);
-
 /* resume.c */
 int  read_resumefile_line (int *, mpz_t, mpz_t, mpcandi_t *, 
 			   mpz_t, mpz_t,
