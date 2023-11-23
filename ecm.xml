@@ -437,10 +437,10 @@ by <replaceable>n</replaceable> after each curve.
   </varlistentry>
 
   <varlistentry>
-  <term><option>-I <replaceable>n</replaceable></option></term>
+  <term><option>-I <replaceable>f</replaceable></option></term>
   <listitem>
-<para>In loop mode, multiply <replaceable>B1</replaceable>
-by a factor depending on <replaceable>n</replaceable> after each curve.
+<para>In loop mode, add <replaceable>f</replaceable> multiplied by the
+square root of <replaceable>B1</replaceable> after each curve.
 Default is one which should be optimal on one machine, while  
 <option>-I 10</option> could be used when trying to factor the same number 
 simultaneously on 10 identical machines.
