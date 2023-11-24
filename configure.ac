@@ -1,7 +1,7 @@
 m4_define([ECM_VERSION_AC], [7.0.6-dev])
 
 AC_PREREQ([2.57])
-AC_INIT([ecm], ECM_VERSION_AC, [ecm-discuss@inria.fr])
+AC_INIT([ecm],[ECM_VERSION_AC],[ecm-discuss@inria.fr])
 
 AC_CONFIG_MACRO_DIR([m4])
 GMP_INIT([config.m4])
@@ -174,7 +174,7 @@ fi
 
 
 dnl Checks for programs.
-AC_PROG_CC_C99
+m4_version_prereq([2.70],[AC_PROG_CC],[AC_PROG_CC_C99])
 AM_PROG_AS
 AM_PROG_CC_C_O
 
@@ -201,9 +201,6 @@ AC_C_CONST
 dnl Check if compiler supports "inline," if not define it to 
 dnl __inline__ or __inline or the empty string
 AC_C_INLINE
-
-dnl Check if both time.h and sys/time.h can be included
-AC_HEADER_TIME
 
 dnl Define size_t to something useable if standard headers don't
 AC_TYPE_SIZE_T
@@ -385,7 +382,9 @@ AM_CONDITIONAL([WITH_GWNUM], [test "x$with_gwnum" != "x"])
 
 dnl Checks for header files.
 AC_FUNC_ALLOCA
-AC_HEADER_STDC
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h signal.h fcntl.h])
 AC_CHECK_HEADERS([windows.h psapi.h], [], [],
    [[#ifdef HAVE_WINDOWS_H
