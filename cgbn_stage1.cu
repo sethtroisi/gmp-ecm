@@ -262,6 +262,7 @@ class curve_t {
 
     /* Doesn't seem to be a large cost to using many extra variables */
     bn_t t, CB, DA, AA, BB, K, dK;
+    bn_t dK_test;
 
     /* Can maybe use one more bit if cgbn_add subtracts when carry happens */
     /* Might be nice to add a macro that verifies no carry out of cgbn_add */
@@ -309,7 +310,7 @@ class curve_t {
     if (cgbn_sub(_env, K, AA, BB)) // K = AA-BB
         cgbn_add(_env, K, K, modulus);
 
-    if (1) {
+    if (0) {
         // For Param=0 with special form d
         // By definition of d = (sigma / 2^32) % MODN
         // K = k*R
@@ -320,9 +321,16 @@ class curve_t {
     } else {
         // Looks like we need b = (A0 + 2) * B??? / 4
         // dK
-        cgbn_mont_mul(_env, dK, K, dA, modulus, np0); // dk = K*d
+        cgbn_mont_mul(_env, dK, dA, K, modulus, np0); // dk = K*d
         normalize_addition(dK, modulus);
             assert_normalized(dK, modulus);
+
+        cgbn_set(_env, dK_test, K);
+        special_mult_ui32(dK_test, d, modulus, np0); // dK = K*d
+            assert_normalized(dK, modulus);
+
+        if (!cgbn_equals(_env, dK, dK_test))
+            _context.report_error((cgbn_error_t)100);
     }
 
     cgbn_add(_env, u, BB, dK); // BB + dK
@@ -572,7 +580,7 @@ uint32_t* set_p_2p(const mpz_t N,
   mpz_t x;
   mpz_init(x);
   for(int index = 0; index < curves; index++) {
-      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
+      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mult_ui32
       uint32_t d = sigma + index;
 
       // Modulo (N)
@@ -581,10 +589,10 @@ uint32_t* set_p_2p(const mpz_t N,
       if (0) {
         get_sigma_A(sigma, x, N);
       } else {
-        //mpz_ui_pow_ui(x, 2, 32);
-        //mpz_invert(x, x, N);
-        //mpz_mul_ui(x, x, d);
-        mpz_set_ui(x, d);
+        mpz_ui_pow_ui(x, 2, 32);
+        mpz_invert(x, x, N);
+        mpz_mul_ui(x, x, d);
+        mpz_mod(x, x, N);
       }
       from_mpz(x, datum + 1 * limbs_per, BITS/32);
 
@@ -604,6 +612,7 @@ uint32_t* set_p_2p(const mpz_t N,
       mpz_ui_pow_ui(x, 2, 32);
       mpz_invert(x, x, N);
       mpz_mul_ui(x, x, d);
+      mpz_mod(x, x, N);
       // P2_x = 64 * d + 8;
       mpz_mul_ui(x, x, 64);
       mpz_add_ui(x, x, 8);
