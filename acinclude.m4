@@ -92,9 +92,9 @@ dnl  macros.
 ')]
 EOF
 dnl ' <- balance the quotes for emacs sh-mode
-  echo "trying m4" >&AC_FD_CC
-  gmp_tmp_val=`(m4 conftest.m4) 2>&AC_FD_CC`
-  echo "$gmp_tmp_val" >&AC_FD_CC
+  echo "trying m4" >&AS_MESSAGE_LOG_FD
+  gmp_tmp_val=`(m4 conftest.m4) 2>&AS_MESSAGE_LOG_FD`
+  echo "$gmp_tmp_val" >&AS_MESSAGE_LOG_FD
   if test "$gmp_tmp_val" = good; then
     gmp_cv_prog_m4="m4"
   else
@@ -105,9 +105,9 @@ dnl not every word.  This closes a longstanding sh security hole.
     ac_dummy="$PATH:/usr/5bin"
     for ac_dir in $ac_dummy; do
       test -z "$ac_dir" && ac_dir=.
-      echo "trying $ac_dir/m4" >&AC_FD_CC
-      gmp_tmp_val=`($ac_dir/m4 conftest.m4) 2>&AC_FD_CC`
-      echo "$gmp_tmp_val" >&AC_FD_CC
+      echo "trying $ac_dir/m4" >&AS_MESSAGE_LOG_FD
+      gmp_tmp_val=`($ac_dir/m4 conftest.m4) 2>&AS_MESSAGE_LOG_FD`
+      echo "$gmp_tmp_val" >&AS_MESSAGE_LOG_FD
       if test "$gmp_tmp_val" = good; then
         gmp_cv_prog_m4="$ac_dir/m4"
         break
@@ -151,7 +151,7 @@ dnl  conftest.o and conftest.out are available for inspection in
 dnl  "action-success".  If either action does a "break" out of a loop then
 dnl  an explicit "rm -f conftest*" will be necessary.
 dnl
-dnl  This is not unlike AC_TRY_COMPILE, but there's no default includes or
+dnl  This is not unlike AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[],[]), but there's no default includes or
 dnl  anything in "asm-code", everything wanted must be given explicitly.
 
 AC_DEFUN([GMP_TRY_ASSEMBLE],
@@ -160,12 +160,12 @@ AC_DEFUN([GMP_TRY_ASSEMBLE],
 EOF
 gmp_assemble="$CCAS $CCASFLAGS -c conftest.s >conftest.out 2>&1"
 if AC_TRY_EVAL(gmp_assemble); then
-  cat conftest.out >&AC_FD_CC
+  cat conftest.out >&AS_MESSAGE_LOG_FD
   ifelse([$2],,:,[$2])
 else
-  cat conftest.out >&AC_FD_CC
-  echo "configure: failed program was:" >&AC_FD_CC
-  cat conftest.s >&AC_FD_CC
+  cat conftest.out >&AS_MESSAGE_LOG_FD
+  echo "configure: failed program was:" >&AS_MESSAGE_LOG_FD
+  cat conftest.s >&AS_MESSAGE_LOG_FD
   ifelse([$3],,:,[$3])
 fi
 rm -f conftest*
@@ -311,7 +311,7 @@ EOF
 EOF
     ;;
   esac
-  gmp_compile="$CC $CFLAGS $CPPFLAGS -c conftes1.c >&AC_FD_CC && $CCAS $CCASFLAGS -c conftes2.s >&AC_FD_CC && $CC $CFLAGS $LDFLAGS conftes1.$OBJEXT conftes2.$OBJEXT >&AC_FD_CC"
+  gmp_compile="$CC $CFLAGS $CPPFLAGS -c conftes1.c >&AS_MESSAGE_LOG_FD && $CCAS $CCASFLAGS -c conftes2.s >&AS_MESSAGE_LOG_FD && $CC $CFLAGS $LDFLAGS conftes1.$OBJEXT conftes2.$OBJEXT >&AS_MESSAGE_LOG_FD"
   if AC_TRY_EVAL(gmp_compile); then
     eval tmp_result$tmp_underscore=yes
   else
