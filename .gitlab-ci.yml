@@ -4,10 +4,9 @@ linux_gmp:
     - autoreconf -i
     - ./configure
     - make
-    - ./test.ecm ./ecm
     - make check
   artifacts:
     paths:
-      - ./test-suite.log
+      - test-suite.log
   tags:
     - linux
