@@ -252,6 +252,7 @@ class curve_t {
           bn_t &q, bn_t &u,
           bn_t &w, bn_t &v,
           uint32_t d,
+          bn_t &dA,
           const bn_t &modulus,
           const uint32_t np0) {
     // q = xA = aX
@@ -308,12 +309,21 @@ class curve_t {
     if (cgbn_sub(_env, K, AA, BB)) // K = AA-BB
         cgbn_add(_env, K, K, modulus);
 
-    // By definition of d = (sigma / 2^32) % MODN
-    // K = k*R
-    // dK = d*k*R = (K * R * sigma) >> 32
-    cgbn_set(_env, dK, K);
-    special_mult_ui32(dK, d, modulus, np0); // dK = K*d
-        assert_normalized(dK, modulus);
+    if (1) {
+        // For Param=0 with special form d
+        // By definition of d = (sigma / 2^32) % MODN
+        // K = k*R
+        // dK = d*k*R = (K * R * sigma) >> 32
+        cgbn_set(_env, dK, K);
+        special_mult_ui32(dK, d, modulus, np0); // dK = K*d
+            assert_normalized(dK, modulus);
+    } else {
+        // Looks like we need b = (A0 + 2) * B??? / 4
+        // dK
+        cgbn_mont_mul(_env, dK, K, dA, modulus, np0); // dk = K*d
+        normalize_addition(dK, modulus);
+            assert_normalized(dK, modulus);
+    }
 
     cgbn_add(_env, u, BB, dK); // BB + dK
     normalize_addition(u, modulus);
@@ -380,24 +390,27 @@ __global__ void kernel_double_add(
   cgbn_monitor_t monitor = CHECK_ERROR ? cgbn_report_monitor : cgbn_no_checks;
 
   curve_t<params> curve(monitor, report, instance_i);
-  typename curve_t<params>::bn_t  aX, aZ, bX, bZ, modulus;
+  typename curve_t<params>::bn_t  aX, aZ, bX, bZ, modulus, dA;
 
   { // Setup
-      cgbn_load(curve._env, modulus, &data_cast[5*instance_i+0]);
-      cgbn_load(curve._env, aX, &data_cast[5*instance_i+1]);
-      cgbn_load(curve._env, aZ, &data_cast[5*instance_i+2]);
-      cgbn_load(curve._env, bX, &data_cast[5*instance_i+3]);
-      cgbn_load(curve._env, bZ, &data_cast[5*instance_i+4]);
+      cgbn_load(curve._env, modulus, &data_cast[6*instance_i+0]);
+      cgbn_load(curve._env, dA, &data_cast[6*instance_i+1]);
+      cgbn_load(curve._env, aX, &data_cast[6*instance_i+2]);
+      cgbn_load(curve._env, aZ, &data_cast[6*instance_i+3]);
+      cgbn_load(curve._env, bX, &data_cast[6*instance_i+4]);
+      cgbn_load(curve._env, bZ, &data_cast[6*instance_i+5]);
 
       /* Convert points to mont, has a miniscule bit of overhead with batching. */
-      uint32_t np0_test = cgbn_bn2mont(curve._env, aX, aX, modulus);
+      uint32_t np0_test = cgbn_bn2mont(curve._env, dA, dA, modulus);
       assert(np0 == np0_test);
 
+      cgbn_bn2mont(curve._env, aX, aX, modulus);
       cgbn_bn2mont(curve._env, aZ, aZ, modulus);
       cgbn_bn2mont(curve._env, bX, bX, modulus);
       cgbn_bn2mont(curve._env, bZ, bZ, modulus);
 
       {
+        curve.assert_normalized(dA, modulus);
         curve.assert_normalized(aX, modulus);
         curve.assert_normalized(aZ, modulus);
         curve.assert_normalized(bX, modulus);
@@ -424,7 +437,7 @@ __global__ void kernel_double_add(
         cgbn_swap(curve._env, aX, bX);
         cgbn_swap(curve._env, aZ, bZ);
     }
-    curve.double_add_v2(aX, aZ, bX, bZ, d, modulus, np0);
+    curve.double_add_v2(aX, aZ, bX, bZ, d, dA, modulus, np0);
   }
 
   if (swapped) {
@@ -445,10 +458,10 @@ __global__ void kernel_double_add(
       curve.assert_normalized(bX, modulus);
       curve.assert_normalized(bZ, modulus);
     }
-    cgbn_store(curve._env, &data_cast[5*instance_i+1], aX);
-    cgbn_store(curve._env, &data_cast[5*instance_i+2], aZ);
-    cgbn_store(curve._env, &data_cast[5*instance_i+3], bX);
-    cgbn_store(curve._env, &data_cast[5*instance_i+4], bZ);
+    cgbn_store(curve._env, &data_cast[6*instance_i+2], aX);
+    cgbn_store(curve._env, &data_cast[6*instance_i+3], aZ);
+    cgbn_store(curve._env, &data_cast[6*instance_i+4], bX);
+    cgbn_store(curve._env, &data_cast[6*instance_i+5], bZ);
   }
 }
 
@@ -516,21 +529,43 @@ uint32_t* allocate_and_set_s_bits(const mpz_t s, uint64_t *nbits) {
   return s_bits;
 }
 
+/** Get A for param0 curve with sigma */
+static
+void get_sigma_A(uint32_t sigma_u32, mpz_t A, const mpz_t N)
+{
+  mpz_t f, x, sigma;
+  mpmod_t modulus;
+  mpz_init(f);
+  mpz_init(x);
+  mpz_init_set_ui(sigma, sigma_u32);
+  mpmod_init(modulus, N, ECM_MOD_MPZ);
+
+  int result = get_curve_from_param0 (f, A, x, sigma, modulus);
+
+  // TODO handle factor found and ECM_ERROR
+  ASSERT_ALWAYS (result == ECM_NO_FACTOR_FOUND);
+  ASSERT_ALWAYS (mpz_cmp_ui (x, 2) == 0);
+
+  mpz_clear(f);
+  mpz_clear(x);
+  mpmod_clear(modulus);
+}
+
 
 static
 uint32_t* set_p_2p(const mpz_t N,
                    uint32_t curves, uint32_t sigma,
                    uint32_t BITS, size_t *data_size) {
   /**
-   * Store 5 numbers per curve:
-   * N, P_a (x, z), P_b (x, z)
+   * Store 6 numbers per curve:
+   * N, b=(A+2)/4, P_a (x, z), P_b (x, z)
    *
    * P_a is initialized with (2, 1)
    * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
    */
 
   const size_t limbs_per = BITS/32;
-  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
+  *data_size = 6 * curves * limbs_per * sizeof(uint32_t);
   uint32_t *data = (uint32_t*) malloc(*data_size);
   uint32_t *datum = data;
 
@@ -543,16 +578,27 @@ uint32_t* set_p_2p(const mpz_t N,
       // Modulo (N)
       from_mpz(N, datum + 0 * limbs_per, BITS/32);
 
+      if (0) {
+        get_sigma_A(sigma, x, N);
+      } else {
+        //mpz_ui_pow_ui(x, 2, 32);
+        //mpz_invert(x, x, N);
+        //mpz_mul_ui(x, x, d);
+        mpz_set_ui(x, d);
+      }
+      from_mpz(x, datum + 1 * limbs_per, BITS/32);
+
+
       // P1 (X, Z)
       mpz_set_ui(x, 2);
-      from_mpz(x, datum + 1 * limbs_per, BITS/32);
-      mpz_set_ui(x, 1);
       from_mpz(x, datum + 2 * limbs_per, BITS/32);
+      mpz_set_ui(x, 1);
+      from_mpz(x, datum + 3 * limbs_per, BITS/32);
 
       // 2P = P2 (X, Z)
       // P2_x = 9
       mpz_set_ui(x, 9);
-      from_mpz(x, datum + 3 * limbs_per, BITS/32);
+      from_mpz(x, datum + 4 * limbs_per, BITS/32);
 
       // d = sigma * mod_inverse(2 ** 32, N)
       mpz_ui_pow_ui(x, 2, 32);
@@ -564,8 +610,8 @@ uint32_t* set_p_2p(const mpz_t N,
       mpz_mod(x, x, N);
 
       outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x);
-      from_mpz(x, datum + 4 * limbs_per, BITS/32);
-      datum += 5 * limbs_per;
+      from_mpz(x, datum + 5 * limbs_per, BITS/32);
+      datum += 6 * limbs_per;
   }
   mpz_clear(x);
   return data;
@@ -587,18 +633,18 @@ int process_results(mpz_t *factors, int *array_found,
   int youpi = ECM_NO_FACTOR_FOUND;
   int errors = 0;
   for(size_t i = 0; i < curves; i++) {
-    const uint32_t *datum = data + (5 * i * limbs_per);;
+    const uint32_t *datum = data + (6 * i * limbs_per);;
 
     if (test_verbose (OUTPUT_TRACE) && i == 0) {
       to_mpz(modulo, datum + 0 * limbs_per, limbs_per);
       outputf (OUTPUT_TRACE, "index: 0 modulo: %Zd\n", modulo);
 
-      to_mpz(x_final, datum + 1 * limbs_per, limbs_per);
-      to_mpz(z_final, datum + 2 * limbs_per, limbs_per);
+      to_mpz(x_final, datum + 2 * limbs_per, limbs_per);
+      to_mpz(z_final, datum + 3 * limbs_per, limbs_per);
       outputf (OUTPUT_TRACE, "index: 0 pA: (%Zd, %Zd)\n", x_final, z_final);
 
-      to_mpz(x_final, datum + 3 * limbs_per, limbs_per);
-      to_mpz(z_final, datum + 4 * limbs_per, limbs_per);
+      to_mpz(x_final, datum + 4 * limbs_per, limbs_per);
+      to_mpz(z_final, datum + 5 * limbs_per, limbs_per);
       outputf (OUTPUT_TRACE, "index: 0 pB: (%Zd, %Zd)\n", x_final, z_final);
     }
 
@@ -606,8 +652,8 @@ int process_results(mpz_t *factors, int *array_found,
     to_mpz(modulo, datum + 0 * limbs_per, limbs_per);
     assert(mpz_cmp(modulo, N) == 0);
 
-    to_mpz(x_final, datum + 1 * limbs_per, limbs_per);
-    to_mpz(z_final, datum + 2 * limbs_per, limbs_per);
+    to_mpz(x_final, datum + 2 * limbs_per, limbs_per);
+    to_mpz(z_final, datum + 3 * limbs_per, limbs_per);
 
     /* Very suspicious for (x_final, z_final) to match (x_0, z_0) == (2, 1)
      * Can happen when

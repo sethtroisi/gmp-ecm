@@ -2241,6 +2241,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
 
   if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
     {
+        printf("HI %d -> %d\n", param, IS_BATCH_MODE(param));
         if (IS_BATCH_MODE(param))
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
 	    youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, 
