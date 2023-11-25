@@ -28,9 +28,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #if HAVE_SYS_TIME_H
 # include <sys/time.h>
-#else
-# include <time.h>
 #endif
+#include <time.h>
 
 #ifdef HAVE_LIMITS_H
 # include <limits.h>
