@@ -382,7 +382,7 @@ AM_CONDITIONAL([WITH_GWNUM], [test "x$with_gwnum" != "x"])
 
 dnl Checks for header files.
 AC_FUNC_ALLOCA
-AC_CHECK_INCLUDES_DEFAULT
+AC_HEADER_STDC
 AC_PROG_EGREP
 
 AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h signal.h fcntl.h])
