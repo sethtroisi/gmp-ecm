@@ -78,6 +78,13 @@ in
 *) VALGRIND=0
 esac
 
+$ECM -printconfig | grep "GMP_NUMB_BITS = 64"
+if [ $? -eq 0 ]; then
+   GMP_NUMB_BITS==64
+else
+   GMP_NUMB_BITS==32
+fi
+
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
 # 2^4 * 3^3 * 29 * 2411
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
@@ -94,10 +101,12 @@ echo 2050449353925555290706354283 | $ECM -stage1time 17 -param 0 -sigma 7 -k 1 3
 # exercise the -primetest option
 echo 2050449353925555290706354283 | $ECM -primetest -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
 
-# test the -primetest option
-echo 69281828573340491 | $ECM -primetest -param 1 -sigma 758224547 -k 1 2e4; checkcode $? 0
-if [ "$MUL" != "redc"]; then
-echo 69281828573340491 | $ECM            -param 1 -sigma 758224547 -k 1 2e4; checkcode $? 8
+if [ $GMP_NUMB_BITS -eq 64 ]; then
+  # test the -primetest option
+  echo 69281828573340491 | $ECM -primetest -param 1 -sigma 758224547 -k 1 2e4; checkcode $? 0
+  if [ "$MUL" != "redc"]; then
+  echo 69281828573340491 | $ECM            -param 1 -sigma 758224547 -k 1 2e4; checkcode $? 8
+  fi
 fi
 
 # exercise the -q option
@@ -282,15 +291,17 @@ echo "2^1123-1" | $ECM -c 2 -param 0 -x0 1 11000; checkcode $? 1
 # exercise "Error, the -param option is only valid for ECM" error message
 echo "2^1123-1" | $ECM -param 0 -pm1 11000; checkcode $? 1
 
-# exercise "Could not open file <file> for reading" error message
-$ECM -param 1 -bloads sfile.txt 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
-$ECM -param 1 -bloads sfile.txt 1e6 < ${GMPECM_DATADIR}/c155 2>&1 | grep "Could not open file sfile.txt"; checkcode $? 0
+if [ $GMP_NUMB_BITS -eq 64 ]; then
+  # exercise "Could not open file <file> for reading" error message
+  $ECM -param 1 -bloads sfile.txt 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+  $ECM -param 1 -bloads sfile.txt 1e6 < ${GMPECM_DATADIR}/c155 2>&1 | grep "Could not open file sfile.txt"; checkcode $? 0
 
-# exercise "read_s_from_file: 0 bytes read from <file>" error message
-printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > test_dummy2.save
-$ECM -param 1 -bloads test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
-$ECM -param 1 -bloads test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155 2>&1 | grep "0 bytes read from test_dummy2.save"; checkcode $? 0
-/bin/rm -f test_dummy2.save
+  # exercise "read_s_from_file: 0 bytes read from <file>" error message
+  printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > test_dummy2.save
+  $ECM -param 1 -bloads test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+  $ECM -param 1 -bloads test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155 2>&1 | grep "0 bytes read from test_dummy2.save"; checkcode $? 0
+  /bin/rm -f test_dummy2.save
+fi
 
 # exercise batch error messages...
 TEST=test.ecm.s$$
@@ -302,7 +313,9 @@ $ECM -bloads $TEST 10900 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 # exercise "Error, -bsaves makes sense in batch mode only" error message
 $ECM -bsaves test.s -param 0 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 # exercise "Error, -bloads makes sense in batch mode only" error message
-$ECM -bsaves test.s -param 1 11e3 < ${GMPECM_DATADIR}/c155
+if [ $GMP_NUMB_BITS -eq 64 ]; then
+  $ECM -bsaves test.s -param 1 11e3 < ${GMPECM_DATADIR}/c155
+fi
 $ECM -bloads test.s -param 0 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 /bin/rm -f test.s
 
@@ -378,11 +391,13 @@ echo 294940575713329370427113862790368174424655176416322150390973123306949586795
 $ECM -resume $TEST 1001
 checkcode $? 6
 
-# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
-/bin/rm -f $TEST
-echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 1:101 300 1
-$ECM -resume $TEST 300
-checkcode $? 14
+if [ $GMP_NUMB_BITS -eq 64 ]; then
+  # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+  /bin/rm -f $TEST
+  echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 1:101 300 1
+  $ECM -resume $TEST 300
+  checkcode $? 14
+fi
 
 # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
 /bin/rm -f $TEST
@@ -505,8 +520,7 @@ echo 31622776601683791911 | $ECM -sigma 0:249908706013996416 11000; checkcode $?
 if [ "$MUL" != "redc" -a "$MUL" != "mpzmod" ]; then
 
 # Note: on 32-bit machines, param 1 (ECM_PARAM_BATCH_SQUARE) does not work
-$ECM -printconfig | grep "GMP_NUMB_BITS = 64"
-if [ $? -eq 0 ]; then
+if [ $GMP_NUMB_BITS -eq 64 ]; then
 
 echo 31622776601683791911 | $ECM -sigma 1:3277346684 11000; checkcode $? 0
 
@@ -530,7 +544,7 @@ echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads $TEST -v
 echo 4294967291 | $ECM -param 1 -A 17 1000
 checkcode $? 8
 
-fi
+fi # $GMP_NUMB_BITS -eq 64
 
 echo 31622776601683791911 | $ECM -sigma 2:5539417145734457396 11000; checkcode $? 0
 echo 31622776601683791911 | $ECM -sigma 3:3462003578 11000; checkcode $? 0
@@ -596,8 +610,9 @@ checkcode $? 6
 if [ "$MUL" != "redc"]; then
 
 # tests to exercise gcd code in eval.c
-echo "gcd(Phi(44,968),968^11-44*968^5+1)" | $ECM -sigma 1:3751794696 2e3
-checkcode $? 14
+if [ $GMP_NUMB_BITS -eq 64 ]; then
+  echo "gcd(Phi(44,968),968^11-44*968^5+1)" | $ECM -sigma 1:3751794696 2e3
+  checkcode $? 14
 
 # tests to exercise the Aurifeullian code in eval.c
 echo "PhiL(44,968)" | $ECM -sigma 1:3751794696 2e3
@@ -625,6 +640,7 @@ checkcode $? 10
 echo "primU(5,-1,160)" | $ECM -sigma 1:450587089 11e3
 checkcode $? 10
 
+fi
 fi
 
 # on systems with 64-bit limbs, exercise mulredc9
@@ -768,6 +784,7 @@ echo 13290059 | $ECM -torsion Z7 -sigma 4 1e2; checkcode $? 14
 echo 2432902008176640001 | $ECM -torsion Z7 -sigma 1 1e3 1e8; checkcode $? 14
 ## -save/-resume
 TEST=test.ecm.save$$
+/bin/rm -f $TEST
 echo 2432902008176640001 | $ECM -torsion Z7 -save $TEST -sigma 1 1e3
 $ECM -resume $TEST 1e3 1e8
 C=$?
@@ -840,8 +857,7 @@ fi # tests with -torsion
 
 # the following tests should work on machines which have uint64_t or where
 # unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
-$ECM -printconfig | grep "GMP_NUMB_BITS = 64"
-if [ $? -eq 0 ]; then
+if [ $GMP_NUMB_BITS -eq 64 ]; then
 
 echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 61 -go 1195504287780095287 2950307;  checkcode $? 8
 
