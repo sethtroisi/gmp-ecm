@@ -8,9 +8,8 @@
 
 #if HAVE_SYS_TIME_H
 # include <sys/time.h>
-#else
-# include <time.h>
 #endif
+#include <time.h>
 
 #define LOOPCOUNT 10000000UL
 #define MAXSIZE 20
