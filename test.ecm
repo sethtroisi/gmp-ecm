@@ -80,9 +80,9 @@ esac
 
 $ECM -printconfig | grep "GMP_NUMB_BITS = 64"
 if [ $? -eq 0 ]; then
-   GMP_NUMB_BITS==64
+   GMP_NUMB_BITS=64
 else
-   GMP_NUMB_BITS==32
+   GMP_NUMB_BITS=32
 fi
 
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
