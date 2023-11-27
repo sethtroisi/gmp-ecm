@@ -175,7 +175,6 @@ fi
 
 dnl Checks for programs.
 m4_version_prereq([2.70],[AC_PROG_CC],[AC_PROG_CC_C99])
-m4_version_prereq([2.70],[AC_CHECK_INCLUDES_DEFAULT],[AC_HEADER_STDC])
 AM_PROG_AS
 AM_PROG_CC_C_O
 
