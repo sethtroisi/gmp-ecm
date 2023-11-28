@@ -305,6 +305,9 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
       mutable_params->gpu_device_init = 1;
     }
 
+  // TODO REVERT
+  mutable_params->gpu_number_of_curves = 1;
+
   /* Number of curves is only set after select_and_init_GPU */
   nb_curves = params->gpu_number_of_curves;
 
@@ -353,7 +356,7 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
       else
         {
           rhoinit (256, 10);
-          print_expcurves (B1, B2, dF, params->k, root_params.S, params->param);
+          //print_expcurves (B1, B2, dF, params->k, root_params.S, params->param);
         }
     }
 
@@ -387,7 +390,7 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
 
   st = cputime ();
 
-  youpi = cgbn_ecm_stage1 (factors, array_found, n, params->batch_s, nb_curves,
+  youpi = cgbn_ecm_stage1 (factors, array_found, n, mutable_params->batch_s, nb_curves,
                            firstsigma_ui, &gputime, params->verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
@@ -527,8 +530,8 @@ end_gpu_ecm_rhotable:
         {
           if (youpi == ECM_NO_FACTOR_FOUND &&
               (params->stop_asap == NULL || !params->stop_asap()))
-              print_exptime (B1, B2, dF, params->k, root_params.S,
-                             (long) (tottime / nb_curves), params->param);
+              //print_exptime (B1, B2, dF, params->k, root_params.S,
+              //               (long) (tottime / nb_curves), params->param);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }

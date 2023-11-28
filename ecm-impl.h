@@ -320,7 +320,7 @@ int  choose_S (mpz_t);
 void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t);
 #define duplicate __ECM(duplicate)
-void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t, mpres_t,
+void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, const mpres_t, mpres_t,
                 mpres_t, mpres_t);
 
 #define ecm_mul __ECM(ecm_mul)

@@ -184,7 +184,7 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, const mpz_t sigma, mpmod_t
   }
 
   /* Check for -mod = 1, 3, 5 */
-  mpz_sub_ui(tmp, n->orig_modulus, tmp);
+  mpz_sub (tmp, n->orig_modulus, tmp);
   if (mpz_cmp_ui (tmp, 5) == 0 || mpz_cmp_ui (tmp, 3) == 0 || 
       mpz_cmp_ui (tmp, 1) == 0)
     return ECM_ERROR;

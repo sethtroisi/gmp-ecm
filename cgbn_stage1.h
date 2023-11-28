@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
-             const mpz_t N, const mpz_t s,
+             const mpz_t N, mpz_t s,
              uint32_t curves, uint32_t sigma,
              float *gputime, int verbose);
 

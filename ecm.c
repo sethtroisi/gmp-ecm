@@ -60,7 +60,7 @@ extern int mpzspv_from_mpzv_slow_time, mpzspv_to_mpzv_time,
 *                                                                             *
 ******************************************************************************/
 
-void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t, 
+void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, const mpres_t, 
                 mpres_t, mpres_t, mpres_t) ATTRIBUTE_HOT;
 void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t) ATTRIBUTE_HOT;
@@ -158,20 +158,32 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
       mpres_t x, mpres_t z, mpmod_t n, mpres_t u, mpres_t v, mpres_t w)
 {
   mpres_sub (u, x2, z2, n);
+  gmp_printf("ADD3 u from x2-z2 | %Zd = %Zd + %Zd\n", u, x2, z2);
   mpres_add (v, x1, z1, n);      /* u = x2-z2, v = x1+z1 */
+  mpz_mod(v, v, n->orig_modulus);
+  gmp_printf("ADD3 v from x1+z1 | %Zd = %Zd + %Zd\n", v, x1, z1);
 
+  gmp_printf("ADD3 u*v | %Zd * %Zd\n", u, v);
   mpres_mul (u, u, v, n);        /* u = (x2-z2)*(x1+z1) */
+  gmp_printf("ADD3 u from u*v | %Zd\n", u);
 
   mpres_add (w, x2, z2, n);
+  gmp_printf("ADD3 w from x2+z2 | %Zd = %Zd - %Zd\n", w, x2, z2);
   mpres_sub (v, x1, z1, n);      /* w = x2+z2, v = x1-z1 */
+  gmp_printf("ADD3 v from x1-z1 | %Zd = %Zd - %Zd\n", v, x1, z1);
 
+  gmp_printf("ADD3 w*v | %Zd * %Zd\n", w, v);
   mpres_mul (v, w, v, n);        /* v = (x2+z2)*(x1-z1) */
+  gmp_printf("ADD3 v from w*v | %Zd\n", v);
 
   mpres_add (w, u, v, n);        /* w = 2*(x1*x2-z1*z2) */
+  gmp_printf("ADD3 u-v | %Zd - %Zd\n", u, v);
   mpres_sub (v, u, v, n);        /* v = 2*(x2*z1-x1*z2) */
+  gmp_printf("ADD3 v from u-v | %Zd\n", v);
 
   mpres_sqr (w, w, n);           /* w = 4*(x1*x2-z1*z2)^2 */
   mpres_sqr (v, v, n);           /* v = 4*(x2*z1-x1*z2)^2 */
+  gmp_printf("ADD3 v from v^2 | %Zd\n", v);
 
   if (x == x3) /* same variable: in-place variant */
     {
@@ -185,29 +197,35 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
     {
       mpres_mul (x3, w, z, n);   /* x3 = 4*z*(x1*x2-z1*z2)^2 mod n */
       mpres_mul (z3, x, v, n);   /* z3 = 4*x*(x2*z1-x1*z2)^2 mod n */
+      gmp_printf("ADD3 z3 from x?*v | %Zd = %Zd * %Zd\n", z3, x, v);
     }
-  /* mul += 6; */
+  gmp_printf("ADD3 result | %Zd, %Zd\n", x3, z3);
 }
 
 /* computes 2P=(x2:z2) from P=(x1:z1), with 5 muls (3 muls and 2 squares)
    and 4 add/sub.
      - n : number to factor
      - b : (a+2)/4 mod n
-     - t, u, v, w : auxiliary variables
+     - u, v, w : auxiliary variables
 */
 void
 duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n, 
-           mpres_t b, mpres_t u, mpres_t v, mpres_t w)
+           const mpres_t b, mpres_t u, mpres_t v, mpres_t w)
 {
+  //gmp_printf("x,z | %Zd, %Zd\n", x1, z1);
   mpres_add (u, x1, z1, n);
   mpres_sqr (u, u, n);      /* u = (x1+z1)^2 mod n */
   mpres_sub (v, x1, z1, n);
   mpres_sqr (v, v, n);      /* v = (x1-z1)^2 mod n */
+  //gmp_printf("u, v | %Zd, %Zd\n", u, v);
   mpres_mul (x2, u, v, n);  /* x2 = u*v = (x1^2 - z1^2)^2 mod n */
+  //gmp_printf("x2 | %Zd\n", x2);
   mpres_sub (w, u, v, n);   /* w = u-v = 4*x1*z1 */
   mpres_mul (u, w, b, n);   /* u = w*b = ((A+2)/4*(4*x1*z1)) mod n */
+  //gmp_printf("w,b -> u | %Zd, %Zd, %Zd\n", w, b, u);
   mpres_add (u, u, v, n);   /* u = (x1-z1)^2+(A+2)/4*(4*x1*z1) */
   mpres_mul (z2, w, u, n);  /* z2 = ((4*x1*z1)*((x1-z1)^2+(A+2)/4*(4*x1*z1))) mod n */
+  //gmp_printf("x2,z2 | %Zd, %Zd\n", x2, z2);
 }
 
 /* multiply P=(x:z) by e and puts the result in (x:z). */
@@ -251,21 +269,77 @@ ecm_mul (mpres_t x, mpres_t z, mpz_t e, mpmod_t n, mpres_t b)
   mpres_set (z0, z, n);
   duplicate (x1, z1, x0, z0, n, b, u, v, w);
 
+  printf("top\n");
+  mpz_mod(z0, z0, n->orig_modulus);
+  mpz_mod(z1, z1, n->orig_modulus);
+  gmp_printf("%Zd %Zd\n", x0, z0);
+  gmp_printf("%Zd %Zd\n", x1, z1);
+
   /* invariant: (P1,P0) = ((k+1)P, kP) where k = floor(e/2^l) */
 
+//  while (l-- > 0)
+//    {
+//      mpz_mod(z0, z0, n->orig_modulus);
+//      mpz_mod(z1, z1, n->orig_modulus);
+//      gmp_printf("l=%ul | %d\n", l, ecm_tstbit(e, l));
+//      gmp_printf("%Zd %Zd\n", x0, z0);
+//      gmp_printf("%Zd %Zd\n", x1, z1);
+//
+//      if (ecm_tstbit (e, l)) /* k, k+1 -> 2k+1, 2k+2 */
+//        {
+//          add3 (x0, z0, x0, z0, x1, z1, x, z, n, u, v, w); /* 2k+1 */
+//          duplicate (x1, z1, x1, z1, n, b, u, v, w); /* 2k+2 */
+//        }
+//      else /* k, k+1 -> 2k, 2k+1 */
+//        {
+//          add3 (x1, z1, x1, z1, x0, z0, x, z, n, u, v, w); /* 2k+1 */
+//          duplicate (x0, z0, x0, z0, n, b, u, v, w); /* 2k */
+//        }
+//    }
+
+  int swapped = 0;
   while (l-- > 0)
     {
-      if (ecm_tstbit (e, l)) /* k, k+1 -> 2k+1, 2k+2 */
-        {
-          add3 (x0, z0, x0, z0, x1, z1, x, z, n, u, v, w); /* 2k+1 */
-          duplicate (x1, z1, x1, z1, n, b, u, v, w); /* 2k+2 */
-        }
-      else /* k, k+1 -> 2k, 2k+1 */
-        {
-          add3 (x1, z1, x1, z1, x0, z0, x, z, n, u, v, w); /* 2k+1 */
-          duplicate (x0, z0, x0, z0, n, b, u, v, w); /* 2k */
-        }
+      if (swapped != ecm_tstbit (e, l)) {
+          swapped = !swapped;
+          mpz_swap(x0, x1);
+          mpz_swap(z0, z1);
+      }
+
+      mpz_mod(z0, z0, n->orig_modulus);
+      mpz_mod(z1, z1, n->orig_modulus);
+      gmp_printf("\n\nl=%ul | %d\n", l, ecm_tstbit(e, l));
+      gmp_printf("TOP x0,z0, %Zd %Zd\n", x0, z0);
+      gmp_printf("TOP x1,z1, %Zd %Zd\n", x1, z1);
+      gmp_printf("----\n");
+      add3 (x1, z1, x1, z1, x0, z0, x, z, n, u, v, w); /* 2k+1 */
+
+      mpz_mod(x1, x1, n->orig_modulus);
+      mpz_mod(z1, z1, n->orig_modulus);
+      gmp_printf("ADD3 x1,z1, %Zd %Zd\n\n\n", x1, z1);
+      gmp_printf("----\n");
+
+      duplicate (x0, z0, x0, z0, n, b, u, v, w); /* 2k */
+
+      mpz_mod(x0, x0, n->orig_modulus);
+      mpz_mod(z0, z0, n->orig_modulus);
+      gmp_printf("DOUBLE x0,z0, %Zd %Zd\n\n\n", x0, z0);
+      gmp_printf("----\n");
+
     }
+
+  printf("----\n");
+  if (swapped)
+    {
+      printf("Swap before END\n");
+      mpz_swap(x0, x1);
+      mpz_swap(z0, z1);
+    }
+
+  mpz_mod(z0, z0, n->orig_modulus);
+  mpz_mod(z1, z1, n->orig_modulus);
+  gmp_printf("END %Zd %Zd\n", x0, z0);
+  gmp_printf("END %Zd %Zd\n", x1, z1);
 
   mpres_set (x, x0, n);
   mpres_set (z, z0, n);
@@ -1149,9 +1223,19 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   last_chkpnt_time = cputime ();
 
   mpres_set_ui (z, 1, n);
+  printf("pre_call\n");
+  gmp_printf("n=%Zd\n", n->orig_modulus);
+  gmp_printf("x=%Zd z=%Zd\n", x, z);
 
   mpres_add_ui (b, A, 2, n);
-  mpres_div_2exp (b, b, 2, n); /* b == (A0+2)*B/4 */
+  mpres_div_2exp (b, b, 2, n); /* b == (A0+2)/4 */
+
+  gmp_printf("A->b %Zd -> %Zd\n", A, b);
+
+  // set s
+  mpz_set_ui(go, 3);
+  ecm_mul (x, z, go, n, b);
+  goto varfree;
 
   /* preload group order */
   if (go != NULL)
@@ -1161,7 +1245,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   for (r = 2; r <= B1; r *= 2)
     if (r > *B1done)
       duplicate (x, z, x, z, n, b, u, v, w);
-  
+ 
   /* We'll do 3 manually, too (that's what ecm4 did..) */
   for (r = 3; r <= B1; r *= 3)
     if (r > *B1done)
@@ -1178,7 +1262,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 	  base_indx = 0;
   }
 
-   last_chkpnt_p = 3;
+  last_chkpnt_p = 3;
   p = getprime_mt (prime_info); /* Puts 3 into p. Next call gives 5 */
   for (p = getprime_mt (prime_info); p <= B1; p = getprime_mt (prime_info))
     {
@@ -1299,6 +1383,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   prime_info_clear (prime_info);
 
+varfree:
   if (!mpres_invert (u, z, n)) /* Factor found? */
     {
       mpres_gcd (f, z, n);
@@ -2241,22 +2326,34 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
 
   if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
     {
-        printf("HI %d -> %d\n", param, IS_BATCH_MODE(param));
         if (IS_BATCH_MODE(param))
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
 	    youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, 
 				      param, batch_s);
         else{
 #ifdef HAVE_ADDLAWS
-	    if(E->type == ECM_EC_TYPE_MONTGOMERY)
+	    if(E->type == ECM_EC_TYPE_MONTGOMERY) {
 #endif
+            printf("Calling ecm_stage1\n");
             youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
                                 stop_asap, chkfilename);
 #ifdef HAVE_ADDLAWS
+<<<<<<< HEAD
 	    else{
 		ell_point_init (PE, E, modulus);
 		mpres_set (PE->x, P.x, modulus);
 		mpres_set (PE->y, P.y, modulus);
+||||||| parent of ad238199 (with lots of printf debugging)
+	    else{
+		ell_point_init(PE, E, modulus);
+		mpres_set(PE->x, P.x, modulus);
+		mpres_set(PE->y, P.y, modulus);
+=======
+            }else{
+		ell_point_init(PE, E, modulus);
+		mpres_set(PE->x, P.x, modulus);
+		mpres_set(PE->y, P.y, modulus);
+>>>>>>> ad238199 (with lots of printf debugging)
 		youpi = ecm_stage1_W (f, E, PE, modulus, B1, B1done, batch_s,
 				      go, stop_asap, chkfilename);
 		mpres_set (P.x, PE->x, modulus);
