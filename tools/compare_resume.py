@@ -61,7 +61,7 @@ def parse_line(line):
 def value_to_keys(values):
     """Group values into (inputs, outputs). Drop some values (WHO, TIME)."""
 
-    input_names = ("METHOD", "B1", "B2", "X0", "Y0", "A", "SIGMA", "N")
+    input_names = ("METHOD", "B1", "B2", "PARAM", "X0", "Y0", "A", "SIGMA", "N")
     output_names = ("X", "CHECKSUM")
     drop_names = ("PROGRAM", "WHO", "TIME")
 
@@ -112,12 +112,6 @@ def compare(args):
         out_a = a.get(in_b, None)
         if out_a is None:
             print("Couldn't find input in resumefile:")
-            print(in_b)
-            print()
-            for in_a in a:
-                if in_b[-1] == in_a[-1]:
-                    print("Here")
-                    print(in_a)
             continue
 
         if out_a == out_b:
@@ -134,7 +128,7 @@ def compare(args):
             print()
 
     # TODO verify same number of lines
-    print("Verified {} of {} lines from verifyfile".format(
+    print("Verified {} of {} lines from --verifyfile".format(
         verified, len(b), len(a)))
 
 if __name__ == '__main__':

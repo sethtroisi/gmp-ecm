@@ -71,16 +71,19 @@ def build_command(values, saveafn, extra_args):
     for ignore in IGNORED:
         values.pop(ignore, None)
 
+    PARAM_TO_ARG = {
+        "SIGMA": "-sigma",
+        "PARAM": "-param",
+        "A": "-A"
+    }
+
     for key, value in values.items():
         if key == "METHOD":
             METHOD_LOOKUP = {"P-1": "-pm1", "P+1": "-pp1"}
             if value != "ECM":
                  command.append(METHOD_LOOKUP[value])
-        elif key == "SIGMA":
-            command.append("-sigma")
-            command.append(value)
-        elif key == "A":
-            command.append("-A")
+        elif key in PARAM_TO_ARG:
+            command.append(PARAM_TO_ARG[key])
             command.append(value)
         elif key == "X0":
             if value not in ("0", "0x0"):
@@ -119,4 +122,4 @@ if __name__ == '__main__':
         print(f"echo '{N}' | " + " ".join(command))
     print()
     print("Then compare with")
-    print(f"python compare_resume.py {args.resumefile!r} {VERIFY_TMP_FN!r}")
+    print(f"python tools/compare_resume.py {args.resumefile!r} {VERIFY_TMP_FN!r}")
