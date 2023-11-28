@@ -209,13 +209,13 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
       return ECM_ERROR;
     }
 
-  /* Only param = ECM_PARAM_BATCH_32BITS_D is accepted on GPU */
   if (params->param == ECM_PARAM_DEFAULT)
-      mutable_params->param = ECM_PARAM_BATCH_32BITS_D;
+      mutable_params->param = ECM_PARAM_SUYAMA;
 
-  if (params->param != ECM_PARAM_BATCH_32BITS_D)
+  /* Only param = ECM_PARAM_SUYAMA is accepted on GPU */
+  if (params->param != ECM_PARAM_SUYAMA)
     {
-      outputf (OUTPUT_ERROR, "GPU: Error, only param = ECM_PARAM_BATCH_32BITS_D "
+      outputf (OUTPUT_ERROR, "GPU: Error, only param = ECM_PARAM_SUYAMA(0) "
                              "is accepted on GPU.\n");
       return ECM_ERROR;
     }
@@ -311,13 +311,13 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   ASSERT (params->sigma_is_A == 0);
   if (mpz_sgn (params->sigma) == 0)
     {
-      /* generate random value in [2, 2^32 - nb_curves - 1] */
+      /* generate random value in [6, 2^32 - nb_curves - 1] */
       mpz_set_ui (mutable_params->sigma,
-                  (get_random_ul () % (TWO32 - 2 - nb_curves)) + 2);
+                  (get_random_ul () % (TWO32 - 6 - nb_curves)) + 6);
     }
-  else /* sigma should be in [2, 2^32-nb_curves] */
+  else /* sigma should be in [6, 2^32-nb_curves - 1] */
     {
-      if (mpz_cmp_ui (params->sigma, 2) < 0 ||
+      if (mpz_cmp_ui (params->sigma, 6) < 0 ||
           mpz_cmp_ui (params->sigma, TWO32 - nb_curves) >= 0)
         {
           outputf (OUTPUT_ERROR, "GPU: Error, sigma should be in [2,%lu]\n",

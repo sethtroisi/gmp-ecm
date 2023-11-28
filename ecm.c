@@ -59,7 +59,7 @@ extern int mpzspv_from_mpzv_slow_time, mpzspv_to_mpzv_time,
 *                                                                             *
 ******************************************************************************/
 
-void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t, 
+void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, const mpres_t, 
                 mpres_t, mpres_t, mpres_t) ATTRIBUTE_HOT;
 void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t) ATTRIBUTE_HOT;
@@ -157,18 +157,17 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
       mpres_mul (x3, w, z, n);   /* x3 = 4*z*(x1*x2-z1*z2)^2 mod n */
       mpres_mul (z3, x, v, n);   /* z3 = 4*x*(x2*z1-x1*z2)^2 mod n */
     }
-  /* mul += 6; */
 }
 
 /* computes 2P=(x2:z2) from P=(x1:z1), with 5 muls (3 muls and 2 squares)
    and 4 add/sub.
      - n : number to factor
      - b : (a+2)/4 mod n
-     - t, u, v, w : auxiliary variables
+     - u, v, w : auxiliary variables
 */
 void
 duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n, 
-           mpres_t b, mpres_t u, mpres_t v, mpres_t w)
+           const mpres_t b, mpres_t u, mpres_t v, mpres_t w)
 {
   mpres_add (u, x1, z1, n);
   mpres_sqr (u, u, n);      /* u = (x1+z1)^2 mod n */
@@ -547,7 +546,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set_ui (z, 1, n);
 
   mpres_add_ui (b, A, 2, n);
-  mpres_div_2exp (b, b, 2, n); /* b == (A0+2)*B/4 */
+  mpres_div_2exp (b, b, 2, n); /* b == (A0+2)/4 */
 
   /* preload group order */
   if (go != NULL)
@@ -557,7 +556,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   for (r = 2; r <= B1; r *= 2)
     if (r > *B1done)
       duplicate (x, z, x, z, n, b, u, v, w);
-  
   /* We'll do 3 manually, too (that's what ecm4 did..) */
   for (r = 3; r <= B1; r *= 3)
     if (r > *B1done)
@@ -565,7 +563,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         duplicate (xB, zB, x, z, n, b, u, v, w);
         add3 (x, z, x, z, xB, zB, x, z, n, u, v, w);
       }
-  
   last_chkpnt_p = 3;
   p = getprime_mt (prime_info); /* Puts 3 into p. Next call gives 5 */
   for (p = getprime_mt (prime_info); p <= B1; p = getprime_mt (prime_info))

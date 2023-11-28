@@ -48,7 +48,7 @@ Detailed description of parameters (ecm_params):
         random 32-bit integer.
     ECM_PARAM_BATCH_2 a = 4*d(k)-2, x0=2. Use an elliptic parametrization to 
         compute d(k) such that the curve has a 6-torsion point.
-    ECM_PARAM_BATCH_32BITS_D is mostly use for the gpu computation, a = 4*d-2,
+    ECM_PARAM_BATCH_32BITS_D, obselete previously used by GPU, a = 4*d-2,
         x0=2, d is a random 32-bit integer.
   ECM-PARAM_BATCH_SQUARE, ECM-PARAM_BATCH_2, ECM-PARAM_BATCH_32BITS_D are said
   to used batch mode for the scalar multiplication. They should always have 

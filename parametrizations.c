@@ -160,23 +160,31 @@ addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
 /* Parametrization ECM_PARAM_SUYAMA */
 /* (sigma mod N) should be different from 0, 1, 3, 5, 5/3, -1, -3, -5, -5/3 */
 int
-get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
+get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, const mpz_t sigma, mpmod_t n)
 {
   mpres_t t, u, v, b, z;
-  mpz_t tmp;
   
   mpres_init (t, n);
   mpres_init (u, n);
   mpres_init (v, n);
   mpres_init (b, n);
   mpres_init (z, n);
-  mpz_init (tmp);
 
+  mpz_t tmp;
+  mpz_init (tmp);
   mpz_mod (tmp, sigma, n->orig_modulus);
-  /* TODO add -5 -3 -1 and +/- 5/3 */
-  if (mpz_cmp_ui (tmp, 5) == 0 || mpz_cmp_ui (tmp, 3) == 0 || 
+  /* TODO add +/- 5/3 */
+  /* Check for 0, 1, 3, 5 */
+  if (mpz_cmp_ui (tmp, 5) == 0 || mpz_cmp_ui (tmp, 3) == 0 ||
       mpz_cmp_ui (tmp, 1) == 0 || mpz_sgn (tmp) == 0)
     return ECM_ERROR;
+
+  /* Check for -mod = 1, 3, 5 */
+  mpz_sub (tmp, n->orig_modulus, tmp);
+  if (mpz_cmp_ui (tmp, 5) == 0 || mpz_cmp_ui (tmp, 3) == 0 ||
+      mpz_cmp_ui (tmp, 1) == 0)
+    return ECM_ERROR;
+  mpz_clear (tmp);
 
   mpres_set_z  (u, sigma, n);
   mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
@@ -206,7 +214,6 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
       mpres_clear (v, n);
       mpres_clear (b, n);
       mpres_clear (z, n);
-      mpz_clear (tmp);
       if (mpz_cmp (f, n->orig_modulus) == 0)
           return ECM_ERROR;
       else
@@ -225,7 +232,6 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   mpres_clear (v, n);
   mpres_clear (b, n);
   mpres_clear (z, n);
-  mpz_clear (tmp);
 
   return ECM_NO_FACTOR_FOUND;
 }
@@ -382,7 +388,7 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 /* Parametrization ECM_PARAM_BATCH_32BITS_D */
 /* d = (sigma/2^32 mod N) should be different from 0, 1, -1/8 */
 int  
-get_curve_from_param3 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
+get_curve_from_param3 (mpres_t A, mpres_t x0, const mpz_t sigma, mpmod_t n)
 {
   mpz_t tmp;
   mpz_init (tmp);

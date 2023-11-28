@@ -620,9 +620,9 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
           mpz_mod (tmp_x, tmp_x, n->n);
           write_resumefile_line (file, method, params->B1done, params->sigma,
 				 params->sigma_is_A, params->E->type,
-                                 /* since the gpu version always uses -param 3,
+                                 /* since the gpu version always uses -param 0,
                                     we hardcode it in the save file */
-				 ECM_PARAM_BATCH_32BITS_D,
+                                 ECM_PARAM_SUYAMA,
 				 tmp_x, NULL, n, orig_x0, orig_y0, 
 				 comment);
           mpz_add_ui (params->sigma, params->sigma, 1);

@@ -400,7 +400,7 @@ Or A and x0 are given (in which case both must be given).
 
 The -param option is used to choose the parametrization from which the curves
 are taken. It can take 4 values (s is the 'sigma' parameter):
-    0: use Suyama parametrization. It was the parametrization used by previous
+    0: use Suyama parametrization. It was the parametrization used by previous   <--- why do we say "it was ... used by previous versions"?
     versions of GMP-ECM.
 	                         u = s^2-5, v = 4*s,
                       A = (v-u)^3*(3*u+v)/(4*u^3*v)-2,
@@ -423,8 +423,7 @@ used to choose its value.
 * with -param 1 (only for 64-bit processors), s^2 should fit in a 64-bit
   integer, thus s < 2^32
 * with -param 2, there is no constraint on sigma
-* with -param 3 (mostly used for GPU), s should fit in a 32-bit word,
-  thus s < 2^32
+* with -param 3 (deprecated), s should fit in a 32-bit word, thus s < 2^32
 
 In the case where only "-sigma s" is used, "-param 0" is assumed in order to be
 compatible with older version of GMP-ECM. The above is also true when resuming
@@ -442,6 +441,8 @@ The -x0 option can be used to override the x0 value in the case where param=0
 and is mandatory in the case the curve is given with the -A option. In the case
 where param=1, param=2 or param=3, x0 must be equal to 2, so this should not be
 used.
+
+is x0 == 0 or 2 enforced in code for param=1-3?
 
 b) with param = 5: curves in Weierstrass form
 ---------------------------------------------
