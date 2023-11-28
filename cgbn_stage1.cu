@@ -49,7 +49,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define cgbn_negative_overflow ((cgbn_error_t) 16)
 
 // Seems to adds very small overhead (1-10%)
-#define VERIFY_NORMALIZED 1
+#define VERIFY_NORMALIZED 0
 // Adds even less overhead (<1%)
 #define CHECK_ERROR 1
 
@@ -260,7 +260,8 @@ class curve_t {
           const uint32_t np0) {
     int32_t QQ = blockIdx.x*blockDim.x + threadIdx.x;
     int32_t instance_i = QQ / params::TPI;
-    int should_print = (instance_i == 0 && QQ % params::TPI == 0);
+    //int should_print = (instance_i == 0 && QQ % params::TPI == 0);
+    int should_print = 0;
     // q = xA = aX = x1
     // u = zA = aZ = z1
     // w = xB = bX = x2
@@ -472,8 +473,9 @@ __global__ void kernel_double_add(
   if(instance_i >= count)
     return;
 
-  int32_t QQ = blockIdx.x*blockDim.x + threadIdx.x;
-  int should_print = (instance_i == 0 && QQ % params::TPI == 0);
+  //int32_t QQ = blockIdx.x*blockDim.x + threadIdx.x;
+  //int should_print = (instance_i == 0 && QQ % params::TPI == 0);
+  int should_print = 0;
 
   /* Cast uint32_t array to mem_t */
   typename curve_t<params>::mem_t *data_cast = (typename curve_t<params>::mem_t*) data;
@@ -514,6 +516,18 @@ __global__ void kernel_double_add(
       }
   }
 
+  if (should_print)
+  {
+      cgbn_mont2bn(curve._env, t1, aX, modulus, np0);
+      cgbn_mont2bn(curve._env, t2, aZ, modulus, np0);
+      cgbn_mont2bn(curve._env, t3, bX, modulus, np0);
+      cgbn_mont2bn(curve._env, t4, bZ, modulus, np0);
+
+      printf("\n\n");
+      printf("TOP aX,aZ %u, %u\n", cgbn_get_ui32(curve._env, t1), cgbn_get_ui32(curve._env, t2));
+      printf("TOP bX,bZ %u, %u\n", cgbn_get_ui32(curve._env, t3), cgbn_get_ui32(curve._env, t4));
+      printf("----\n");
+  }
   /* Initially
      P_a = (aX, aZ) contains P
      P_b = (bX, bZ) contains 2P */
@@ -533,7 +547,7 @@ __global__ void kernel_double_add(
         cgbn_swap(curve._env, aX, bX);
         cgbn_swap(curve._env, aZ, bZ);
     }
-    if (should_print)
+    if (0 && should_print)
     {
         cgbn_mont2bn(curve._env, t1, aX, modulus, np0);
         cgbn_mont2bn(curve._env, t2, aZ, modulus, np0);
@@ -546,7 +560,7 @@ __global__ void kernel_double_add(
         printf("----\n");
     }
     curve.double_add_v2(aX, aZ, bX, bZ, modulus, d, dA, x0, np0);
-    if (should_print)
+    if (0 && should_print)
     {
         cgbn_mont2bn(curve._env, t1, aX, modulus, np0);
         cgbn_mont2bn(curve._env, t2, aZ, modulus, np0);
@@ -771,21 +785,23 @@ uint32_t* set_p_2p(const mpz_t N,
         mpz_invert(x, x, N);
         mpz_mul_ui(x, x, d);
         mpz_mod(x, x, N);
+        // d
         from_mpz(x, datum + 1 * limbs_per, BITS/32);
 
-        // Doesn't use x0 at index=2
+        mpz_set_ui(x, 2);
+        // x0
+        from_mpz(x, datum + 2 * limbs_per, BITS/32);
 
         // P1 (X, Z)
-        mpz_set_ui(x, 2);
         from_mpz(x, datum + 3 * limbs_per, BITS/32);
         mpz_set_ui(x, 1);
         from_mpz(x, datum + 4 * limbs_per, BITS/32);
-  
+
         // 2P = P2 (X, Z)
         // P2_x = 9
         mpz_set_ui(x, 9);
         from_mpz(x, datum + 5 * limbs_per, BITS/32);
-  
+
         // d = sigma * mod_inverse(2 ** 32, N)
         mpz_ui_pow_ui(x, 2, 32);
         mpz_invert(x, x, N);
@@ -862,7 +878,10 @@ int process_results(mpz_t *factors, int *array_found,
 
     array_found[i] = findfactor(factors[i], N, x_final, z_final);
     if (i == 0)
+    {
+        gmp_printf("Cords for %d = %Zd %Zd\n", i, x_final, z_final);
         gmp_printf("Residual for %d = %Zd\n", i, factors[i]);
+    }
 
     if (array_found[i] != ECM_NO_FACTOR_FOUND) {
       youpi = array_found[i];
@@ -907,9 +926,9 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   assert( ((uint64_t) sigma + curves) <= 0xFFFFFFFF ); // no overflow
 
   // TODO xXX REVERT
-  mpz_set_ui(s, 3);
+  //mpz_set_ui(s, 3);
 
-  gmp_printf("\n\n\nset s to %Zd\n\n\n\n", s);
+  //gmp_printf("\n\n\nset s to %Zd\n\n\n\n", s);
 
   uint64_t s_num_bits;
   uint32_t *s_bits = allocate_and_set_s_bits(s, &s_num_bits);

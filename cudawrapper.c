@@ -306,7 +306,7 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
     }
 
   // TODO REVERT
-  mutable_params->gpu_number_of_curves = 1;
+  //mutable_params->gpu_number_of_curves = 1;
 
   /* Number of curves is only set after select_and_init_GPU */
   nb_curves = params->gpu_number_of_curves;

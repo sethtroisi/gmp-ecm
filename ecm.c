@@ -158,32 +158,32 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
       mpres_t x, mpres_t z, mpmod_t n, mpres_t u, mpres_t v, mpres_t w)
 {
   mpres_sub (u, x2, z2, n);
-  gmp_printf("ADD3 u from x2-z2 | %Zd = %Zd + %Zd\n", u, x2, z2);
+  //gmp_printf("ADD3 u from x2-z2 | %Zd = %Zd + %Zd\n", u, x2, z2);
   mpres_add (v, x1, z1, n);      /* u = x2-z2, v = x1+z1 */
   mpz_mod(v, v, n->orig_modulus);
-  gmp_printf("ADD3 v from x1+z1 | %Zd = %Zd + %Zd\n", v, x1, z1);
+  //gmp_printf("ADD3 v from x1+z1 | %Zd = %Zd + %Zd\n", v, x1, z1);
 
-  gmp_printf("ADD3 u*v | %Zd * %Zd\n", u, v);
+  //gmp_printf("ADD3 u*v | %Zd * %Zd\n", u, v);
   mpres_mul (u, u, v, n);        /* u = (x2-z2)*(x1+z1) */
-  gmp_printf("ADD3 u from u*v | %Zd\n", u);
+  //gmp_printf("ADD3 u from u*v | %Zd\n", u);
 
   mpres_add (w, x2, z2, n);
-  gmp_printf("ADD3 w from x2+z2 | %Zd = %Zd - %Zd\n", w, x2, z2);
+  //gmp_printf("ADD3 w from x2+z2 | %Zd = %Zd - %Zd\n", w, x2, z2);
   mpres_sub (v, x1, z1, n);      /* w = x2+z2, v = x1-z1 */
-  gmp_printf("ADD3 v from x1-z1 | %Zd = %Zd - %Zd\n", v, x1, z1);
+  //gmp_printf("ADD3 v from x1-z1 | %Zd = %Zd - %Zd\n", v, x1, z1);
 
-  gmp_printf("ADD3 w*v | %Zd * %Zd\n", w, v);
+  //gmp_printf("ADD3 w*v | %Zd * %Zd\n", w, v);
   mpres_mul (v, w, v, n);        /* v = (x2+z2)*(x1-z1) */
-  gmp_printf("ADD3 v from w*v | %Zd\n", v);
+  //gmp_printf("ADD3 v from w*v | %Zd\n", v);
 
   mpres_add (w, u, v, n);        /* w = 2*(x1*x2-z1*z2) */
-  gmp_printf("ADD3 u-v | %Zd - %Zd\n", u, v);
+  //gmp_printf("ADD3 u-v | %Zd - %Zd\n", u, v);
   mpres_sub (v, u, v, n);        /* v = 2*(x2*z1-x1*z2) */
-  gmp_printf("ADD3 v from u-v | %Zd\n", v);
+  //gmp_printf("ADD3 v from u-v | %Zd\n", v);
 
   mpres_sqr (w, w, n);           /* w = 4*(x1*x2-z1*z2)^2 */
   mpres_sqr (v, v, n);           /* v = 4*(x2*z1-x1*z2)^2 */
-  gmp_printf("ADD3 v from v^2 | %Zd\n", v);
+  //gmp_printf("ADD3 v from v^2 | %Zd\n", v);
 
   if (x == x3) /* same variable: in-place variant */
     {
@@ -197,9 +197,9 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
     {
       mpres_mul (x3, w, z, n);   /* x3 = 4*z*(x1*x2-z1*z2)^2 mod n */
       mpres_mul (z3, x, v, n);   /* z3 = 4*x*(x2*z1-x1*z2)^2 mod n */
-      gmp_printf("ADD3 z3 from x?*v | %Zd = %Zd * %Zd\n", z3, x, v);
+      //gmp_printf("ADD3 z3 from x?*v | %Zd = %Zd * %Zd\n", z3, x, v);
     }
-  gmp_printf("ADD3 result | %Zd, %Zd\n", x3, z3);
+  //gmp_printf("ADD3 result | %Zd, %Zd\n", x3, z3);
 }
 
 /* computes 2P=(x2:z2) from P=(x1:z1), with 5 muls (3 muls and 2 squares)
@@ -308,30 +308,30 @@ ecm_mul (mpres_t x, mpres_t z, mpz_t e, mpmod_t n, mpres_t b)
 
       mpz_mod(z0, z0, n->orig_modulus);
       mpz_mod(z1, z1, n->orig_modulus);
-      gmp_printf("\n\nl=%ul | %d\n", l, ecm_tstbit(e, l));
-      gmp_printf("TOP x0,z0, %Zd %Zd\n", x0, z0);
-      gmp_printf("TOP x1,z1, %Zd %Zd\n", x1, z1);
-      gmp_printf("----\n");
+      //gmp_printf("\n\nl=%ul | %d\n", l, ecm_tstbit(e, l));
+      //gmp_printf("TOP x0,z0, %Zd %Zd\n", x0, z0);
+      //gmp_printf("TOP x1,z1, %Zd %Zd\n", x1, z1);
+      //gmp_printf("----\n");
       add3 (x1, z1, x1, z1, x0, z0, x, z, n, u, v, w); /* 2k+1 */
 
       mpz_mod(x1, x1, n->orig_modulus);
       mpz_mod(z1, z1, n->orig_modulus);
-      gmp_printf("ADD3 x1,z1, %Zd %Zd\n\n\n", x1, z1);
-      gmp_printf("----\n");
+      //gmp_printf("ADD3 x1,z1, %Zd %Zd\n\n\n", x1, z1);
+      //gmp_printf("----\n");
 
       duplicate (x0, z0, x0, z0, n, b, u, v, w); /* 2k */
 
       mpz_mod(x0, x0, n->orig_modulus);
       mpz_mod(z0, z0, n->orig_modulus);
-      gmp_printf("DOUBLE x0,z0, %Zd %Zd\n\n\n", x0, z0);
-      gmp_printf("----\n");
+      //gmp_printf("DOUBLE x0,z0, %Zd %Zd\n\n\n", x0, z0);
+      //gmp_printf("----\n");
 
     }
 
-  printf("----\n");
+  //printf("----\n");
   if (swapped)
     {
-      printf("Swap before END\n");
+      //printf("Swap before END\n");
       mpz_swap(x0, x1);
       mpz_swap(z0, z1);
     }
@@ -1223,19 +1223,19 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   last_chkpnt_time = cputime ();
 
   mpres_set_ui (z, 1, n);
-  printf("pre_call\n");
-  gmp_printf("n=%Zd\n", n->orig_modulus);
-  gmp_printf("x=%Zd z=%Zd\n", x, z);
+  //printf("pre_call\n");
+  //gmp_printf("n=%Zd\n", n->orig_modulus);
+  //gmp_printf("x=%Zd z=%Zd\n", x, z);
 
   mpres_add_ui (b, A, 2, n);
   mpres_div_2exp (b, b, 2, n); /* b == (A0+2)/4 */
 
-  gmp_printf("A->b %Zd -> %Zd\n", A, b);
+  //gmp_printf("A->b %Zd -> %Zd\n", A, b);
 
   // set s
-  mpz_set_ui(go, 3);
-  ecm_mul (x, z, go, n, b);
-  goto varfree;
+  //mpz_set_ui(go, 6);
+  //ecm_mul (x, z, go, n, b);
+  //goto varfree;
 
   /* preload group order */
   if (go != NULL)
@@ -1389,6 +1389,7 @@ varfree:
       mpres_gcd (f, z, n);
       ret = ECM_FACTOR_FOUND_STEP1;
     }
+  gmp_printf("cords: %Zd %Zd\n", x, u);
   mpres_mul (x, x, u, n);
 
   for(i = 15; i >= 0; i--)
@@ -2385,6 +2386,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
      before P.x is (perhaps) converted to Weierstrass form */
   
   mpres_get_z (x, P.x, modulus);
+  gmp_printf("x=%Zd\n", x);
 #ifdef HAVE_ADDLAWS
   if (E->type == ECM_EC_TYPE_WEIERSTRASS 
       || E->type == ECM_EC_TYPE_HESSIAN 
