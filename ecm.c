@@ -68,25 +68,15 @@ void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
 
 /* PBMcL additions  for Lucas chain codes */
 
-/* 4-bit chain start sequence codes (16 observed in optimal chains out of 23 possible
-   length = 5 starts - actually 22 since 4 6 10 will never lead to a prime)
-   If # of observed start sequences is ever > 16, chain encoding will need revision */
-#define CHAIN_START_5_7_10 0x3
-#define CHAIN_START_4_5_9  0x2
-#define CHAIN_START_4_6_7  0x4
-#define CHAIN_START_4_6_8  0x6
-#define CHAIN_START_4_6_9  0x8
-#define CHAIN_START_4_7_8  0xA
-#define CHAIN_START_4_7_10 0xC
-#define CHAIN_START_4_7_11 0xE
-#define CHAIN_START_5_7_9  0x1
-#define CHAIN_START_5_8_10 0x0
-#define CHAIN_START_5_6_9  0x5
-#define CHAIN_START_5_6_10 0x7
-#define CHAIN_START_5_6_11 0x9
-#define CHAIN_START_5_7_12 0xB
-#define CHAIN_START_5_8_11 0xD
-#define CHAIN_START_5_8_13 0xF
+/* 3-bit chain start sequences. Covers all possible Lucas chains */
+#define CHAIN_START_5_8_13 0x7
+#define CHAIN_START_5_8_11 0x6
+#define CHAIN_START_5_8_10 0x5
+#define CHAIN_START_5_7    0x4
+#define CHAIN_START_5_6    0x3
+#define CHAIN_START_4_7    0x2
+#define CHAIN_START_4_5    0x1
+#define CHAIN_START_4_6    0x0 /* precludes a completely zero code */
 
 typedef struct
 {
@@ -539,38 +529,26 @@ prac (mpres_t xA, mpres_t zA, ecm_uint k, mpmod_t n, mpres_t b,
   ASSERT(d == 1);
 }
 
-/* functions for using optimal Lucas chain codes from file
+/* functions for using optimal (or near-optimal) Lucas chains
    instead of PRAC. Added by P McLaughlin 2023 */
 
-/* Lchain_codes.dat file contains a code for every
-   prime >= 11 and strictly less than this limit */
-// #define CODE_FILE_LIMIT 1653387299
-/* note that this value is not used and is subject to change */
 
-/* uncomment the next line for test & validation of the Lchain_codes.dat file
- * This is only needed once - set B1 to the value of CODE_FILE_LIMIT above, run
- * unmodified ecm with -param 0 -save file1 -sigma 101, then recompile ecm with
- * the modified ecm.c file and repeat the test (-save file2). If the hex step 1 final
- * values in the save files agree, and the second run output shows
- *  "Using Lucas chain codes", then comment out the following line, recompile with
- *  the new ecm, and you are good to go. */
-//#define VALIDATE_LCHAIN_GEN
+/* To verify that Lucas chains are being generated
+   correctly, configure with --enable-assert */
 
-/* generate optimal Lucas chain for a prime >= 2.
+/* generate Lucas chain for a prime >= 2.
  *
- * inputs: prime p (the final chain value), and
- *         chain_code for p read from input file (starting with p = 11)
+ * inputs: (1) prime p (the final chain value)
+ *         (2) chain_code for p read from input file (starting with p = 11)
  *
- * Outputs: Lchain - an array of Lucas chain elements leading to p, and
- *          chain length
+ * Outputs: (1) Lchain - an array of Lucas chain elements leading to p
+ *          (2) chain length
 */
 u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_element *Lchain )
 {
 	static u_int8_t init = 0;
 	u_int8_t code_fragment, chain_length, i, k;
 	u_int64_t dif;
-	static char *err_file = "Lchain_code_errors.dat";
-	FILE *chain_code_error_file;
 
 	if( init == 0 )
 	{
@@ -628,328 +606,149 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 			chain_length = 4;
 			return chain_length;
 		}
-#ifdef VALIDATE_LCHAIN_GEN
 		else
 		{
-			chain_code_error_file = fopen(err_file,"a");
-			fprintf(chain_code_error_file, "ERROR: generate_Lucas_chain entered with prime = %lu < 11 but != 2, 3, 5 or 7\n", prime);
-			fclose(chain_code_error_file);
+			printf("ERROR: generate_Lucas_chain entered with prime = %lu < 11 but != 2, 3, 5 or 7\n", prime);
 			return 0;
 		}
-#endif
 	}
 
-	/* first 4 bits of code give the next three chain components */
-	code_fragment = (u_int8_t)(chain_code & 0xF);
-	chain_code >>= 4;
+	/* first 3 bits of code give the next two or three chain components */
+	code_fragment = (u_int8_t)(chain_code & 0x7);
+	chain_code >>= 3;
 	switch( code_fragment )
 	{
-		case CHAIN_START_5_8_13:
-		{
-			Lchain[3].value = 5;
-			Lchain[3].comp_offset_1 = 0;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 2;
+	case CHAIN_START_5_8_13:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
 
-			Lchain[4].value = 8;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 2;
+		Lchain[4].value = 8;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 2;
 
-			Lchain[5].value = 13;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 2;
+		Lchain[5].value = 13;
+		Lchain[5].comp_offset_1 = 0;
+		Lchain[5].comp_offset_2 = 1;
+		Lchain[5].dif_offset = 2;
 
-			break;
-		}
-		case CHAIN_START_5_7_12:
-		{
-			Lchain[3].value = 5;
-			Lchain[3].comp_offset_1 = 0;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 2;
+		chain_length = 5;
+		break;
 
-			Lchain[4].value = 7;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 2;
-			Lchain[4].dif_offset = 1;
+	case CHAIN_START_5_8_11:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
 
-			Lchain[5].value = 12;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 3;
+		Lchain[4].value = 8;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 2;
 
-			break;
-		}
-		case CHAIN_START_5_8_11:
-		{
-			Lchain[3].value = 5;
-			Lchain[3].comp_offset_1 = 0;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 2;
+		Lchain[5].value = 11;
+		Lchain[5].comp_offset_1 = 0;
+		Lchain[5].comp_offset_2 = 2;
+		Lchain[5].dif_offset = 1;
 
-			Lchain[4].value = 8;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 2;
+		chain_length = 5;
+		break;
 
-			Lchain[5].value = 11;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 2;
-			Lchain[5].dif_offset = 1;
+	case CHAIN_START_5_8_10:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
 
-			break;
-		}
-		case CHAIN_START_5_6_11:
-		{
-			Lchain[3].value = 5;
-			Lchain[3].comp_offset_1 = 0;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 2;
+		Lchain[4].value = 8;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 2;
 
-			Lchain[4].value = 6;
-			Lchain[4].comp_offset_1 = 1;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 0;
+		Lchain[5].value = 10;
+		Lchain[5].comp_offset_1 = 1;
+		Lchain[5].comp_offset_2 = 1;
+		Lchain[5].dif_offset = 0;
 
-			Lchain[5].value = 11;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 4;
+		chain_length = 5;
+		break;
 
-			break;
-		}
-		case CHAIN_START_4_7_11:
-		{
-			Lchain[3].value = 4;
-			Lchain[3].comp_offset_1 = 1;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 0;
+	case CHAIN_START_5_7:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
 
-			Lchain[4].value = 7;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 3;
+		Lchain[4].value = 7;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 2;
+		Lchain[4].dif_offset = 1;
 
-			Lchain[5].value = 11;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 2;
+		chain_length = 4;
+		break;
 
-			break;
-		}
-		case CHAIN_START_5_6_10:
-		{
-			Lchain[3].value = 5;
-			Lchain[3].comp_offset_1 = 0;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 2;
+	case CHAIN_START_5_6:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
 
-			Lchain[4].value = 6;
-			Lchain[4].comp_offset_1 = 1;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 0;
+		Lchain[4].value = 6;
+		Lchain[4].comp_offset_1 = 1;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 0;
 
-			Lchain[5].value = 10;
-			Lchain[5].comp_offset_1 = 1;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 0;
+		chain_length = 4;
+		break;
 
-			break;
-		}
-		case CHAIN_START_4_7_10:
-		{
-			Lchain[3].value = 4;
-			Lchain[3].comp_offset_1 = 1;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 0;
+	case CHAIN_START_4_7:
+		Lchain[3].value = 4;
+		Lchain[3].comp_offset_1 = 1;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 0;
 
-			Lchain[4].value = 7;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 3;
+		Lchain[4].value = 7;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 3;
 
-			Lchain[5].value = 10;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 2;
-			Lchain[5].dif_offset = 1;
+		chain_length = 4;
+		break;
 
-			break;
-		}
-		case CHAIN_START_5_6_9:
-		{
-			Lchain[3].value = 5;
-			Lchain[3].comp_offset_1 = 0;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 2;
+	case CHAIN_START_4_6:
+		Lchain[3].value = 4;
+		Lchain[3].comp_offset_1 = 1;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 0;
 
-			Lchain[4].value = 6;
-			Lchain[4].comp_offset_1 = 1;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 0;
+		Lchain[4].value = 6;
+		Lchain[4].comp_offset_1 = 1;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 0;
 
-			Lchain[5].value = 9;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 2;
-			Lchain[5].dif_offset = 2;
+		chain_length = 4;
+		break;
 
-			break;
-		}
-		case CHAIN_START_4_6_9:
-		{
-			Lchain[3].value = 4;
-			Lchain[3].comp_offset_1 = 1;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 0;
+	case CHAIN_START_4_5:
+		Lchain[3].value = 4;
+		Lchain[3].comp_offset_1 = 1;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 0;
 
-			Lchain[4].value = 6;
-			Lchain[4].comp_offset_1 = 1;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 0;
+		Lchain[4].value = 5;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 3;
+		Lchain[4].dif_offset = 1;
 
-			Lchain[5].value = 9;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 2;
-			Lchain[5].dif_offset = 2;
+		chain_length = 4;
+		break;
 
-			break;
-		}
-		case CHAIN_START_4_5_9:
-		{
-			Lchain[3].value = 4;
-			Lchain[3].comp_offset_1 = 1;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 0;
-
-			Lchain[4].value = 5;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 3;
-			Lchain[4].dif_offset = 1;
-
-			Lchain[5].value = 9;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 4;
-
-			break;
-		}
-		case CHAIN_START_4_7_8:
-		{
-			Lchain[3].value = 4;
-			Lchain[3].comp_offset_1 = 1;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 0;
-
-			Lchain[4].value = 7;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 3;
-
-			Lchain[5].value = 8;
-			Lchain[5].comp_offset_1 = 1;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 0;
-
-			break;
-		}
-		case CHAIN_START_4_6_8:
-		{
-			Lchain[3].value = 4;
-			Lchain[3].comp_offset_1 = 1;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 0;
-
-			Lchain[4].value = 6;
-			Lchain[4].comp_offset_1 = 1;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 0;
-
-			Lchain[5].value = 8;
-			Lchain[5].comp_offset_1 = 1;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 0;
-
-			break;
-		}
-		case CHAIN_START_4_6_7:
-		{
-			Lchain[3].value = 4;
-			Lchain[3].comp_offset_1 = 1;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 0;
-
-			Lchain[4].value = 6;
-			Lchain[4].comp_offset_1 = 1;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 0;
-
-			Lchain[5].value = 7;
-			Lchain[5].comp_offset_1 = 1;
-			Lchain[5].comp_offset_2 = 2;
-			Lchain[5].dif_offset = 4;
-
-			break;
-		}
-		case CHAIN_START_5_8_10: /* extremely rare */
-		{
-			Lchain[3].value = 5;
-			Lchain[3].comp_offset_1 = 0;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 2;
-
-			Lchain[4].value = 8;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 1;
-			Lchain[4].dif_offset = 2;
-
-			Lchain[5].value = 10;
-			Lchain[5].comp_offset_1 = 1;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 0;
-
-			break;
-		}
-		case CHAIN_START_5_7_9:  /* extremely rare */
-		{
-			Lchain[3].value = 5;
-			Lchain[3].comp_offset_1 = 0;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 2;
-
-			Lchain[4].value = 7;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 2;
-			Lchain[4].dif_offset = 1;
-
-			Lchain[5].value = 9;
-			Lchain[5].comp_offset_1 = 0;
-			Lchain[5].comp_offset_2 = 3;
-			Lchain[5].dif_offset = 1;
-
-			break;
-		}
-		case CHAIN_START_5_7_10:  /* extremely rare */
-		{
-			Lchain[3].value = 5;
-			Lchain[3].comp_offset_1 = 0;
-			Lchain[3].comp_offset_2 = 1;
-			Lchain[3].dif_offset = 2;
-
-			Lchain[4].value = 7;
-			Lchain[4].comp_offset_1 = 0;
-			Lchain[4].comp_offset_2 = 2;
-			Lchain[4].dif_offset = 1;
-
-			Lchain[5].value = 10;
-			Lchain[5].comp_offset_1 = 1;
-			Lchain[5].comp_offset_2 = 1;
-			Lchain[5].dif_offset = 0;
-
-			break;
-		}
+	default: /* should never happen */
+		printf("ERROR: bad chain code start value in generate_Lchain = %u\n", code_fragment);
+		return 0;
 	}
-	chain_length = 5;
 
 	/* rebuild chain from code fragments */
 	while( chain_code != 0 )
@@ -987,15 +786,8 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 				k = 1;
 				while( dif < Lchain[ chain_length-k ].value )
 					k++;
-#ifdef VALIDATE_LCHAIN_GEN
-				if( dif != Lchain[ chain_length-k ].value )
-				{
-					chain_code_error_file = fopen(err_file,"a");
-					fprintf(chain_code_error_file, "ERROR: invalid code fragment 1, dif not in chain! p = %lu\n", prime);
-					fclose(chain_code_error_file);
-					return 0;
-				}
-#endif
+				ASSERT( dif == Lchain[ chain_length-k ].value );
+
 				Lchain[ chain_length+1 ].dif_offset = k;
 				chain_length++;
 				break;
@@ -1134,35 +926,65 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 
 				switch( i )
 				{
-					case 0: /* chain encoding did not require this step until chain length = 44 */
-					{
-						Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-7 ].value;
-						Lchain[ chain_length+1 ].comp_offset_1 = 0;
-						Lchain[ chain_length+1 ].comp_offset_2 = 7;
-						dif = Lchain[ chain_length ].value - Lchain[ chain_length-7 ].value;
-						k = 1;
-						while( dif < Lchain[ chain_length-k ].value )
-							k++;
-#ifdef VALIDATE_LCHAIN_GEN
-						if( dif != Lchain[ chain_length-k ].value )
-						{
-							chain_code_error_file = fopen(err_file,"a");
-							fprintf(chain_code_error_file, "ERROR: invalid code fragment 0x0D, dif not in chain! p = %lu\n", prime);
-							fclose(chain_code_error_file);
-							return 0;
-						}
-#endif
-						Lchain[ chain_length+1 ].dif_offset = k;
-						chain_length++;
-						break;
-					}
-					default: /* cases 1, 2, & 3 reserved for any more rare steps which might occur */
-					{
-						chain_code_error_file = fopen(err_file,"a");
-						fprintf(chain_code_error_file, "ERROR: unimplemented code fragment 0xiD, i = %u p = %lu\n", i, prime);
-						fclose(chain_code_error_file);
-						return 0;
-					}
+				case 0: /* chain encoding did not require this step until chain length = 44 */
+					Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-7 ].value;
+					Lchain[ chain_length+1 ].comp_offset_1 = 0;
+					Lchain[ chain_length+1 ].comp_offset_2 = 7;
+					dif = Lchain[ chain_length ].value - Lchain[ chain_length-7 ].value;
+					k = 1;
+					while( dif < Lchain[ chain_length-k ].value )
+						k++;
+					ASSERT( dif == Lchain[ chain_length-k ].value );
+
+					Lchain[ chain_length+1 ].dif_offset = k;
+					chain_length++;
+					break;
+
+				case 1:
+					Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-8 ].value;
+					Lchain[ chain_length+1 ].comp_offset_1 = 0;
+					Lchain[ chain_length+1 ].comp_offset_2 = 8;
+					dif = Lchain[ chain_length ].value - Lchain[ chain_length-8 ].value;
+					k = 1;
+					while( dif < Lchain[ chain_length-k ].value )
+						k++;
+					ASSERT( dif == Lchain[ chain_length-k ].value );
+
+					Lchain[ chain_length+1 ].dif_offset = k;
+					chain_length++;
+					break;
+
+				case 2: /* example chain 1 2 3 5 8 10 12 13 */
+					Lchain[ chain_length+1 ].value = Lchain[ chain_length - 2 ].value + Lchain[ chain_length - 3 ].value;
+					Lchain[ chain_length+1 ].comp_offset_1 = 2;
+					Lchain[ chain_length+1 ].comp_offset_2 = 3;
+					dif = Lchain[ chain_length - 2 ].value - Lchain[ chain_length - 3 ].value;
+					k = 1;
+					while( dif < Lchain[ chain_length-k ].value )
+						k++;
+					ASSERT( dif == Lchain[ chain_length-k ].value );
+
+					Lchain[ chain_length+1 ].dif_offset = k;
+					chain_length++;
+					break;
+
+				case 3: /* can occur but don't have an example (yet) */
+					Lchain[ chain_length+1 ].value = Lchain[ chain_length - 2 ].value + Lchain[ chain_length - 4 ].value;
+					Lchain[ chain_length+1 ].comp_offset_1 = 2;
+					Lchain[ chain_length+1 ].comp_offset_2 = 4;
+					dif = Lchain[ chain_length - 2 ].value - Lchain[ chain_length - 4 ].value;
+					k = 1;
+					while( dif < Lchain[ chain_length-k ].value )
+						k++;
+					ASSERT( dif == Lchain[ chain_length-k ].value );
+
+					Lchain[ chain_length+1 ].dif_offset = k;
+					chain_length++;
+					break;
+
+				default: /* should never happen */
+					printf("ERROR: unimplemented code fragment 0xiD, i = %u\n", i);
+					return 0;
 				}
 				break;
 			}
@@ -1178,15 +1000,8 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 				k = 1;
 				while( dif < Lchain[ chain_length-k ].value )
 					k++;
-#ifdef VALIDATE_LCHAIN_GEN
-				if( dif != Lchain[ chain_length-k ].value )
-				{
-					chain_code_error_file = fopen(err_file,"a");
-					fprintf(chain_code_error_file, "ERROR: invalid code fragment 14, dif not in chain! p = %lu\n", prime);
-					fclose(chain_code_error_file);
-					return 0;
-				}
-#endif
+				ASSERT( dif == Lchain[ chain_length-k ].value );
+
 				Lchain[ chain_length+1 ].dif_offset = k;
 				chain_length++;
 				break;
@@ -1203,15 +1018,8 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 				k = 2;
 				while( dif < Lchain[ chain_length-k ].value )
 					k++;
-#ifdef VALIDATE_LCHAIN_GEN
-				if( dif != Lchain[ chain_length-k ].value )
-				{
-					chain_code_error_file = fopen(err_file,"a");
-					fprintf(chain_code_error_file, "ERROR: invalid code fragment 15, dif not in chain! p = %lu\n", prime);
-					fclose(chain_code_error_file);
-					return 0;
-				}
-#endif
+				ASSERT( dif == Lchain[ chain_length-k ].value );
+
 				Lchain[ chain_length+1 ].dif_offset = k;
 				chain_length++;
 				break;
@@ -1226,15 +1034,8 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 		max_continuation( Lchain, &chain_length, i );
 	}
 
-#ifdef VALIDATE_LCHAIN_GEN
-	if( Lchain[ chain_length ].value != prime )
-	{
-		chain_code_error_file = fopen(err_file,"a");
-		fprintf(chain_code_error_file, "ERROR: chain code mismatch or invalid chain code for prime = %lu !\n", prime);
-		fclose(chain_code_error_file);
-		return 0;
-	}
-#endif
+	ASSERT( Lchain[ chain_length ].value == prime );
+
 	return chain_length;
 }
 
@@ -1243,10 +1044,6 @@ void max_continuation( chain_element *Lchain, u_int8_t *chain_length, u_int8_t i
 {
 	u_int8_t k;
 	u_int64_t dif;
-#ifdef VALIDATE_LCHAIN_GEN
-	static char *err_file = "Lchain_code_errors.dat";
-	FILE *chain_code_error_file;
-#endif
 
 	Lchain[ *chain_length+1 ].value = Lchain[ *chain_length ].value + Lchain[ *chain_length-1 ].value;
 	Lchain[ *chain_length+1 ].comp_offset_1 = 0;
@@ -1255,17 +1052,10 @@ void max_continuation( chain_element *Lchain, u_int8_t *chain_length, u_int8_t i
 	k = 2;
 	while( dif < Lchain[ *chain_length-k ].value )
 		k++;
-#ifdef VALIDATE_LCHAIN_GEN
-	if( dif != Lchain[ *chain_length-k ].value )
-	{
-		chain_code_error_file = fopen(err_file,"a");
-		fprintf(chain_code_error_file, "ERROR: invalid code fragment, max continuation dif not in chain!\n");
-		fclose(chain_code_error_file);
-		return;
-	}
-#endif
+	ASSERT( dif == Lchain[ *chain_length-k ].value );
+
 	Lchain[ *chain_length+1 ].dif_offset = k;
-	*chain_length += 1;
+	(*chain_length)++;
 	if( i > 1 )
 	{
 		for( k = 1; k < i; k++)
@@ -1274,7 +1064,7 @@ void max_continuation( chain_element *Lchain, u_int8_t *chain_length, u_int8_t i
 			Lchain[ *chain_length+1 ].comp_offset_1 = 0;
 			Lchain[ *chain_length+1 ].comp_offset_2 = 1;
 			Lchain[ *chain_length+1 ].dif_offset = 2;
-			*chain_length += 1;
+			(*chain_length)++;
 		}
 	}
 }
