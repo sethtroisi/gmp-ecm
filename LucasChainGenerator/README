@@ -1,0 +1,47 @@
+Building LucasChainGen:
+
+(1) On a terminal, navigate to the folder containing this README file
+(./LucasChainGenerator from the main ECM folder).
+(2) On a linux system, execute the command ...$ ./build_linux
+    Note: a true makefile including other systems is TBD. The program
+          is written in C adhering to the ansi standard, so building it
+          should be straightforward.
+
+Running LucasChainGen:
+
+The program will generate and encode optimal, or near-optimal, Lucas chains
+for all primes less than or equal to the user-specified limit B1. (Normally,
+the maximum ECM Stage 1 limit the user expects to use.) The program is also
+multithreaded using pthreads, so the user can specify however many threads
+(1 to 16) that their system can accommodate. The default number of threads
+is 4. The run syntax is: ...$ ./LucasChainGen -B1 <val_1> -nT <val_2>.
+For example, generating chains for all primes up to B1 = 43 million, and
+using 7 threads, the command would be '...$ ./LucasChainGen -B1 43e6 -nT 7'.
+
+Using the output file:
+
+The program produces a file called "Lchain_codes.dat" written to this folder.
+To use it, move the file or copy it to the main ECM folder, or to any folder
+from which you expect to run ECM. ECM will use the file if it is in the run
+folder and '-param 0' is specified.
+
+To verify the Lchain_codes.dat file, configure ECM with "--enable-assert" and
+run 'make ; make check' and/or 'make ; make longcheck'. Either/both should finish 
+without errors. Check the output logs to be sure "Using Lucas chain codes"
+appears.
+
+Run times:
+
+The time it will take to generate the 'Lchain_codes.dat' file can range from
+seconds to days, depending on the chosen value of B1 and the specific machine
+used. Here are some representative timings on an Intel Core™ i9-13900K at about
+5 GHz:
+
+    -B1   1e6 nT 7: 18.6 sec.
+    -B1   3e6 nT 7: 1 min 26 sec
+    -B1  11e6 nT 7: 7 min 32 sec
+    -B1  43e6 nT 7: 46 min 55s
+    -B1 110e6 nT 7: 198 min 11s
+    -B1 260e6 nT 8: 580 min 24s
+
+
