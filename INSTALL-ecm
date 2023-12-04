@@ -122,17 +122,12 @@ Instructions to install GMP-ECM:
 6) (optional) When using -param 0, it is now possible to speed up Stage 1
    by 4 to 5 percent. This requires the user to generate a file, called
    "Lchain_codes.dat", using a program (LucasChainGen) included with this
-   release. To build this program from a terminal, navigate to the
-   "LucasChainGen" folder and type 'make' followed by a carriage return.
-   To run the program, the syntax is 'LucasChainGen -B1 <val>', where
-   <val> is the largest B1 value that you expect to use. For example, if
-   you will be using B1's up to 110e6, type 'LucasChainGen -B1 110e6'.
-   The user is advised, however, that while smaller B1's (3e6 or less)
-   will finish fairly quickly, run times will extend to hours or days
-   for larger choices. However, once 'Lchain_codes.dat' has been generated,
-   it can be used and re-used indefinitely. If it exists in the ecm run
-   directory, stage 1 with '-param 0' will use 'Lchain_codes.dat' for any
-   B1, and revert to use 'prac' if 'end-of-file' is reached.
+   release. For details on how to build and run LucasChainGen, see the
+   README file in the LucasChainGenerator folder. Once the Lchain_codes.dat
+   file is available, and it is moved to the ecm run directory, ecm stage 1
+   with '-param 0' set will use the file to generate a Lucas chain for every
+   prime less than or equal to min( B1, file limit), and revert to use
+   'prac' if 'end-of-file' is reached.
 
 7) If you like GMP-ECM, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
