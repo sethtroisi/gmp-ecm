@@ -653,7 +653,8 @@ Note: for -param 0 only, this release includes an optional improvement to
 stage 1. For each prime p, 11 <= p <= B1, the Lucas chain for p (produced
 by the 'prac' routine) is replaced by a near-optimal Lucas chain
 reconstructed from a 64-bit code read out of a file. For instructions on
-how to generate and use this file, see INSTALL-ecm.
+how to generate and use this file, see the README file in the
+LucasChainGenerator folder.
 
 The ecm program automatically selects what it thinks is the best
 arithmetic for the given input number. If that choice is not optimal, you may 
