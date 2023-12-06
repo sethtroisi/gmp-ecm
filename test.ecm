@@ -186,6 +186,9 @@ echo '2^(101/7)-1' | $ECM -sigma 0:18 1e5; checkcode $? 1
 # exercise "Error, n should be positive" error message
 echo "-1234" | $ECM 11e3; checkcode $? 1
 
+# exercise "Error, n should be positive" error message
+echo "1" | $ECM 11e3; checkcode $? 1
+
 # exercise "Error, conflict between -sigma and -param arguments" error message
 echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -param 2 11000; checkcode $? 1
 
