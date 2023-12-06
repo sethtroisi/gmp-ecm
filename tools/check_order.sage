@@ -1,4 +1,4 @@
-# script to determine B1/B2 given a prime and sigma
+# Script to determine B1/B2 given a prime and sigma
 #
 # Copyright 2023
 # Seth Troisi
@@ -18,7 +18,11 @@
 # http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
+# To find the B1, B2 needed for an ecm curve with param / sigma to find a factor
 #  $ sage check_order.sage <param:sigma> <prime>
+#
+# Large prime factor found by param 0 curve with sigma 8084257192518901305
+#  $ sage check_order.sage 0:8084257192518901305 79632490363499039771085988101713956873090985066875428007643233693630470417031
 
 
 # To suppress '***   Warning: increasing stack size to 2000000.' from pari.
@@ -79,7 +83,8 @@ def GroupOrder(param, prime, sigma):
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
-        print("\t{sys.argv[0]} takes two arguments: <param:sigma> <prime>")
+        print(f"\t{sys.argv[0]} takes two arguments: <param:sigma> <prime>")
+        exit(1)
 
     curve, prime = sys.argv[1:]
     assert ":" in curve, "param:sigma should contain a :"

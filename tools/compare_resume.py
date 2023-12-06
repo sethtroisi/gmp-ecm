@@ -20,11 +20,8 @@
 # http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
-# Verify line from <FN>
-#  $ python find_small_sigma.sage <FN>
-#
-# To pass extra args not present in resume file
-#  $ python find_small_sigma.sage <FN> -- -k 3 -v
+# Verify line from <RESUME_FN> that were rerun in <VERIFY_FN> with
+#  $ python compare_resume.py <RESUME_FN> <VERIFY_FN>
 
 
 import argparse
