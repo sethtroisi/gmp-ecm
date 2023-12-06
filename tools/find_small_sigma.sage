@@ -21,7 +21,7 @@
 # Computes order of a elliptic curve mod a prime and determine neede B1/B2
 #
 # to find a good sigma for param 3
-#  $ sage find_small_sigma.sage 59649589127497217 --sigma 3
+#  $ sage find_small_sigma.sage 59649589127497217 --sigma 3:1000
 #
 # With optional starting sigma and param 0
 #  $ sage find_small_sigma.sage 59649589127497217 --sigma 0:1000
@@ -30,7 +30,7 @@
 #  $ sage find_small_sigma.sage 59649589127497217 --curves 1000
 #
 # With max B2
-#  $ sage find_small_sigma.sage 59649589127497217 --sigma 0:1000 -B2lim 1e6
+#  $ sage find_small_sigma.sage 59649589127497217 --sigma 0:1000 --B2lim 1000000
 #
 # to see all options
 #  $ sage find_small_sigma.sage
