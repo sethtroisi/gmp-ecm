@@ -37,11 +37,11 @@ seconds to days, depending on the chosen value of B1 and the specific machine
 used. Here are some representative timings on an Intel Core™ i9-13900K at about
 5 GHz:
 
-    -B1   1e6 nT 7: 18.6 sec.
-    -B1   3e6 nT 7: 1 min 26 sec
-    -B1  11e6 nT 7: 7 min 32 sec
-    -B1  43e6 nT 7: 46 min 55s
-    -B1 110e6 nT 7: 198 min 11s
-    -B1 260e6 nT 8: 580 min 24s
+    -B1   1e6 -nT 7: 18.6 sec.
+    -B1   3e6 -nT 7: 1 min 26 sec
+    -B1  11e6 -nT 7: 7 min 32 sec
+    -B1  43e6 -nT 7: 46 min 55s
+    -B1 110e6 -nT 7: 198 min 11s
+    -B1 260e6 -nT 8: 580 min 24s
 
 
