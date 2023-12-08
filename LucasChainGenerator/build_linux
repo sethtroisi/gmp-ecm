@@ -1,8 +1,0 @@
-rm -f LucasChainGen ;
-gcc -O2 -g3 -pedantic -Wall -Wextra -Wconversion -Wcast-align -Wcast-qual -Wlogical-op -Wmissing-declarations -Wredundant-decls -Wshadow -Wsign-conversion -Wswitch-default -Wundef -Wwrite-strings -Wfloat-equal -c -fmessage-length=0 -ansi -pthread -MMD -MP -MF"LucasChainGen.d" -MT"LucasChainGen.o" -o "LucasChainGen.o" "./src/LucasChainGen.c" ;
-gcc -Lm -pthread -o "LucasChainGen" ./LucasChainGen.o ;
-rm -f LucasChainGen.d ;
-rm -f LucasChainGen.o
-
-
-

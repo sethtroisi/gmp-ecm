@@ -61,7 +61,7 @@ if WANT_GPU
 endif
 
 bin_PROGRAMS = ecm
-noinst_PROGRAMS = tune ecmfactor bench_mulredc aprcl
+noinst_PROGRAMS = tune ecmfactor bench_mulredc aprcl LucasChainGen
 # Most binaries want to link libecm.la, and the ones which don't will
 # have their own _LDADD which overrides the default LDADD here
 LDADD = libecm.la $(GMPLIB)
@@ -88,6 +88,10 @@ ecmfactor_CFLAGS = $(OPENMP_CFLAGS) -lpthread
 aprcl_CFLAGS = -Wall
 aprcl_SOURCES = aprtcle/mpz_aprcl.c aprtcle/aprcl.c
 aprcl_LDADD = $(GMPLIB)
+
+LucasChainGen_CFLAGS = -ansi -lpthread
+LucasChainGen_SOURCES = LucasChainGenerator/src/LucasChainGen.c
+LucasChainGen_LDADD =
 
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE

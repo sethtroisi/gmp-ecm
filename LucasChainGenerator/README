@@ -1,11 +1,8 @@
 Building LucasChainGen:
 
-(1) On a terminal, navigate to the folder containing this README file
-(./LucasChainGenerator from the main ECM folder).
-(2) On a linux system, execute the command ...$ ./build_linux
-    Note: a true makefile including other systems is TBD. The program
-          is written in C adhering to the ansi standard, so building it
-          should be straightforward.
+The LucasChainGen executable will appear in the main ECM folder as soon as
+the "./configure; make" sequence for building GMP-ECM is complete. No
+special separate build command is necessary.
 
 Running LucasChainGen:
 
@@ -20,10 +17,10 @@ using 7 threads, the command would be '...$ ./LucasChainGen -B1 43e6 -nT 7'.
 
 Using the output file:
 
-The program produces a file called "Lchain_codes.dat" written to this folder.
-To use it, move the file or copy it to the main ECM folder, or to any folder
-from which you expect to run ECM. ECM will use the file if it is in the run
-folder and '-param 0' is specified.
+The program produces a file called "Lchain_codes.dat" written to the main ECM
+folder. Use of the file is automatic (with -param 0 set) if running from the
+main ECM folder. If not, the user should copy it to any folder from which they
+expect to run ECM.
 
 To verify the Lchain_codes.dat file, configure ECM with "--enable-assert" and
 run 'make ; make check' and/or 'make ; make longcheck'. Either/both should finish 
