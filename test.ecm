@@ -52,6 +52,17 @@ in
 *) VALGRIND=0
 esac
 
+# create a small Lchain_codes.dat file if no file exists
+if [ -f Lchain_codes.dat ]
+ then
+   echo "Lchain_codes.dat file already exists"
+   echo ""
+ else
+   echo "Creating file Lchain_codes.dat to 1e4 for make check"
+   echo ""
+  ./LucasChainGen -B1 1e4 -nT 1 > LCG.log
+fi
+
 # Exit statues returned by GMP-ECM:
 # 0      Normal program termination, no factor found
 # 1      Error
