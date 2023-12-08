@@ -85,6 +85,17 @@ else
    GMP_NUMB_BITS=32
 fi
 
+# create a small Lchain_codes.dat file if no file exists
+if [ -f Lchain_codes.dat ]
+ then
+   echo "Lchain_codes.dat file already exists"
+   echo ""
+ else
+   echo "Creating file Lchain_codes.dat to 1e4 for make check"
+   echo ""
+  ./LucasChainGen -B1 1e4 -nT 1 > LCG.log
+fi
+
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
 # 2^4 * 3^3 * 29 * 2411
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
