@@ -40,5 +40,5 @@ used. Here are some representative timings on an Intel Core™ i9-13900K at abou
     -B1  43e6 -nT 7: 46 min 55s
     -B1 110e6 -nT 7: 198 min 11s
     -B1 260e6 -nT 8: 580 min 24s
-
+    -B1 850e6 -nT 7: 2725 min 32s
 
