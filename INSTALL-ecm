@@ -119,7 +119,17 @@ Instructions to install GMP-ECM:
 
    You can also do "make uninstall" to remove those files.
 
-6) If you like GMP-ECM, please help us factoring Cunningham numbers. First
+6) (optional) When using -param 0, it is now possible to speed up Stage 1
+   by 4 to 5 percent. This requires the user to generate a file, called
+   "Lchain_codes.dat", using a program (LucasChainGen) included with this
+   release. For details on how to build and run LucasChainGen, see the
+   README file in the LucasChainGenerator folder. Once the Lchain_codes.dat
+   file is available, and it is moved to the ecm run directory, ecm stage 1
+   with '-param 0' set will use the file to generate a Lucas chain for every
+   prime less than or equal to min( B1, file limit), and revert to use
+   'prac' if 'end-of-file' is reached.
+
+7) If you like GMP-ECM, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
    perform one ecm test with B1=110e6 on each number of this file:
 

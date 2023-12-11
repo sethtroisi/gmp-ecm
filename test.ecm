@@ -78,12 +78,35 @@ in
 *) VALGRIND=0
 esac
 
+<<<<<<< HEAD
 $ECM -printconfig | grep "GMP_NUMB_BITS = 64"
 if [ $? -eq 0 ]; then
    GMP_NUMB_BITS=64
 else
    GMP_NUMB_BITS=32
 fi
+=======
+# create a small Lchain_codes.dat file if no file exists
+if [ -f Lchain_codes.dat ]
+ then
+   echo "Lchain_codes.dat file already exists"
+   echo ""
+ else
+   echo "Creating file Lchain_codes.dat to 1e4 for make check"
+   echo ""
+  ./LucasChainGen -B1 1e4 -nT 1 > LCG.log
+fi
+
+# Exit statues returned by GMP-ECM:
+# 0      Normal program termination, no factor found
+# 1      Error
+# 2      Composite factor found, cofactor is composite
+# 6      (Probable) prime factor found, cofactor is composite
+# 8      Input number found
+# 10     Composite factor found, cofactor is a (probable) prime
+# 14     (Probable) prime factor found, cofactor is a (probable) prime
+
+>>>>>>> origin/lucaschains
 
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
 # 2^4 * 3^3 * 29 * 2411
