@@ -78,14 +78,13 @@ in
 *) VALGRIND=0
 esac
 
-<<<<<<< HEAD
 $ECM -printconfig | grep "GMP_NUMB_BITS = 64"
 if [ $? -eq 0 ]; then
    GMP_NUMB_BITS=64
 else
    GMP_NUMB_BITS=32
 fi
-=======
+
 # create a small Lchain_codes.dat file if no file exists
 if [ -f Lchain_codes.dat ]
  then
@@ -105,8 +104,6 @@ fi
 # 8      Input number found
 # 10     Composite factor found, cofactor is a (probable) prime
 # 14     (Probable) prime factor found, cofactor is a (probable) prime
-
->>>>>>> origin/lucaschains
 
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
 # 2^4 * 3^3 * 29 * 2411
