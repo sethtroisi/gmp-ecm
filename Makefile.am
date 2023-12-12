@@ -53,10 +53,8 @@ libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
 libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 1:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 if WANT_GPU 
-  libecm_la_SOURCES += cudakernel.cu cudacommon.cu
-if WANT_CGBN
+  libecm_la_SOURCES += cudacommon.cu
   libecm_la_SOURCES += cgbn_stage1.cu
-endif
   libecm_la_LIBADD += $(CUDALIB)
   libecm_la_LDFLAGS += $(CUDALDFLAGS)
   ecm_LDFLAGS = $(CUDARPATH)
@@ -64,7 +62,7 @@ endif
 libecm_la_LIBADD += $(GMPLIB)
 
 bin_PROGRAMS = ecm
-noinst_PROGRAMS = tune ecmfactor bench_mulredc aprcl
+noinst_PROGRAMS = tune ecmfactor bench_mulredc aprcl LucasChainGen
 # Most binaries want to link libecm.la, and the ones which don't will
 # have their own _LDADD which overrides the default LDADD here
 LDADD = libecm.la $(GMPLIB)
@@ -91,6 +89,10 @@ ecmfactor_CFLAGS = $(OPENMP_CFLAGS) -lpthread
 aprcl_CFLAGS = -Wall
 aprcl_SOURCES = aprtcle/mpz_aprcl.c aprtcle/aprcl.c
 aprcl_LDADD = $(GMPLIB)
+
+LucasChainGen_CFLAGS = -ansi -lpthread
+LucasChainGen_SOURCES = LucasChainGenerator/src/LucasChainGen.c
+LucasChainGen_LDADD =
 
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
@@ -119,27 +121,26 @@ endif
 include_HEADERS = ecm.h
 noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h \
                  ecm-params.h mpmod.h ecm-gpu.h torsions.h \
-                 cudakernel.h cudacommon.h cgbn_stage1.h \
+                 cudacommon.h cgbn_stage1.h \
                  addlaws.h getprime_r.h ecm_int.h \
                  aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
-             pentium4/params.h x86_64/core2/params.h x86_64/k8/params.h \
-             athlon/params.h x86/params.h ia64/params.h arm/params.h    \
+             x86/params.h ia64/params.h arm/params.h    \
              powerpc64/params.h powerpc32/params.h sparc64/params.h     \
-             hppa/params.h mips/params.h x86_64/corei7/params.h         \
+             hppa/params.h mips/params.h x86_64/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
-             getprime_r.h cudakernel_default.cu cgbn_stage1.cu \
+             getprime_r.h cgbn_stage1.cu \
              test.gpuecm README.gpu c155 \
              test_dummy.save test_prime95.save M877.save \
 	     M997.save test_Z2102.n
 
-DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle build.vc12
+DIST_SUBDIRS = x86_64 powerpc64 aprtcle build.vc12
 
 DISTCLEANFILES = config.m4
 
 if WANT_GPU
-.cu.lo: cudakernel.h cgbn_stage1.h
+.cu.lo: cgbn_stage1.h
 		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(NVCCFLAGS) --compiler-options -fPIC $(CPPFLAGS) -o $@ $^ -static
 endif
 
@@ -154,9 +155,6 @@ check_PROGRAMS = ecm$(EXEEXT)
 dist_check_SCRIPTS = test.pp1 test.pm1 test.ecm
 if WANT_GPU
 dist_check_SCRIPTS += test.gpuecm
-endif
-if WANT_CGBN
-dist_check_SCRIPTS += test.cgbnecm
 endif
 
 TESTS = $(dist_check_SCRIPTS)
@@ -185,9 +183,6 @@ longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 if WANT_GPU
 	$(srcdir)/test.gpuecm "$(VALGRIND) ./ecm$(EXEEXT)"
-endif
-if WANT_CGBN
-	$(srcdir)/test.cgbnecm "$(VALGRIND) ./ecm$(EXEEXT)"
 endif
 	$(srcdir)/testlong.pp1 "$(VALGRIND) ./ecm$(EXEEXT)"
 	$(srcdir)/testlong.pm1 "$(VALGRIND) ./ecm$(EXEEXT)"

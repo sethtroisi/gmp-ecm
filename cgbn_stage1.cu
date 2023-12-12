@@ -206,17 +206,31 @@ class curve_t {
     uint32_t q = t1_0 * np0;
     uint32_t carry_t2 = cgbn_mul_ui32(_env, temp, modulus, q);
 
+    // Can I call dshift_right(1) directly?
     cgbn_shift_right(_env, r, r, 32);
     cgbn_shift_right(_env, temp, temp, 32);
     // Add back overflow carry
     cgbn_insert_bits_ui32(_env, r, r, params::BITS-32, 32, carry_t1);
     cgbn_insert_bits_ui32(_env, temp, temp, params::BITS-32, 32, carry_t2);
 
-    // This needs to be measured at block containing top bit of modulus
+    if (VERIFY_NORMALIZED) {
+        // (uint32 * X) >> 32 is always less than X
+        assert_normalized(r, modulus);
+        assert_normalized(temp, modulus);
+    }
+
+    // Can't overflow because of CARRY_BITS
     int32_t carry_q = cgbn_add(_env, r, r, temp);
     carry_q += cgbn_add_ui32(_env, r, r, t1_0 != 0); // add 1
-    while (carry_q != 0) {
-        carry_q -= cgbn_sub(_env, r, r, modulus);
+
+    if (carry_q > 0) {
+        // This should never happen,
+        // if CHECK_ERROR, no need for the conditional call to cgbn_sub
+        if (CHECK_ERROR) {
+            _context.report_error(cgbn_positive_overflow);
+        } else {
+            cgbn_sub(_env, r, r, modulus);
+        }
     }
 
     // 0 <= r, temp < modulus => r + temp + 1 < 2*modulus
@@ -226,6 +240,12 @@ class curve_t {
   }
 
 
+  /**
+   * Compute simultaneously
+   * (q : u) <- [2](q : u)
+   * (w : v) <- (q : u) + (w : v)
+   * A second implementation previously existed in cudakernel_default.cu
+   */
   __device__ FORCE_INLINE void double_add_v2(
           bn_t &q, bn_t &u,
           bn_t &w, bn_t &v,
@@ -233,24 +253,26 @@ class curve_t {
           const bn_t &modulus,
           const uint32_t np0) {
     // q = xA = aX
-    // u = zA = aY
+    // u = zA = aZ
     // w = xB = bX
-    // v = zB = bY
+    // v = zB = bZ
 
     /* Doesn't seem to be a large cost to using many extra variables */
     bn_t t, CB, DA, AA, BB, K, dK;
 
     /* Can maybe use one more bit if cgbn_add subtracts when carry happens */
+    /* Might be nice to add a macro that verifies no carry out of cgbn_add */
 
-    cgbn_add(_env, t, v, w); // t = (bY + bX)
+    // Is there anything interesting like only one of these can overflow?
+    cgbn_add(_env, t, v, w); // t = (bZ + bX)
     normalize_addition(t, modulus);
-    if (cgbn_sub(_env, v, v, w)) // v = (bY - bX)
+    if (cgbn_sub(_env, v, v, w)) // v = (bZ - bX)
         cgbn_add(_env, v, v, modulus);
 
 
-    cgbn_add(_env, w, u, q); // w = (aY + aX)
+    cgbn_add(_env, w, u, q); // w = (aZ + aX)
     normalize_addition(w, modulus);
-    if (cgbn_sub(_env, u, u, q)) // u = (aY - aX)
+    if (cgbn_sub(_env, u, u, q)) // u = (aZ - aX)
         cgbn_add(_env, u, u, modulus);
     if (VERIFY_NORMALIZED) {
         assert_normalized(t, modulus);
@@ -278,7 +300,7 @@ class curve_t {
 
     // q = aX is finalized
     cgbn_mont_mul(_env, q, AA, BB, modulus, np0); // AA*BB
-        normalize_addition(q, modulus);
+    normalize_addition(q, modulus);
         assert_normalized(q, modulus);
 
     if (cgbn_sub(_env, K, AA, BB)) // K = AA-BB
@@ -299,9 +321,9 @@ class curve_t {
         assert_normalized(u, modulus);
     }
 
-    // u = aY is finalized
+    // u = aZ is finalized
     cgbn_mont_mul(_env, u, K, u, modulus, np0); // K(BB+dK)
-        normalize_addition(u, modulus);
+    normalize_addition(u, modulus);
         assert_normalized(u, modulus);
 
     cgbn_add(_env, w, DA, CB); // DA + CB
@@ -315,73 +337,19 @@ class curve_t {
 
     // w = bX is finalized
     cgbn_mont_sqr(_env, w, w, modulus, np0); // (DA+CB)^2 mod N
-        normalize_addition(w, modulus);
+    normalize_addition(w, modulus);
         assert_normalized(w, modulus);
 
     cgbn_mont_sqr(_env, v, v, modulus, np0); // (DA-CB)^2 mod N
-        normalize_addition(v, modulus);
+    normalize_addition(v, modulus);
         assert_normalized(v, modulus);
 
-    // v = bY is finalized
+    // v = bZ is finalized
     cgbn_shift_left(_env, v, v, 1); // double
     normalize_addition(v, modulus);
         assert_normalized(v, modulus);
   }
 };
-
-static
-uint32_t* set_p_2p(const mpz_t N,
-                   uint32_t curves, uint32_t sigma,
-                   uint32_t BITS, size_t *data_size) {
-  /**
-   * Store 5 numbers per curve:
-   * N, P_a (x, y), P_b (x, y)
-   *
-   * P_a is initialized with (2, 1)
-   * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
-   */
-
-  const size_t limbs_per = BITS/32;
-  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
-  uint32_t *data = (uint32_t*) malloc(*data_size);
-  uint32_t *datum = data;
-
-  mpz_t x;
-  mpz_init(x);
-  for(int index = 0; index < curves; index++) {
-      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
-      uint32_t d = sigma + index;
-
-      // Modulo (N)
-      from_mpz(N, datum + 0 * limbs_per, BITS/32);
-
-      // P1 (X, Y)
-      mpz_set_ui(x, 2);
-      from_mpz(x, datum + 1 * limbs_per, BITS/32);
-      mpz_set_ui(x, 1);
-      from_mpz(x, datum + 2 * limbs_per, BITS/32);
-
-      // 2P = P2 (X, Y)
-      // P2_x = 9
-      mpz_set_ui(x, 9);
-      from_mpz(x, datum + 3 * limbs_per, BITS/32);
-
-      // d = sigma * mod_inverse(2 ** 32, N)
-      mpz_ui_pow_ui(x, 2, 32);
-      mpz_invert(x, x, N);
-      mpz_mul_ui(x, x, d);
-      // P2_x = 64 * d + 8;
-      mpz_mul_ui(x, x, 64);
-      mpz_add_ui(x, x, 8);
-      mpz_mod(x, x, N);
-
-      outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x);
-      from_mpz(x, datum + 4 * limbs_per, BITS/32);
-      datum += 5 * limbs_per;
-  }
-  mpz_clear(x);
-  return data;
-}
 
 
 // kernel implementation using cgbn
@@ -391,7 +359,7 @@ __global__ void kernel_double_add(
         uint64_t s_bits,
         uint64_t s_bits_start,
         uint64_t s_bits_interval,
-        uint32_t* gpu_s_bits,
+        uint32_t *gpu_s_bits,
         uint32_t *data,
         uint32_t count,
         uint32_t sigma_0,
@@ -408,30 +376,34 @@ __global__ void kernel_double_add(
   cgbn_monitor_t monitor = CHECK_ERROR ? cgbn_report_monitor : cgbn_no_checks;
 
   curve_t<params> curve(monitor, report, instance_i);
-  typename curve_t<params>::bn_t  aX, aY, bX, bY, modulus;
+  typename curve_t<params>::bn_t  aX, aZ, bX, bZ, modulus;
 
   { // Setup
       cgbn_load(curve._env, modulus, &data_cast[5*instance_i+0]);
       cgbn_load(curve._env, aX, &data_cast[5*instance_i+1]);
-      cgbn_load(curve._env, aY, &data_cast[5*instance_i+2]);
+      cgbn_load(curve._env, aZ, &data_cast[5*instance_i+2]);
       cgbn_load(curve._env, bX, &data_cast[5*instance_i+3]);
-      cgbn_load(curve._env, bY, &data_cast[5*instance_i+4]);
+      cgbn_load(curve._env, bZ, &data_cast[5*instance_i+4]);
 
       /* Convert points to mont, has a miniscule bit of overhead with batching. */
       uint32_t np0_test = cgbn_bn2mont(curve._env, aX, aX, modulus);
       assert(np0 == np0_test);
 
-      cgbn_bn2mont(curve._env, aY, aY, modulus);
+      cgbn_bn2mont(curve._env, aZ, aZ, modulus);
       cgbn_bn2mont(curve._env, bX, bX, modulus);
-      cgbn_bn2mont(curve._env, bY, bY, modulus);
+      cgbn_bn2mont(curve._env, bZ, bZ, modulus);
 
       {
         curve.assert_normalized(aX, modulus);
-        curve.assert_normalized(aY, modulus);
+        curve.assert_normalized(aZ, modulus);
         curve.assert_normalized(bX, modulus);
-        curve.assert_normalized(bY, modulus);
+        curve.assert_normalized(bZ, modulus);
       }
   }
+
+  /* Initially
+     P_a = (aX, aZ) contains P
+     P_b = (bX, bZ) contains 2P */
 
   uint32_t d = sigma_0 + instance_i;
   int swapped = 0;
@@ -443,55 +415,51 @@ __global__ void kernel_double_add(
     if (bit != swapped) {
         swapped = !swapped;
         cgbn_swap(curve._env, aX, bX);
-        cgbn_swap(curve._env, aY, bY);
+        cgbn_swap(curve._env, aZ, bZ);
     }
-    curve.double_add_v2(aX, aY, bX, bY, d, modulus, np0);
+    curve.double_add_v2(aX, aZ, bX, bZ, d, modulus, np0);
   }
 
   if (swapped) {
     cgbn_swap(curve._env, aX, bX);
-    cgbn_swap(curve._env, aY, bY);
+    cgbn_swap(curve._env, aZ, bZ);
   }
 
   { // Final output
     // Convert everything back to bn
     cgbn_mont2bn(curve._env, aX, aX, modulus, np0);
-    cgbn_mont2bn(curve._env, aY, aY, modulus, np0);
+    cgbn_mont2bn(curve._env, aZ, aZ, modulus, np0);
     cgbn_mont2bn(curve._env, bX, bX, modulus, np0);
-    cgbn_mont2bn(curve._env, bY, bY, modulus, np0);
+    cgbn_mont2bn(curve._env, bZ, bZ, modulus, np0);
 
     {
       curve.assert_normalized(aX, modulus);
-      curve.assert_normalized(aY, modulus);
+      curve.assert_normalized(aZ, modulus);
       curve.assert_normalized(bX, modulus);
-      curve.assert_normalized(bY, modulus);
+      curve.assert_normalized(bZ, modulus);
     }
     cgbn_store(curve._env, &data_cast[5*instance_i+1], aX);
-    cgbn_store(curve._env, &data_cast[5*instance_i+2], aY);
+    cgbn_store(curve._env, &data_cast[5*instance_i+2], aZ);
     cgbn_store(curve._env, &data_cast[5*instance_i+3], bX);
-    cgbn_store(curve._env, &data_cast[5*instance_i+4], bY);
+    cgbn_store(curve._env, &data_cast[5*instance_i+4], bZ);
   }
 }
 
+
 static
-int findfactor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t y_final) {
+int findfactor(mpz_t factor, const mpz_t N, const mpz_t x_final, const mpz_t z_final) {
     // XXX: combine / refactor logic with cudawrapper.c findfactor
 
-    mpz_t temp;
-    mpz_init(temp);
-
     /* Check if factor found */
-    bool inverted = mpz_invert(temp, y_final, N);    // aY ^ (N-2) % N
+    bool inverted = mpz_invert(factor, z_final, N);    // aZ ^ (N-2) % N
 
     if (inverted) {
-        mpz_mul(temp, x_final, temp);         // aX * aY^-1
-        mpz_mod(factor, temp, N);             // "Residual"
-        mpz_clear(temp);
+        mpz_mul(factor, x_final, factor);         // aX * aZ^-1
+        mpz_mod(factor, factor, N);             // "Residual"
         return ECM_NO_FACTOR_FOUND;
     }
-    mpz_clear(temp);
 
-    mpz_gcd(factor, y_final, N);
+    mpz_gcd(factor, z_final, N);
     return ECM_FACTOR_FOUND_STEP1;
 }
 
@@ -541,15 +509,71 @@ uint32_t* allocate_and_set_s_bits(const mpz_t s, uint64_t *nbits) {
   return s_bits;
 }
 
+
+static
+uint32_t* set_p_2p(const mpz_t N,
+                   uint32_t curves, uint32_t sigma,
+                   uint32_t BITS, size_t *data_size) {
+  /**
+   * Store 5 numbers per curve:
+   * N, P_a (x, z), P_b (x, z)
+   *
+   * P_a is initialized with (2, 1)
+   * P_b (for the doubled terms) is initialized with (9, 64 * d + 8)
+   */
+
+  const size_t limbs_per = BITS/32;
+  *data_size = 5 * curves * limbs_per * sizeof(uint32_t);
+  uint32_t *data = (uint32_t*) malloc(*data_size);
+  uint32_t *datum = data;
+
+  mpz_t x;
+  mpz_init(x);
+  for(int index = 0; index < curves; index++) {
+      // d = (sigma / 2^32) mod N BUT 2^32 handled by special_mul_ui32
+      uint32_t d = sigma + index;
+
+      // Modulo (N)
+      from_mpz(N, datum + 0 * limbs_per, BITS/32);
+
+      // P1 (X, Z)
+      mpz_set_ui(x, 2);
+      from_mpz(x, datum + 1 * limbs_per, BITS/32);
+      mpz_set_ui(x, 1);
+      from_mpz(x, datum + 2 * limbs_per, BITS/32);
+
+      // 2P = P2 (X, Z)
+      // P2_x = 9
+      mpz_set_ui(x, 9);
+      from_mpz(x, datum + 3 * limbs_per, BITS/32);
+
+      // d = sigma * mod_inverse(2 ** 32, N)
+      mpz_ui_pow_ui(x, 2, 32);
+      mpz_invert(x, x, N);
+      mpz_mul_ui(x, x, d);
+      // P2_x = 64 * d + 8;
+      mpz_mul_ui(x, x, 64);
+      mpz_add_ui(x, x, 8);
+      mpz_mod(x, x, N);
+
+      outputf (OUTPUT_TRACE, "sigma %d => P2_y: %Zd\n", d, x);
+      from_mpz(x, datum + 4 * limbs_per, BITS/32);
+      datum += 5 * limbs_per;
+  }
+  mpz_clear(x);
+  return data;
+}
+
+
 static
 int process_results(mpz_t *factors, int *array_found,
                     const mpz_t N,
                     const uint32_t *data, uint32_t cgbn_bits,
                     int curves, uint32_t sigma) {
-  mpz_t x_final, y_final, modulo;
+  mpz_t x_final, z_final, modulo;
   mpz_init(modulo);
   mpz_init(x_final);
-  mpz_init(y_final);
+  mpz_init(z_final);
 
   const uint32_t limbs_per = cgbn_bits / 32;
 
@@ -563,12 +587,12 @@ int process_results(mpz_t *factors, int *array_found,
       outputf (OUTPUT_TRACE, "index: 0 modulo: %Zd\n", modulo);
 
       to_mpz(x_final, datum + 1 * limbs_per, limbs_per);
-      to_mpz(y_final, datum + 2 * limbs_per, limbs_per);
-      outputf (OUTPUT_TRACE, "index: 0 pA: (%Zd, %Zd)\n", x_final, y_final);
+      to_mpz(z_final, datum + 2 * limbs_per, limbs_per);
+      outputf (OUTPUT_TRACE, "index: 0 pA: (%Zd, %Zd)\n", x_final, z_final);
 
       to_mpz(x_final, datum + 3 * limbs_per, limbs_per);
-      to_mpz(y_final, datum + 4 * limbs_per, limbs_per);
-      outputf (OUTPUT_TRACE, "index: 0 pB: (%Zd, %Zd)\n", x_final, y_final);
+      to_mpz(z_final, datum + 4 * limbs_per, limbs_per);
+      outputf (OUTPUT_TRACE, "index: 0 pB: (%Zd, %Zd)\n", x_final, z_final);
     }
 
     // Make sure we were testing the right number.
@@ -576,31 +600,31 @@ int process_results(mpz_t *factors, int *array_found,
     assert(mpz_cmp(modulo, N) == 0);
 
     to_mpz(x_final, datum + 1 * limbs_per, limbs_per);
-    to_mpz(y_final, datum + 2 * limbs_per, limbs_per);
+    to_mpz(z_final, datum + 2 * limbs_per, limbs_per);
 
-    /* Very suspicious for (x_final, y_final) to match (x_0, y_0) == (2, 1)
+    /* Very suspicious for (x_final, z_final) to match (x_0, z_0) == (2, 1)
      * Can happen when
      * 1. block calculation performed incorrectly (and some blocks not run)
      * 2. Kernel didn't run because not enough register
      * 3. nvcc links old version of kernel when something changed
      */
-    if (mpz_cmp_ui (x_final, 2) == 0 && mpz_cmp_ui (y_final, 1) == 0) {
+    if (mpz_cmp_ui (x_final, 2) == 0 && mpz_cmp_ui (z_final, 1) == 0) {
       errors += 1;
       if (errors < 10 || errors % 100 == 1)
         outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute?\n", i);
     }
 
-    array_found[i] = findfactor(factors[i], N, x_final, y_final);
+    array_found[i] = findfactor(factors[i], N, x_final, z_final);
     if (array_found[i] != ECM_NO_FACTOR_FOUND) {
       youpi = array_found[i];
-      outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with curve %ld (-sigma %d:%d)\n",
+      outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with curve %ld (-sigma %d:%lu)\n",
           factors[i], i, ECM_PARAM_BATCH_32BITS_D, sigma + i);
     }
   }
 
-  mpz_init(modulo);
+  mpz_clear(modulo);
   mpz_clear(x_final);
-  mpz_clear(y_final);
+  mpz_clear(z_final);
 
 #ifdef IS_DEV_BUILD
   if (errors)
@@ -612,6 +636,17 @@ int process_results(mpz_t *factors, int *array_found,
       return ECM_ERROR;
 
   return youpi;
+}
+
+
+static
+int print_nth_batch(int n)
+{
+  return ((n < 3) ||
+          (n < 30 && n % 10 == 0) ||
+          (n < 500 && n % 100 == 0) ||
+          (n < 5000 && n % 1000 == 0) ||
+          (n % 10000 == 0));
 }
 
 int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
@@ -670,18 +705,18 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
    * (32,32768)      | ecm 5.2M, 4.7 minutes
    */
   /* NOTE: Custom kernel changes here
-   * For "Compling custom kernel for %d bits should be XX% faster"
-   * Change the 512 in cgbn_params_t<4, 512> cgbn_params_512;
+   * For "Compiling custom kernel for %d bits should be XX% faster"
+   * Change the 512 in cgbn_params_t<4, 512> cgbn_params_small;
    * to the suggested value (a multiple of 32 >= bits + 6).
    * You may need to change the 4 to an 8 (or 16) if bits >512, >2048
    */
   /** TODO: try with const vector for BITs/TPI, see if compiler is happy */
   std::vector<uint32_t> available_kernels;
 
-  typedef cgbn_params_t<4, 512>   cgbn_params_512;
-  typedef cgbn_params_t<8, 1024>  cgbn_params_1024;
-  available_kernels.push_back((uint32_t)cgbn_params_512::BITS);
-  available_kernels.push_back((uint32_t)cgbn_params_1024::BITS);
+  typedef cgbn_params_t<4, 512>   cgbn_params_small;
+  typedef cgbn_params_t<8, 1024>  cgbn_params_medium;
+  available_kernels.push_back((uint32_t)cgbn_params_small::BITS);
+  available_kernels.push_back((uint32_t)cgbn_params_medium::BITS);
 
 #ifndef IS_DEV_BUILD
   /**
@@ -702,6 +737,10 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   available_kernels.push_back((uint32_t)cgbn_params_4096::BITS);
 #endif
 
+  /* Pointer to CUDA kernel. */
+  void(*kernel)(cgbn_error_report_t *, uint64_t, uint64_t, uint64_t,
+        uint32_t*, uint32_t*, uint32_t, uint32_t, uint32_t) = NULL;
+
   size_t n_log2 = mpz_sizeinbase(N, 2);
   for (int k_i = 0; k_i < available_kernels.size(); k_i++) {
     uint32_t kernel_bits = available_kernels[k_i];
@@ -711,28 +750,27 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
       /* Print some debug info about kernel. */
       /* TODO: return kernelAttr and validate maxThreadsPerBlock. */
-      if (BITS == cgbn_params_512::BITS) {
-        TPI = cgbn_params_512::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_512>, verbose);
-      } else if (BITS == cgbn_params_1024::BITS) {
-        TPI = cgbn_params_1024::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_1024>, verbose);
+      if (BITS == cgbn_params_small::BITS) {
+        TPI = cgbn_params_small::TPI;
+        kernel = kernel_double_add<cgbn_params_small>;
+      } else if (BITS == cgbn_params_medium::BITS) {
+        TPI = cgbn_params_medium::TPI;
+        kernel = kernel_double_add<cgbn_params_medium>;
 #ifndef IS_DEV_BUILD
       } else if (BITS == cgbn_params_1536::BITS) {
         TPI = cgbn_params_1536::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_1536>, verbose);
+        kernel = kernel_double_add<cgbn_params_1536>;
       } else if (BITS == cgbn_params_2048::BITS) {
         TPI = cgbn_params_2048::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_2048>, verbose);
+        kernel = kernel_double_add<cgbn_params_2048>;
       } else if (BITS == cgbn_params_3072::BITS) {
         TPI = cgbn_params_3072::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_3072>, verbose);
+        kernel = kernel_double_add<cgbn_params_3072>;
       } else if (BITS == cgbn_params_4096::BITS) {
         TPI = cgbn_params_4096::TPI;
-        kernel_info((const void*)kernel_double_add<cgbn_params_4096>, verbose);
+        kernel = kernel_double_add<cgbn_params_4096>;
 #endif
       } else {
-        /* lowercase k to help differentiate this error from one below */
         outputf (OUTPUT_ERROR, "CGBN kernel not found for %d bits\n", BITS);
         return ECM_ERROR;
       }
@@ -743,11 +781,13 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       break;
     }
   }
+  if (BITS == 0 || kernel == NULL)
+    {
+      outputf (OUTPUT_ERROR, "No available CGBN Kernel large enough to process N(%d bits)\n", n_log2);
+      return ECM_ERROR;
+    }
 
-  if (BITS == 0) {
-    outputf (OUTPUT_ERROR, "No available CGBN Kernel large enough to process N(%d bits)\n", n_log2);
-    return ECM_ERROR;
-  }
+  kernel_info((const void*)kernel_double_add<cgbn_params_medium>, verbose);
 
   /* Alert that recompiling with a smaller kernel would likely improve speed */
   {
@@ -756,7 +796,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
     float pct_faster = 90 * BITS / optimized_bits;
 
     if (pct_faster > 110) {
-      outputf (OUTPUT_VERBOSE, "Compiling custom kernel for %d bits should be ~%.0f%% faster\n",
+      outputf (OUTPUT_VERBOSE, "Compiling custom kernel for %d bits should be ~%.0f%% faster see README.gpu\n",
               optimized_bits, pct_faster);
     }
   }
@@ -767,8 +807,8 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   }
 
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
-  assert( sizeof(curve_t<cgbn_params_512>::mem_t) == cgbn_params_512::BITS/8 );
-  assert( sizeof(curve_t<cgbn_params_1024>::mem_t) == cgbn_params_1024::BITS/8 );
+  assert( sizeof(curve_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
+  assert( sizeof(curve_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
   data = set_p_2p(N, curves, sigma, BITS, &data_size);
 
   /* np0 is -(N^-1 mod 2**32), used for montgomery representation */
@@ -787,7 +827,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   uint64_t s_partial = 1;
 
   /* Start with small batches and increase till timing is ~100ms */
-  uint64_t batch_size = 100;
+  uint64_t batch_size = 200;
 
   int batches_complete = 0;
   /* gputime and batch_time are measured in ms */
@@ -798,11 +838,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
     batch_size = std::min(s_num_bits - s_partial, batch_size);
 
     /* print ETA with lessing frequently, 5 early + 5 per 10s + 5 per 100s + every 1000s */
-    if ((batches_complete < 3) ||
-        (batches_complete < 30 && batches_complete % 10 == 0) ||
-        (batches_complete < 500 && batches_complete % 100 == 0) ||
-        (batches_complete < 5000 && batches_complete % 1000 == 0) ||
-        (batches_complete % 10000 == 0)) {
+    if (print_nth_batch (batches_complete)) {
       outputf (OUTPUT_VERBOSE, "Computing %d bits/call, %lu/%lu (%.1f%%)",
           batch_size, s_partial, s_num_bits, 100.0 * s_partial / s_num_bits);
       if (batches_complete < 2 || *gputime < 1000) {
@@ -818,30 +854,9 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 
     CUDA_CHECK(cudaEventRecord (batch_start));
 
-    if (BITS == cgbn_params_512::BITS) {
-      kernel_double_add<cgbn_params_512><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-    } else if (BITS == cgbn_params_1024::BITS) {
-      kernel_double_add<cgbn_params_1024><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-#ifndef IS_DEV_BUILD
-    } else if (BITS == cgbn_params_1536::BITS) {
-      kernel_double_add<cgbn_params_1536><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-    } else if (BITS == cgbn_params_2048::BITS) {
-      kernel_double_add<cgbn_params_2048><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-    } else if (BITS == cgbn_params_3072::BITS) {
-      kernel_double_add<cgbn_params_3072><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-    } else if (BITS == cgbn_params_4096::BITS) {
-      kernel_double_add<cgbn_params_4096><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
-#endif
-    } else {
-      outputf (OUTPUT_ERROR, "CGBN Kernel not found for %d bits\n", BITS);
-      return ECM_ERROR;
-    }
+    /* Call CUDA Kernel. */
+    assert (kernel != NULL);
+    (*kernel)<<<BLOCK_COUNT, TPB>>>(report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, curves, sigma, np0);
 
     s_partial += batch_size;
     batches_complete++;
@@ -887,7 +902,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
 }
 
 #ifdef __CUDA_ARCH__
-  #if __CUDA_ARCH__ < 300
+  #if __CUDA_ARCH__ < 350
     #error "Unsupported architecture"
   #endif
 #endif

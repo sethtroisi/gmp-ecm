@@ -153,40 +153,40 @@ echo "(5^139+1)/6" | $ECM -save test.ecm.save -sigma 3:9829216 1e3
 $ECM -resume test.ecm.save 1e3
 checkcode $? 1
 # Resume, but find no factor
-$ECMnoGPU -resume test.ecm.save 1e3
+$ECMnoGPU -q -resume test.ecm.save 1e3
 checkcode $? 0
 # Resume, find a factor in step 2
-$ECMnoGPU -resume test.ecm.save 1e3 1e6
+$ECMnoGPU -q -resume test.ecm.save 1e3 1e6
 checkcode $? 6
 /bin/rm -f test.ecm.save
 
 # Save file after finding factor in step 1
 echo "(5^139+1)/6" | $ECM -save test.ecm.save -sigma 3:2829874052 1e3
 # Resume, but find no factor
-$ECMnoGPU -resume test.ecm.save 1e3 10e3
+$ECMnoGPU -q -resume test.ecm.save 1e3 10e3
 checkcode $? 0
 # Resume, find a factor in step 2
-$ECMnoGPU -resume test.ecm.save 1e3
+$ECMnoGPU -q -resume test.ecm.save 1e3
 checkcode $? 6
 /bin/rm -f test.ecm.save
 
 # Save file after finding factor in step 2
 echo "(5^139+1)/6" | $ECM -save test.ecm.save -sigma 3:1403008725 1e3
 # Resume, but find no factor
-$ECMnoGPU -resume test.ecm.save 1e3
+$ECMnoGPU -q -resume test.ecm.save 1e3
 checkcode $? 0
 # Resume, find a factor in step 2
-$ECMnoGPU -resume test.ecm.save 1e3 100e3
+$ECMnoGPU -q -resume test.ecm.save 1e3 100e3
 checkcode $? 6
 /bin/rm -f test.ecm.save
 
 # Save file after finding no factor in step 1 only
 echo "(5^139+1)/6" | $ECM -save test.ecm.save -sigma 3:1403008725 1e3 1
 # Resume, but find no factor
-$ECMnoGPU -resume test.ecm.save 1e3 5e3
+$ECMnoGPU -q -resume test.ecm.save 1e3 5e3
 checkcode $? 0
 # Resume, find a factor in step 2
-$ECMnoGPU -resume test.ecm.save 1e3
+$ECMnoGPU -q -resume test.ecm.save 1e3
 checkcode $? 6
 /bin/rm -f test.ecm.save
 

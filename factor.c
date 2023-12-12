@@ -123,17 +123,11 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
   ecm_params q;
   ecm_params_ptr p;
 
-  if (mpz_cmp_ui (n, 0) <= 0)
+  if (mpz_cmp_ui (n, 1) <= 0)
     {
       fprintf ((p0 == NULL) ? stderr : p0->es,
                "Error, n should be positive.\n");
       return ECM_ERROR;
-    }
-  else if (mpz_cmp_ui (n, 1) == 0)
-    {
-      /* we consider n=1 is fully factored (thus in step 1) */
-      mpz_set_ui (f, 1);
-      return ECM_FACTOR_FOUND_STEP1;
     }
   else if (mpz_divisible_2exp_p (n, 1))
     {
@@ -168,14 +162,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
         }
       else
         {
-          res = gpu_ecm (f, p->x, p->param, p->sigma, n, p->go,
-                         &(p->B1done), B1, p->B2min, p->B2, p->k,
-                         p->S, p->verbose, p->repr, p->nobase2step2, 
-                         p->use_ntt, p->sigma_is_A, p->os, p->es,
-                         p->chkfilename, p->TreeFilename, p->maxmem,
-                         p->stop_asap, p->batch_s, &(p->batch_last_B1_used),
-                         p->gpu_cgbn, p->gpu_device, &(p->gpu_device_init),
-                         &(p->gpu_number_of_curves));
+          res = gpu_ecm (f, p, p, n, B1);
         }
 #endif
     }

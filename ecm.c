@@ -66,6 +66,34 @@ void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
 
 #define mpz_mulmod5(r,s1,s2,m,t) { mpz_mul(t,s1,s2); mpz_mod(r, t, m); }
 
+/* PBMcL additions  for Lucas chain codes */
+
+/* 3-bit chain start sequences. Covers all possible Lucas chains */
+#define CHAIN_START_5_8_13 0x7
+#define CHAIN_START_5_8_11 0x6
+#define CHAIN_START_5_8_10 0x5
+#define CHAIN_START_5_7    0x4
+#define CHAIN_START_5_6    0x3
+#define CHAIN_START_4_7    0x2
+#define CHAIN_START_4_5    0x1
+#define CHAIN_START_4_6    0x0 /* precludes a completely zero code */
+
+typedef struct
+{
+	/* note: "parent" is the immediately previous chain element */
+	u_int64_t	value;			/* integer value of this chain element */
+	u_int8_t	comp_offset_1;	/* larger summand (summand_1) component index counting back from parent (parent = 0) */
+	u_int8_t	comp_offset_2;	/* smaller summand (summand_2) component index counting back from parent */
+	u_int8_t	dif_offset;		/* component index of (summand_1 - summand_2) counting back from parent */
+								/* note: dif_offset = 0 will indicate that this is a doubled element */
+} chain_element;
+
+/* prototypes */
+void max_continuation( chain_element *, u_int8_t *, u_int8_t );
+u_int8_t generate_Lucas_chain( u_int64_t, u_int64_t, chain_element * );
+
+/* end PBMcL additions */
+
 /* switch from Montgomery's form g*y^2 = x^3 + a*x^2 + x
    to Weierstrass' form          Y^2 = X^3 + A*X + B
    by change of variables x -> g*X-a/3, y -> g*Y.
@@ -501,6 +529,546 @@ prac (mpres_t xA, mpres_t zA, ecm_uint k, mpmod_t n, mpres_t b,
   ASSERT(d == 1);
 }
 
+/* functions for using optimal (or near-optimal) Lucas chains
+   instead of PRAC. Added by P McLaughlin 2023 */
+
+
+/* To verify that Lucas chains are being generated
+   correctly, configure with --enable-assert */
+
+/* generate Lucas chain for a prime >= 2.
+ *
+ * inputs: (1) prime p (the final chain value)
+ *         (2) chain_code for p read from input file (starting with p = 11)
+ *
+ * Outputs: (1) Lchain - an array of Lucas chain elements leading to p
+ *          (2) chain length
+*/
+u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_element *Lchain )
+{
+	static u_int8_t init = 0;
+	u_int8_t code_fragment, chain_length, i, k;
+	u_int64_t dif;
+
+	if( init == 0 )
+	{
+		/* the first 3 chain elements are always value = 1, 2, and 3, respectively */
+		Lchain[0].value = 1;
+
+		Lchain[1].value = 2;
+		Lchain[1].comp_offset_1 = 0;
+		Lchain[1].comp_offset_2 = 0;
+		Lchain[1].dif_offset = 0;
+
+		Lchain[2].value = 3;
+		Lchain[2].comp_offset_1 = 0;
+		Lchain[2].comp_offset_2 = 1;
+		Lchain[2].dif_offset = 1;
+
+		init = 1;
+	}
+
+	/* the code file starts at p = 11, so handle 2, 3, 5, or 7 separately */
+	if( prime < 11 )
+	{
+		if(prime == 2)
+		{
+			chain_length = 1;
+			return chain_length;
+		}
+		else if( prime == 3 )
+		{
+			chain_length = 2;
+			return chain_length;
+		}
+		else if( prime == 5 )
+		{
+			Lchain[3].value = 5;
+			Lchain[3].comp_offset_1 = 0;
+			Lchain[3].comp_offset_2 = 1;
+			Lchain[3].dif_offset = 2;
+
+			chain_length = 3;
+			return chain_length;
+		}
+		else if( prime == 7 )
+		{
+			Lchain[3].value = 4;
+			Lchain[3].comp_offset_1 = 1;
+			Lchain[3].comp_offset_2 = 1;
+			Lchain[3].dif_offset = 0;
+
+			Lchain[4].value = 7;
+			Lchain[4].comp_offset_1 = 0;
+			Lchain[4].comp_offset_2 = 1;
+			Lchain[4].dif_offset = 3;
+
+			chain_length = 4;
+			return chain_length;
+		}
+		else
+		{
+			printf("ERROR: generate_Lucas_chain entered with prime = %lu < 11 but != 2, 3, 5 or 7\n", prime);
+			return 0;
+		}
+	}
+
+	/* first 3 bits of code give the next two or three chain components */
+	code_fragment = (u_int8_t)(chain_code & 0x7);
+	chain_code >>= 3;
+	switch( code_fragment )
+	{
+	case CHAIN_START_5_8_13:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
+
+		Lchain[4].value = 8;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 2;
+
+		Lchain[5].value = 13;
+		Lchain[5].comp_offset_1 = 0;
+		Lchain[5].comp_offset_2 = 1;
+		Lchain[5].dif_offset = 2;
+
+		chain_length = 5;
+		break;
+
+	case CHAIN_START_5_8_11:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
+
+		Lchain[4].value = 8;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 2;
+
+		Lchain[5].value = 11;
+		Lchain[5].comp_offset_1 = 0;
+		Lchain[5].comp_offset_2 = 2;
+		Lchain[5].dif_offset = 1;
+
+		chain_length = 5;
+		break;
+
+	case CHAIN_START_5_8_10:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
+
+		Lchain[4].value = 8;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 2;
+
+		Lchain[5].value = 10;
+		Lchain[5].comp_offset_1 = 1;
+		Lchain[5].comp_offset_2 = 1;
+		Lchain[5].dif_offset = 0;
+
+		chain_length = 5;
+		break;
+
+	case CHAIN_START_5_7:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
+
+		Lchain[4].value = 7;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 2;
+		Lchain[4].dif_offset = 1;
+
+		chain_length = 4;
+		break;
+
+	case CHAIN_START_5_6:
+		Lchain[3].value = 5;
+		Lchain[3].comp_offset_1 = 0;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 2;
+
+		Lchain[4].value = 6;
+		Lchain[4].comp_offset_1 = 1;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 0;
+
+		chain_length = 4;
+		break;
+
+	case CHAIN_START_4_7:
+		Lchain[3].value = 4;
+		Lchain[3].comp_offset_1 = 1;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 0;
+
+		Lchain[4].value = 7;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 3;
+
+		chain_length = 4;
+		break;
+
+	case CHAIN_START_4_6:
+		Lchain[3].value = 4;
+		Lchain[3].comp_offset_1 = 1;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 0;
+
+		Lchain[4].value = 6;
+		Lchain[4].comp_offset_1 = 1;
+		Lchain[4].comp_offset_2 = 1;
+		Lchain[4].dif_offset = 0;
+
+		chain_length = 4;
+		break;
+
+	case CHAIN_START_4_5:
+		Lchain[3].value = 4;
+		Lchain[3].comp_offset_1 = 1;
+		Lchain[3].comp_offset_2 = 1;
+		Lchain[3].dif_offset = 0;
+
+		Lchain[4].value = 5;
+		Lchain[4].comp_offset_1 = 0;
+		Lchain[4].comp_offset_2 = 3;
+		Lchain[4].dif_offset = 1;
+
+		chain_length = 4;
+		break;
+
+	default: /* should never happen */
+		printf("ERROR: bad chain code start value in generate_Lchain = %u\n", code_fragment);
+		return 0;
+	}
+
+	/* rebuild chain from code fragments */
+	while( chain_code != 0 )
+	{
+		code_fragment = (u_int8_t)( chain_code & 0xF );
+		chain_code >>= 4;
+		switch( code_fragment )
+		{
+			case 0: /* step type 1 or 4 */
+			{
+				i = (u_int8_t)( chain_code & 0x3 );
+				chain_code >>= 2;
+				if( i == 3 )
+				{
+					 /* a rare double, but does occur */
+					Lchain[ chain_length+1 ].value = 2*Lchain[ chain_length-2 ].value;
+					Lchain[ chain_length+1 ].comp_offset_1 = 2;
+					Lchain[ chain_length+1 ].comp_offset_2 = 2;
+					Lchain[ chain_length+1 ].dif_offset = 0;
+					chain_length++;
+				}
+				else
+				{
+					i = 12*(i + 1);
+					max_continuation( Lchain, &chain_length, i );
+				}
+				break;
+			}
+			case 1:
+			{
+				Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-2 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 0;
+				Lchain[ chain_length+1 ].comp_offset_2 = 2;
+				dif = Lchain[ chain_length ].value - Lchain[ chain_length-2 ].value;
+				k = 1;
+				while( dif < Lchain[ chain_length-k ].value )
+					k++;
+				ASSERT( dif == Lchain[ chain_length-k ].value );
+
+				Lchain[ chain_length+1 ].dif_offset = k;
+				chain_length++;
+				break;
+			}
+			case 2:
+			{
+				Lchain[ chain_length+1 ].value = 2*Lchain[ chain_length-1 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 1;
+				Lchain[ chain_length+1 ].comp_offset_2 = 1;
+				Lchain[ chain_length+1 ].dif_offset = 0;
+				chain_length++;
+				break;
+			}
+			case 3:
+			{
+				i = 1;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-2 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 0;
+				Lchain[ chain_length+1 ].comp_offset_2 = 2;
+				Lchain[ chain_length+1 ].dif_offset = 1;
+				chain_length++;
+				break;
+			}
+			case 4:
+			{
+				i = 1;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = 2*Lchain[ chain_length-1 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 1;
+				Lchain[ chain_length+1 ].comp_offset_2 = 1;
+				Lchain[ chain_length+1 ].dif_offset = 0;
+				chain_length++;
+				break;
+			}
+			case 5:
+			{
+				i = 2;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-2 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 0;
+				Lchain[ chain_length+1 ].comp_offset_2 = 2;
+				Lchain[ chain_length+1 ].dif_offset = 1;
+				chain_length++;
+				break;
+			}
+			case 6:
+			{
+				i = 2;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = 2*Lchain[ chain_length-1 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 1;
+				Lchain[ chain_length+1 ].comp_offset_2 = 1;
+				Lchain[ chain_length+1 ].dif_offset = 0;
+				chain_length++;
+				break;
+			}
+			case 7:
+			{
+				i = 3;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-2 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 0;
+				Lchain[ chain_length+1 ].comp_offset_2 = 2;
+				Lchain[ chain_length+1 ].dif_offset = 1;
+				chain_length++;
+				break;
+			}
+			case 8:
+			{
+				i = 3;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = 2*Lchain[ chain_length-1 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 1;
+				Lchain[ chain_length+1 ].comp_offset_2 = 1;
+				Lchain[ chain_length+1 ].dif_offset = 0;
+				chain_length++;
+				break;
+			}
+			case 9:
+			{
+				i = (u_int8_t)( chain_code & 0x3 );
+				chain_code >>= 2;
+				i += 4;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-2 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 0;
+				Lchain[ chain_length+1 ].comp_offset_2 = 2;
+				Lchain[ chain_length+1 ].dif_offset = 1;
+				chain_length++;
+				break;
+			}
+			case 10:
+			{
+				i = (u_int8_t)( chain_code & 0x3 );
+				chain_code >>= 2;
+				i += 4;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = 2*Lchain[ chain_length-1 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 1;
+				Lchain[ chain_length+1 ].comp_offset_2 = 1;
+				Lchain[ chain_length+1 ].dif_offset = 0;
+				chain_length++;
+				break;
+			}
+			case 11:
+			{
+				i = (u_int8_t)( chain_code & 0x3 );
+				chain_code >>= 2;
+				i += 8;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-2 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 0;
+				Lchain[ chain_length+1 ].comp_offset_2 = 2;
+				Lchain[ chain_length+1 ].dif_offset = 1;
+				chain_length++;
+				break;
+			}
+			case 12:
+			{
+				i = (u_int8_t)( chain_code & 0x3 );
+				chain_code >>= 2;
+				i += 8;
+				max_continuation( Lchain, &chain_length, i );
+				Lchain[ chain_length+1 ].value = 2*Lchain[ chain_length-1 ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 1;
+				Lchain[ chain_length+1 ].comp_offset_2 = 1;
+				Lchain[ chain_length+1 ].dif_offset = 0;
+				chain_length++;
+				break;
+			}
+			case 13:
+			{
+				i = (u_int8_t)( chain_code & 0x3 );
+				chain_code >>= 2;
+
+				switch( i )
+				{
+				case 0: /* chain encoding did not require this step until chain length = 44 */
+					Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-7 ].value;
+					Lchain[ chain_length+1 ].comp_offset_1 = 0;
+					Lchain[ chain_length+1 ].comp_offset_2 = 7;
+					dif = Lchain[ chain_length ].value - Lchain[ chain_length-7 ].value;
+					k = 1;
+					while( dif < Lchain[ chain_length-k ].value )
+						k++;
+					ASSERT( dif == Lchain[ chain_length-k ].value );
+
+					Lchain[ chain_length+1 ].dif_offset = k;
+					chain_length++;
+					break;
+
+				case 1:
+					Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-8 ].value;
+					Lchain[ chain_length+1 ].comp_offset_1 = 0;
+					Lchain[ chain_length+1 ].comp_offset_2 = 8;
+					dif = Lchain[ chain_length ].value - Lchain[ chain_length-8 ].value;
+					k = 1;
+					while( dif < Lchain[ chain_length-k ].value )
+						k++;
+					ASSERT( dif == Lchain[ chain_length-k ].value );
+
+					Lchain[ chain_length+1 ].dif_offset = k;
+					chain_length++;
+					break;
+
+				case 2: /* example chain 1 2 3 5 8 10 12 13 */
+					Lchain[ chain_length+1 ].value = Lchain[ chain_length - 2 ].value + Lchain[ chain_length - 3 ].value;
+					Lchain[ chain_length+1 ].comp_offset_1 = 2;
+					Lchain[ chain_length+1 ].comp_offset_2 = 3;
+					dif = Lchain[ chain_length - 2 ].value - Lchain[ chain_length - 3 ].value;
+					k = 1;
+					while( dif < Lchain[ chain_length-k ].value )
+						k++;
+					ASSERT( dif == Lchain[ chain_length-k ].value );
+
+					Lchain[ chain_length+1 ].dif_offset = k;
+					chain_length++;
+					break;
+
+				case 3: /* can occur but don't have an example (yet) */
+					Lchain[ chain_length+1 ].value = Lchain[ chain_length - 2 ].value + Lchain[ chain_length - 4 ].value;
+					Lchain[ chain_length+1 ].comp_offset_1 = 2;
+					Lchain[ chain_length+1 ].comp_offset_2 = 4;
+					dif = Lchain[ chain_length - 2 ].value - Lchain[ chain_length - 4 ].value;
+					k = 1;
+					while( dif < Lchain[ chain_length-k ].value )
+						k++;
+					ASSERT( dif == Lchain[ chain_length-k ].value );
+
+					Lchain[ chain_length+1 ].dif_offset = k;
+					chain_length++;
+					break;
+
+				default: /* should never happen */
+					printf("ERROR: unimplemented code fragment 0xiD, i = %u\n", i);
+					return 0;
+				}
+				break;
+			}
+			case 14:
+			{
+				i = (u_int8_t)( chain_code & 0x3 );
+				chain_code >>= 2;
+
+				Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-3-i ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 0;
+				Lchain[ chain_length+1 ].comp_offset_2 = 3+i;
+				dif = Lchain[ chain_length ].value - Lchain[ chain_length-3-i ].value;
+				k = 1;
+				while( dif < Lchain[ chain_length-k ].value )
+					k++;
+				ASSERT( dif == Lchain[ chain_length-k ].value );
+
+				Lchain[ chain_length+1 ].dif_offset = k;
+				chain_length++;
+				break;
+			}
+			case 15:
+			{
+				i = (u_int8_t)( chain_code & 0x3 );
+				chain_code >>= 2;
+
+				Lchain[ chain_length+1 ].value = Lchain[ chain_length-1 ].value + Lchain[ chain_length-2-i ].value;
+				Lchain[ chain_length+1 ].comp_offset_1 = 1;
+				Lchain[ chain_length+1 ].comp_offset_2 = 2+i;
+				dif = Lchain[ chain_length-1 ].value - Lchain[ chain_length-2-i ].value;
+				k = 2;
+				while( dif < Lchain[ chain_length-k ].value )
+					k++;
+				ASSERT( dif == Lchain[ chain_length-k ].value );
+
+				Lchain[ chain_length+1 ].dif_offset = k;
+				chain_length++;
+				break;
+			}
+		}
+	}
+
+	/* finish the chain with maximum continuations until prime is reached */
+	i = 1;
+	while( Lchain[chain_length].value < prime )
+	{
+		max_continuation( Lchain, &chain_length, i );
+	}
+
+	ASSERT( Lchain[ chain_length ].value == prime );
+
+	return chain_length;
+}
+
+/* extend the chain with maximum elements for i steps */
+void max_continuation( chain_element *Lchain, u_int8_t *chain_length, u_int8_t i )
+{
+	u_int8_t k;
+	u_int64_t dif;
+
+	Lchain[ *chain_length+1 ].value = Lchain[ *chain_length ].value + Lchain[ *chain_length-1 ].value;
+	Lchain[ *chain_length+1 ].comp_offset_1 = 0;
+	Lchain[ *chain_length+1 ].comp_offset_2 = 1;
+	dif = Lchain[ *chain_length ].value - Lchain[ *chain_length-1 ].value;
+	k = 2;
+	while( dif < Lchain[ *chain_length-k ].value )
+		k++;
+	ASSERT( dif == Lchain[ *chain_length-k ].value );
+
+	Lchain[ *chain_length+1 ].dif_offset = k;
+	(*chain_length)++;
+	if( i > 1 )
+	{
+		for( k = 1; k < i; k++)
+		{
+			Lchain[ *chain_length+1 ].value = Lchain[ *chain_length ].value + Lchain[ *chain_length-1 ].value;
+			Lchain[ *chain_length+1 ].comp_offset_1 = 0;
+			Lchain[ *chain_length+1 ].comp_offset_2 = 1;
+			Lchain[ *chain_length+1 ].dif_offset = 2;
+			(*chain_length)++;
+		}
+	}
+}
+
 /* Input: x is initial point
           A is curve parameter in Montgomery's form:
           g*y^2*z = x^3 + a*x^2*z + x*z^2
@@ -526,6 +1094,20 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   long last_chkpnt_time;
   prime_info_t prime_info;
 
+  /* Lucas chain code file mods */
+  u_int64_t chain_code;
+  u_int8_t dum, chain_length;
+  int32_t i;
+  static FILE *chain_code_file;
+  static chain_element Lchain[64];
+  static u_int8_t using_code_file; /* logical */
+
+  /* Elliptic curve states as we follow the Lucas chain */
+  mpres_t LCS_x[16];
+  mpres_t LCS_z[16];
+  u_int8_t base_indx, next_indx, s1_indx, s2_indx, dif_indx;
+  /* end mods */
+
   prime_info_init (prime_info);
 
   mpres_init (b, n);
@@ -542,6 +1124,31 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_init (xT2, n);
   mpres_init (zT2, n);
   
+  /* Lucas chain code file mods */
+  for(i = 0; i < 16; i++)
+  {
+    mpres_init ( LCS_x[i], n);
+    mpres_init ( LCS_z[i], n);
+  }
+  using_code_file = 0;
+
+  if( B1 > *B1done )
+  {
+    chain_code_file = fopen("Lchain_codes.dat", "r");
+    if(chain_code_file != (FILE *)NULL )
+    {
+      using_code_file = 1;
+      outputf (OUTPUT_NORMAL, "Using Lucas chain codes\n");
+    }
+    else
+    {
+      outputf (OUTPUT_NORMAL, "Lchain_codes.dat file failed to open, using prac\n");
+    }
+  }
+
+  chain_length = 0; /* not necessary but stops a compiler warning */
+  /* end mods */
+
   last_chkpnt_time = cputime ();
 
   mpres_set_ui (z, 1, n);
@@ -566,35 +1173,111 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         add3 (x, z, x, z, xB, zB, x, z, n, u, v, w);
       }
   
-  last_chkpnt_p = 3;
+  if( using_code_file )
+  {
+	  /* copy x & z to LCS_x[0] & lCS_z[0] */
+	  mpres_set_z (LCS_x[0], x, n);
+	  mpres_set_z (LCS_z[0], z, n);
+	  base_indx = 0;
+  }
+
+   last_chkpnt_p = 3;
   p = getprime_mt (prime_info); /* Puts 3 into p. Next call gives 5 */
   for (p = getprime_mt (prime_info); p <= B1; p = getprime_mt (prime_info))
     {
-      for (r = p; r <= B1; r *= p)
-	if (r > *B1done)
-	  prac (x, z, (ecm_uint) p, n, b, u, v, w, xB, zB, xC, zC, xT,
-		zT, xT2, zT2);
+      if(using_code_file)
+      {
+        if(p >= 11) /* code file starts at p = 11 */
+        dum = fread((int8_t *)&chain_code, sizeof(u_int64_t), 1, chain_code_file);
 
-      if (mpres_is_zero (z, n))
+        if(dum || (p < 11))
         {
-          outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
-                   "group orders\n", p);
-          break;
+          /* the following call doesn't need a chain code for p < 11 */
+          chain_length = generate_Lucas_chain( p, chain_code, Lchain );
         }
+        else /* reached end of code file; revert to use prac */
+        {
+          /* copy final LCS_x,z values back to x,z */
+          mpres_set_z (x, LCS_x[base_indx], n);
+          mpres_set_z (z, LCS_z[base_indx], n);
 
-      if (stop_asap != NULL && (*stop_asap) ())
-        {
-          outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-          break;
+          fclose(chain_code_file);
+          using_code_file = 0;
+          outputf (OUTPUT_NORMAL, "Reached Lchain_codes.dat EOF at p = %lu, reverting to use prac\n", p);
         }
+      } /* end if( using_code_file) */
 
-      if (chkfilename != NULL && p > last_chkpnt_p + 10000 && 
-          elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
-        {
-	  writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, NULL, z);
-          last_chkpnt_p = p;
-          last_chkpnt_time = cputime ();
-        }
+       for (r = p; r <= B1; r *= p)
+       {
+         if (r > *B1done)
+         {
+           if(using_code_file)
+           {
+             next_indx = (base_indx + 1) & 0xF;
+             duplicate (LCS_x[next_indx], LCS_z[next_indx],
+                        LCS_x[base_indx], LCS_z[base_indx], n, b, u, v, w);
+             base_indx = next_indx;
+
+             for(i=2; i<=chain_length; i++)
+             {
+               next_indx = (base_indx + 1) & 0xF;
+               s1_indx = (base_indx - Lchain[i].comp_offset_1) & 0xF;
+               if(Lchain[i].dif_offset == 0)
+               {
+                 duplicate (LCS_x[next_indx], LCS_z[next_indx],
+                 LCS_x[s1_indx], LCS_z[s1_indx], n, b, u, v, w);
+               }
+               else
+               {
+                 s2_indx = (base_indx - Lchain[i].comp_offset_2) & 0xF;
+                 dif_indx = (base_indx - Lchain[i].dif_offset) & 0xF;
+                 add3 (LCS_x[next_indx], LCS_z[next_indx], LCS_x[s1_indx],
+                       LCS_z[s1_indx], LCS_x[s2_indx], LCS_z[s2_indx],
+                       LCS_x[dif_indx], LCS_z[dif_indx], n, u, v, w);
+               }
+               base_indx = next_indx;
+             }
+           }
+           else
+             prac (x, z, (ecm_uint) p, n, b, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
+         }
+ 
+         if(using_code_file)
+         {
+           if (mpres_is_zero (LCS_z[base_indx], n))
+           {
+             outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
+                      "group orders\n", p);
+             break;
+           }
+         }
+         else
+         {
+           if (mpres_is_zero (z, n))
+           {
+             outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
+                      "group orders\n", p);
+             break;
+           }
+         }
+
+         if (stop_asap != NULL && (*stop_asap) ())
+         {
+           outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+           break;
+         }
+
+         if (chkfilename != NULL && p > last_chkpnt_p + 10000 &&
+             elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
+         {
+           if(using_code_file) 
+             writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, LCS_x[base_indx], NULL, LCS_z[base_indx]);
+           else
+             writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, NULL, z);
+           last_chkpnt_p = p;
+           last_chkpnt_time = cputime ();
+         }
+       }
     }
   
   /* If stage 1 finished normally, p is the smallest prime >B1 here.
@@ -604,6 +1287,15 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   
   if (p > *B1done)
       *B1done = p;
+
+  if(using_code_file)
+  {
+    /* copy final LCS_x,z values back to x,z */
+    mpres_set_z (x, LCS_x[base_indx], n);
+    mpres_set_z (z, LCS_z[base_indx], n);
+
+    fclose(chain_code_file);
+  }
 
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, NULL, z);
@@ -616,6 +1308,12 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       ret = ECM_FACTOR_FOUND_STEP1;
     }
   mpres_mul (x, x, u, n);
+
+  for(i = 15; i >= 0; i--)
+  {
+    mpres_clear ( LCS_z[i], n);
+    mpres_clear ( LCS_x[i], n);
+  }
 
   mpres_clear (zT2, n);
   mpres_clear (xT2, n);
@@ -958,9 +1656,9 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
    Weierstrass form for ECM (when sigma_is_A = -1). */
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
-		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t sigma,
-		  int sigma_is_A, int Etype, 
-		  mpz_t y, int param, unsigned int nb_curves)
+		  const mpz_t B2min_param, const mpz_t B2min, const mpz_t B2,
+                  int S, const mpz_t sigma, int sigma_is_A, int Etype,
+		  const mpz_t y, int param, unsigned int nb_curves)
 {
   ASSERT ((method == ECM_ECM) || (y == NULL));
   ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
@@ -992,10 +1690,11 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 	      {
 		if (nb_curves > 1) 
 		  {
-		    outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
-		    mpz_add_ui (sigma, sigma, nb_curves-1);
-		    outputf (verbosity, "-%d:%Zd", param, sigma);
-		    mpz_sub_ui (sigma, sigma, nb_curves-1);
+                    mpz_t end;
+                    mpz_init(end);
+		    mpz_add_ui (end, sigma, nb_curves-1);
+		    outputf (verbosity, ", sigma=%d:%Zd-%Zd", param, sigma, end);
+                    mpz_clear(end);
 		    outputf (verbosity, " (%u curves)", nb_curves);
 		  }
 		else
@@ -1020,7 +1719,8 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 
 /* Compute parameters for stage 2 */
 int
-set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm, 
+set_stage_2_params (mpz_t B2, const mpz_t B2_parm,
+                    mpz_t B2min, const mpz_t B2min_parm,
                     root_params_t *root_params, double B1,
                     unsigned long *k, const int S, int use_ntt, int *po2,
                     unsigned long *dF, char *TreeFilename, double maxmem, 
@@ -1248,6 +1948,24 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
 
+  /* In resume case, set (P.x,P.y) from x. */
+  int resume = mpz_cmp_ui (x, 0);
+  if (resume)
+  {
+    /* Call get_curve_from_param0() before setting P.x otherwise it would
+       reset P.x. */
+    if (param == ECM_PARAM_SUYAMA)
+      get_curve_from_param0 (f, P.A, P.x, sigma, modulus);
+    else if (param == ECM_PARAM_BATCH_SQUARE)
+      get_curve_from_param1 (P.A, P.x, sigma, modulus);
+    else if (param == ECM_PARAM_BATCH_2)
+      get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
+    else
+      get_curve_from_param3 (P.A, P.x, sigma, modulus);
+    mpres_set_z (P.x, x, modulus);
+    mpres_set_ui (P.y, 1, modulus);
+  }
+
 #ifdef HAVE_ADDLAWS
   ell_curve_set_z (E, zE, modulus);
 #else
@@ -1267,7 +1985,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   if (youpi == ECM_ERROR)
       goto end_of_ecm;
 
-  if (sigma_is_A == 0)
+  if (!resume && sigma_is_A == 0)
     {
       if (mpz_sgn (sigma) == 0)
         {

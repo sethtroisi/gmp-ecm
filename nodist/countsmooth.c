@@ -633,10 +633,8 @@ main(int argc, char **argv)
 
   if (verbose)
     {
-      printf ("B1=%u, B2=%.0f, %s%u, D=%u, %u<=G<=%u\nN=",
-               B1, B2, mpz_sgn(a) ? "Dickson_" : "X^", S, D, startG, endG);
-      mpz_out_str (stdout, 10, N);
-      printf ("\n");
+      gmp_printf ("B1=%u, B2=%.0f, %s%u, D=%u, %u<=G<=%u\nN=%Zd\n",
+               B1, B2, mpz_sgn(a) ? "Dickson_" : "X^", S, D, startG, endG, N);
       fflush (stdout);
     }
   

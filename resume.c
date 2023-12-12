@@ -1,22 +1,27 @@
-/* Functions for reading a writing resume file lines.
+/* Functions for reading/writing resume file lines.
 
-Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2010, 2011, 2012
-Paul Zimmermann, Alexander Kruppa and Cyril Bouvier.
+Copyright 2001-2023 Paul Zimmermann, Alexander Kruppa and Cyril Bouvier.
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or (at your
-option) any later version.
+This file is distributed under the MIT license.
 
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-more details.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-You should have received a copy of the GNU General Public License
-along with this program; see the file COPYING.  If not, see
-http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
-51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -411,9 +416,9 @@ error:
 
 /* Append a residue in file. */
 static void  
-write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma, 
-                       int sigma_is_A, int Etype, int param, mpz_t x, mpz_t y,
-		       mpcandi_t *n, mpz_t x0, mpz_t y0, const char *comment)
+write_resumefile_line (FILE *file, int method, double B1, const mpz_t sigma,
+                       int sigma_is_A, int Etype, int param, const mpz_t x, const mpz_t y,
+		       const mpcandi_t *n, const mpz_t x0, const mpz_t y0, const char *comment)
 {
   mpz_t checksum;
   time_t t;
@@ -460,22 +465,16 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
   mpz_clear (checksum);
   if (y != NULL)
     {
-      fprintf (file, " Y=0x");
-      mpz_out_str (file, 16, y);
-      fprintf (file, ";");
+      gmp_fprintf (file, " Y=0x%Zx;", y);
     }
   
   if (x0 != NULL)
     {
-      fprintf (file, " X0=0x");
-      mpz_out_str (file, 16, x0);
-      fprintf (file, ";");
+      gmp_fprintf (file, " X0=0x%Zx;", x0);
     }
   if (y0 != NULL)
     {
-      fprintf (file, " Y0=0x");
-      mpz_out_str (file, 16, y0);
-      fprintf (file, ";");
+      gmp_fprintf (file, " Y0=0x%Zx;", y0);
     }
   
   /* Try to get the users and his machines name */
@@ -533,10 +532,12 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
 
 /* Call write_resumefile_line for each residue in x.
    x = x0 + x1*2^(bits) + ... + xk*2^(bits*k), xi are the residues (this is a hack for GPU)
+   orig_n is n before division by any found factors, used only by GPU code.
    Returns 1 on success, 0 on error */
 int  
-write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
-		  mpcandi_t *n, mpz_t orig_x0, mpz_t orig_y0, 
+write_resumefile (char *fn, int method, ecm_params params,
+		  mpcandi_t *n,
+                  const mpz_t orig_n, const mpz_t orig_x0, const mpz_t orig_y0,
 		  const char *comment)
 {
   FILE *file;
@@ -587,14 +588,13 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
 
   fseek (file, 0, SEEK_END);
 #endif
-  
 
   /* Now can call write_resumefile_line to write in the file */
   if (params->gpu == 0)
     {
       /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
          found */
-      mpz_mod (tmp_x, params->x, n->n); 
+      mpz_mod (tmp_x, params->x, n->n);
 
       /* We write the B1done value to the save file. This requires that
          a correct B1done is returned by the factoring functions. */
@@ -618,7 +618,9 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
     }
   else /* gpu case */
     {
-      size_t n_bits = mpz_sizeinbase(N, 2);
+      ASSERT_ALWAYS (mpz_cmp(orig_n, n->n) == 0 || mpz_divisible_p(orig_n, n->n));
+
+      size_t n_bits = mpz_sizeinbase(orig_n, 2);
       for (i = 0; i < params->gpu_number_of_curves; i++)
         {
           mpz_fdiv_r_2exp (tmp_x, params->x, n_bits);
@@ -633,6 +635,7 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
 				 comment);
           mpz_add_ui (params->sigma, params->sigma, 1);
         }
+      mpz_sub_ui (params->sigma, params->sigma, params->gpu_number_of_curves);
     }
 
   /* closing the file */

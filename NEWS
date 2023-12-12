@@ -1,3 +1,9 @@
+Changes between GMP-ECM 7.0.5 and 7.0.6:
+* added a generator for optimal Lucas chains for param=0
+  (see README)
+* fixed a bug when using -resume with param=0 and B1 > B1 in resume file
+  (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+
 Changes between GMP-ECM 7.0.4 and 7.0.5:
 * fixed a bug when input is a file with several numbers: the -param choice
   did depend on the first number

@@ -1,27 +1,30 @@
 This is the README file for GPU version of GMP-ECM.
 The GPU code will only work with NVIDIA GPU of compute capability greater
-than 3.0.
+than 3.5.
 
 Table of contents of this file
 
 1. How to enable GPU code in GMP-ECM
-2. How to enable CGBN code in GMP-ECM
-3. Basic Usage
-4. Advanced Usage
-5. Known issues
+2. Basic Usage
+3. Advanced Usage
+4. Known issues
 
 ##############################################################################
 
 1. How to enable GPU code in GMP-ECM
 
 By default the GPU code is not enabled, to enable it you have to follow the 
-instructions of INSTALL-ecm until the 'configure' step. Then add the
-"--enable-gpu" argument to configure:
-	
-  $ ./configure --enable-gpu [other options]
+instructions of INSTALL-ecm until the 'configure' step. Then add "--enable-gpu"
+and "--with-cgbn-include=...". CGBN headers are required for GPU builds after
+f81ddf3b. "--with-cgbn-includes" should point to the CGBN include directory
+generally "../CGBN/include/cgbn". CGBN is a "CUDA Accelerated Multiple
+Precision Arithmetic (Big Num)" library available at
+https://github.com/NVlabs/CGBN
 
+  $ ./configure --enable-gpu --with-cgbn-include=/PATH/DIR/CGBN/include/cgbn
+	
 This will configure the code for NVIDIA GPU for all compute capabilities
-between 3.0 and 9.0 known to the nvcc compiler.
+between 3.5 and 9.0 known to the nvcc compiler.
 
 To enable only a single compute capability you can set '--enable-gpu=XX'
 
@@ -74,23 +77,11 @@ Additional randomized checks can be run with
 
 For failing kernels some additional information may be present in cuda-memcheck
 
-  $ echo "(2^997-1)" | cuda-memcheck ./ecm -cgbn -gpucurves 4096 -v 16000 0
+  $ echo "(2^997-1)" | cuda-memcheck ./ecm -gpu -gpucurves 4096 -v 16000 0
 
 ##############################################################################
 
-2. How to enable CGBN code in GMP-ECM
-
-By default the CGBN code is not enabled during GPU builds, follow the
-instructions above and add "-with-cgbn-include" argument to point at the
-CGBN include directory (../CGBN/include/cgbn).
-CGBN is a "CUDA Accelerated Multiple Precision Arithmetic (Big Num)" library
-available at https://github.com/NVlabs/CGBN
-
-  $ ./configure --enable-gpu --with-cgbn-include=/PATH/DIR/CGBN/include/cgbn
-
-##############################################################################
-
-3. Basic Usage
+2. Basic Usage
 
 To use your GPU for step 1, just add the -gpu option:
 
@@ -98,12 +89,6 @@ To use your GPU for step 1, just add the -gpu option:
 
 It will compute step 1 on the GPU, and then perform step 2 on the CPU (not in
 parallel).
-
-If you configured CGBN you can additionall pass the -cgbn option:
-
-  $ echo "(2^835+1)/33" | ./ecm -gpu -cgbn 1e4
-
-This is generally faster than the default CUDA code.
 
 The only parametrization compatible with GPU code is "-param 3".
 
@@ -115,7 +100,7 @@ effect on step 1, if the "-gpu" option is activated, but will apply for step 2.
 
 ##############################################################################
 
-4. Advanced Usage
+3. Advanced Usage
 
 The option "-gpudevice n" forces the GPU code to be executed on device n. Nvidia
 tool "nvidia-smi" can be used to know to which number is associated a GPU.
@@ -131,15 +116,20 @@ Throughput for determining CGBN kernel size and "-gpucurves" can be tested
 using the provided "gpu_throughput_test.sh" script. This takes optional ecm
 command and number of curves.
 
-    $ gpu_throughput_test.sh [ECM_CMD] [GPUCURVES]
+    $ ./gpu_throughput_test.sh [ECM_CMD] [GPUCURVES]
 
-The CGBN based GPU code can be easily changed to support different sized input.
-This is done by changing the "cgbn_params" in cgbn_stage1.cu at the cost of
-compile time and binary size.
+The CGBN based GPU code can be easily changed to support inputs from 256-32768
+bits. Several different sized CUDA kernels are defined in cgbn_stage1.cu.
+These kernels are fixed at compile type. A log message is printed if
+recompiling with a different sized kernel would likely speed up execution.
+
+See the comment "Compiling custom kernel" in cgbn_stage1.cu near line 680.
+Each additional kernel increases compile time and binary size so only two
+are included in development mode.
 
 ##############################################################################
 
-5. Known issues
+4. Known issues
 
 If you get "Error msg: forward compatibility was attempted on non supported HW"
 or "error: 'cuda.h' and 'cudart' library have different versions", then you

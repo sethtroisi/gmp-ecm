@@ -21,6 +21,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ecm-impl.h"
 #include "ecm-ecm.h"
 
 #define VALID_MAGIC 0x24837BF5
@@ -110,7 +111,7 @@ mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr,
       if (n->ndigits < APRCL_CUTOFF)
         n->isPrp = mpz_aprtcle (c, 0);
       else if (n->ndigits < APRCL_CUTOFF2)
-        n->isPrp = mpz_aprtcle (c, 1);
+        n->isPrp = mpz_aprtcle (c, test_verbose(1));
       else
         n->isPrp = mpz_probab_prime_p (c, PROBAB_PRIME_TESTS);
     }
@@ -153,7 +154,7 @@ mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
   if (n->ndigits < APRCL_CUTOFF)
     n->isPrp = mpz_aprtcle (n->n, 0);
   else if (n->ndigits < APRCL_CUTOFF2)
-    n->isPrp = mpz_aprtcle (n->n, 1);
+    n->isPrp = mpz_aprtcle (n->n, test_verbose(1));
   else
     n->isPrp = mpz_probab_prime_p (n->n, PROBAB_PRIME_TESTS);
   if (n->cpExpr != NULL)

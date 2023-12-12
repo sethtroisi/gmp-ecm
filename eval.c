@@ -22,7 +22,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <string.h>
 #include <time.h>
 #include "ecm-ecm.h"
-#include "getprime_r.h"
 
 #ifdef HAVE_STRINGS_H
 # include <strings.h> /* for strncasecmp */
@@ -47,8 +46,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
  *   Reduced Primorial:          n#m    17#5 == 5.7.11.13.17     *
  *                                                               *
  * Supported functions:	(case insensitive)			 *
- *   Phi(n,x)							 *
- *   GCD(m,n)							 *
+ *   Phi(n,x)			Phi(3,5) == 1+x+x^2 = 31	 *
+ *   GCD(m,n)			GCD(120, 28) = 4		 *
  *   U(p,q,n)							 *
  *   primU(p,q,n)						 *
  *   TODO: PhiL(k,n), PhiM(k,n)  				 *
@@ -225,16 +224,12 @@ JoinLinesLoop:
   return ret;
 }
 
-void eval_power (mpz_t prior_n, mpz_t n,char op)
+void eval_power (mpz_t prior_n, mpz_t n, char op)
 {
 #if defined (DEBUG_EVALUATOR)
   if ('#'==op || '^'==op || '!'==op || '@'==op || '$'==op)
     {
-      fprintf (stderr, "eval_power ");
-      mpz_out_str(stderr, 10, prior_n);
-      fprintf (stderr, "%c", op);
-      mpz_out_str(stderr, 10, n);
-      fprintf (stderr, "\n");
+      gmp_fprintf (stderr, "eval power %Zd%c%Zd\n", prior_n, op, n);
     }
 #endif
 
@@ -260,37 +255,21 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
     }
   else if ('#'==op)  /* simple primorial (syntax  n#   example:  11# == 2*3*5*7*11 */
     {
-      unsigned long nMax;
-      unsigned long p;
-      prime_info_t prime_info;
-
-      prime_info_init (prime_info);
-      nMax = mpz_get_ui (n);
-      mpz_set_ui (n, 1);
-      for (p = 2; p <= nMax; p = getprime_mt (prime_info))
-	/* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
-	mpz_mul_ui (n, n, p);
-      prime_info_clear (prime_info); /* free the prime table */
+      mpz_primorial_ui(n, mpz_get_ui(n));
     }
   else if ('$'==op)  /* reduced primorial (syntax  n#prior_n   example:  13#5 == (5*7*11*13) */
     {
-      unsigned long p;
-      unsigned long nMax;
-      unsigned long nStart;
-      prime_info_t prime_info;
-
-      prime_info_init (prime_info);
-      nMax = mpz_get_ui (prior_n);
-      nStart = mpz_get_ui (n);
+      /* gmp_printf ("Reduced-primorial  %Zd#%Zd\n", prior_n, n); */
+      mpz_t p;
+      ASSERT_ALWAYS (mpz_cmp(prior_n, n) >= 0); // n >= prior_n
+      mpz_init_set(p, n);
       mpz_set_ui (n, 1);
-      /*printf ("Reduced-primorial  %ld#%ld\n", nMax, nStart);*/
-      for (p = 2; p <= nMax; p = getprime_mt (prime_info))
-	{
-	  if (p >= nStart)
-	    /* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
-	    mpz_mul_ui (n, n, p);
-	}
-      prime_info_clear (prime_info); /* free the prime table */
+      mpz_sub_ui(p, p, 1);
+      mpz_nextprime(p, p);
+      for (; mpz_cmp(p, prior_n) <= 0; mpz_nextprime(p, p))
+	  /* Could use factor-tree, not worth the extra code. */
+	  mpz_mul (n, n, p);
+      mpz_clear(p);
     }
 }
 
@@ -300,11 +279,7 @@ eval_product (mpz_t prior_n, mpz_t n, char op)
 #if defined (DEBUG_EVALUATOR)
   if ('*'==op || '.'==op || '/'==op || '%'==op)
     {
-      fprintf (stderr, "eval_product ");
-      mpz_out_str(stderr, 10, prior_n);
-      fprintf (stderr, "%c", op);
-      mpz_out_str(stderr, 10, n);
-      fprintf (stderr, "\n");
+      gmp_fprintf (stderr, "eval_product %Zd%c%Zd\n", prior_n, op, n);
     }
 #endif
   if ('*' == op || '.' == op)
@@ -330,11 +305,7 @@ void eval_sum (mpz_t prior_n, mpz_t n,char op)
 #if defined (DEBUG_EVALUATOR)
   if ('+'==op || '-'==op)
     {
-      fprintf (stderr, "eval_sum ");
-      mpz_out_str(stderr, 10, prior_n);
-      fprintf (stderr, "%c", op);
-      mpz_out_str(stderr, 10, n);
-      fprintf (stderr, "\n");
+      gmp_fprintf (stderr, "eval_sum %Zd%c%Zd\n", prior_n, op, n);
     }
 #endif
 
@@ -352,7 +323,6 @@ int eval_Phi (mpz_t* params, mpz_t n)
   unsigned long B;
   unsigned long p;
   mpz_t D, T, org_n;
-  prime_info_t prime_info;
   
   /* deal with trivial cases first */
   if (mpz_cmp_ui (params[0], 0) == 0)
@@ -409,8 +379,7 @@ int eval_Phi (mpz_t* params, mpz_t n)
   B = mpz_get_ui (params[0]);
 
   /* Obtain the factors of B */
-  prime_info_init (prime_info);
-  for (p = 2; p <= B; p = getprime_mt (prime_info))
+  for (p = 2; p <= B; p += 1 + (p>2))
     {
       if (B % p == 0)
 	{
@@ -420,14 +389,13 @@ int eval_Phi (mpz_t* params, mpz_t n)
 	  do { B /= p; } while (B % p == 0);
         }
      }
-  prime_info_clear (prime_info); /* free the prime tables */
   B = mpz_get_si (params[0]);
 
   mpz_init_set (org_n, n);
   mpz_set_ui (n, 1);
   mpz_init_set_ui (D, 1);
   mpz_init (T);
-	      
+
   for(dw=0;(dw<(1U<<dwFactors)); dw++)
     {
       /* for all Mobius terms */
@@ -435,7 +403,7 @@ int eval_Phi (mpz_t* params, mpz_t n)
       int iMobius=0;
       unsigned dwIndex=0;
       unsigned dwMask=1;
-		  
+
       while(dwIndex < dwFactors)
 	{
 	  if(dw&dwMask)
@@ -448,34 +416,18 @@ int eval_Phi (mpz_t* params, mpz_t n)
 	  dwMask<<=1;
 	  ++dwIndex;
 	}
-      /*
-      fprintf (stderr, "Taking ");
-      mpz_out_str(stderr, 10, org_n);
-      fprintf (stderr, "^%d-1\n", iPower);
-      */
+      // gmp_fprintf (stderr, "Taking %Zd^%d-1\n", org_n, iPower);
       mpz_pow_ui(T, org_n, iPower);
       mpz_sub_ui(T, T, 1);
     
       if(iMobius&1)
       {
-	/*
-	fprintf (stderr, "Muling D=D*T  ");
-	mpz_out_str(stderr, 10, D);
-	fprintf (stderr, "*");
-	mpz_out_str(stderr, 10, T);
-	fprintf (stderr, "\n");
-	*/
+	// gmp_fprintf (stderr, "Muling D=D*T  %Zd*%Zd\n", D, T);
 	mpz_mul(D, D, T);
       }
       else
       {
-	/*
-	fprintf (stderr, "Muling n=n*T  ");
-	mpz_out_str(stderr, 10, n);
-	fprintf (stderr, "*");
-	mpz_out_str(stderr, 10, T);
-	fprintf (stderr, "\n");
-	*/
+	// gmp_fprintf (stderr, "Muling n=n*T  %Zd*%Zd\n", n, T);
 	mpz_mul(n, n, T); 
       }
   }
@@ -579,7 +531,7 @@ int aurif (mpz_t output, mpz_t n, mpz_t base, int sign) // Evaluate Aurifeullian
     }
   mpz_set(output, C);
   (sign>0 ? mpz_addmul : mpz_submul)(output, D, l);
-//  gmp_fprintf(stderr, "Calculated base=%Zd, exp=%Zd, C=%Zd, D=%Zd, output=%Zd\n",base,n,C,D,output);
+  // gmp_fprintf (stderr, "Calculated base=%Zd, exp=%Zd, C=%Zd, D=%Zd, output=%Zd\n",base,n,C,D,output);
   mpz_clears(orig_base,C,D,l,m,NULL);
   return 1;
 }
@@ -683,7 +635,7 @@ int eval_U (mpz_t *params, mpz_t n)
 	    mpz_addmul (U1,U0,params[1]); // U0 is 2k-1, U1 is 2k
 	    mpz_divexact (U1,U1,params[0]);
          }
-	 /* gmp_printf("%d %Zd %Zd\n",k,U0,U1); */
+	 /* gmp_fprintf (stderr, "%d %Zd %Zd\n",k,U0,U1); */
     }
   mpz_set(n, U1);
 
@@ -774,9 +726,7 @@ int eval_primU (mpz_t* params, mpz_t n)
 	  dwMask<<=1;
 	  ++dwIndex;
 	}
- /*     
-      gmp_fprintf (stderr, "Taking U(%Zd,%Zd,%d)\n", P,Q,iPower);
- */     
+      // gmp_fprintf (stderr, "Taking U(%Zd,%Zd,%d)\n", P,Q,iPower);
       mpz_set_ui(T,iPower);
       if(eval_U(params, T)==0)
       {
@@ -785,24 +735,12 @@ int eval_primU (mpz_t* params, mpz_t n)
     
       if(iMobius&1)
       {
-/*	
-	fprintf (stderr, "Muling D=D*T  ");
-	mpz_out_str(stderr, 10, D);
-	fprintf (stderr, "*");
-	mpz_out_str(stderr, 10, T);
-	fprintf (stderr, "\n");
-*/	
+	// gmp_fprintf (stderr, "Muling D=D*T  %Zd*%Zd\n", D, T);
 	mpz_mul(D, D, T);
       }
       else
       {
-/*	
-	fprintf (stderr, "Muling n=n*T  ");
-	mpz_out_str(stderr, 10, n);
-	fprintf (stderr, "*");
-	mpz_out_str(stderr, 10, T);
-	fprintf (stderr, "\n");
-*/	
+	// gmp_fprintf (stderr, "Muling n=n*T  %Zd*%Zd\n", n, T);
 	mpz_mul(n, n, T); 
       }
   }

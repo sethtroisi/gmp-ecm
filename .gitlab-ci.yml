@@ -5,5 +5,8 @@ linux_gmp:
     - ./configure
     - make
     - make check
+  artifacts:
+    paths:
+      - test-suite.log
   tags:
     - linux

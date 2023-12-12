@@ -174,23 +174,18 @@ Does not work with fast stage 2 for P+1 and P-1.
   <varlistentry>
   <term><option>-power <replaceable>n</replaceable></option></term>
   <listitem>
-<para>[ECM, P-1]
+<para>[ECM]
 Use x^<replaceable>n</replaceable> for Brent-Suyama's extension
 (<option>-power 1</option> disables Brent-Suyama's extension).
-The default polynomial is chosen depending on the method and B2.
-For P-1 and P+1, disables the fast stage 2.
-For P-1, <replaceable>n</replaceable> must be even.</para>
+The default polynomial is chosen depending on the method and B2.</para>
   </listitem>
   </varlistentry>
 
   <varlistentry>
   <term><option>-dickson <replaceable>n</replaceable></option></term>
   <listitem>
-<para>[ECM, P-1]
-Use degree-<replaceable>n</replaceable> Dickson's polynomial for Brent-Suyama's extension.
-For P-1 and P+1, disables the fast stage 2.
-Like for <option>-power</option>, <replaceable>n</replaceable> must be 
-even for P-1.</para>
+<para>[ECM]
+Use degree-<replaceable>n</replaceable> Dickson's polynomial for Brent-Suyama's extension.</para>
   </listitem>
   </varlistentry>
 
@@ -442,10 +437,10 @@ by <replaceable>n</replaceable> after each curve.
   </varlistentry>
 
   <varlistentry>
-  <term><option>-I <replaceable>n</replaceable></option></term>
+  <term><option>-I <replaceable>f</replaceable></option></term>
   <listitem>
-<para>In loop mode, multiply <replaceable>B1</replaceable>
-by a factor depending on <replaceable>n</replaceable> after each curve.
+<para>In loop mode, add <replaceable>f</replaceable> multiplied by the
+square root of <replaceable>B1</replaceable> after each curve.
 Default is one which should be optimal on one machine, while  
 <option>-I 10</option> could be used when trying to factor the same number 
 simultaneously on 10 identical machines.
@@ -582,7 +577,7 @@ is ignored, up to the end of line.</para>
 <para>Line continuation. If a line ends with a backslash character
     <quote>\</quote>, it is considered to continue on the next line.</para>
 <para>Common arithmetic expressions can be used. Example:
-     <replaceable>3*5+2^10</replaceable>.</para>
+     <replaceable>3*5+(2+7)^10</replaceable>.</para>
 <para>Factorial: example <replaceable>53!</replaceable>.</para>
 <para>Multi-factorial: example <replaceable>15!3</replaceable>
 means 15*12*9*6*3.</para>
@@ -590,8 +585,22 @@ means 15*12*9*6*3.</para>
 2*3*5*7*11.</para>
 <para>Reduced primorial: example <replaceable>17#5</replaceable> means
 5*7*11*13*17.</para>
-<para>Functions: currently, the only available function is 
-<replaceable>Phi(x,n)</replaceable>.</para>
+<para>Functions:
+  <variablelist>
+    <varlistentry>
+      <term>GCD(a,b): Greatest common divisor</term>
+      <listitem>
+        <simpara>example GCD(120,28) = 4</simpara>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>Phi(n,x): n-th Cyclotomic Polynomial evaluated at x</term>
+      <listitem>
+        <simpara>example Phi(3,5) = 1 + x + x^2 = 31</simpara>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+</para>
 </refsect1>
 
 <refsect1 id='exitstatus'><title>EXIT STATUS</title>

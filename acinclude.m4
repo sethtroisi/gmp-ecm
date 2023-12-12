@@ -1,7 +1,7 @@
 dnl Various routines adapted from gmp-4.1.4
 
 define(X86_PATTERN,
-[[i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | athlon-*-* | viac3*-*-*]])
+[[i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | viac3*-*-*]])
 
 
 dnl  GMP_INIT([M4-DEF-FILE])
@@ -92,9 +92,9 @@ dnl  macros.
 ')]
 EOF
 dnl ' <- balance the quotes for emacs sh-mode
-  echo "trying m4" >&AC_FD_CC
-  gmp_tmp_val=`(m4 conftest.m4) 2>&AC_FD_CC`
-  echo "$gmp_tmp_val" >&AC_FD_CC
+  echo "trying m4" >&AS_MESSAGE_LOG_FD
+  gmp_tmp_val=`(m4 conftest.m4) 2>&AS_MESSAGE_LOG_FD`
+  echo "$gmp_tmp_val" >&AS_MESSAGE_LOG_FD
   if test "$gmp_tmp_val" = good; then
     gmp_cv_prog_m4="m4"
   else
@@ -105,9 +105,9 @@ dnl not every word.  This closes a longstanding sh security hole.
     ac_dummy="$PATH:/usr/5bin"
     for ac_dir in $ac_dummy; do
       test -z "$ac_dir" && ac_dir=.
-      echo "trying $ac_dir/m4" >&AC_FD_CC
-      gmp_tmp_val=`($ac_dir/m4 conftest.m4) 2>&AC_FD_CC`
-      echo "$gmp_tmp_val" >&AC_FD_CC
+      echo "trying $ac_dir/m4" >&AS_MESSAGE_LOG_FD
+      gmp_tmp_val=`($ac_dir/m4 conftest.m4) 2>&AS_MESSAGE_LOG_FD`
+      echo "$gmp_tmp_val" >&AS_MESSAGE_LOG_FD
       if test "$gmp_tmp_val" = good; then
         gmp_cv_prog_m4="$ac_dir/m4"
         break
@@ -151,7 +151,7 @@ dnl  conftest.o and conftest.out are available for inspection in
 dnl  "action-success".  If either action does a "break" out of a loop then
 dnl  an explicit "rm -f conftest*" will be necessary.
 dnl
-dnl  This is not unlike AC_TRY_COMPILE, but there's no default includes or
+dnl  This is not unlike AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[],[]), but there's no default includes or
 dnl  anything in "asm-code", everything wanted must be given explicitly.
 
 AC_DEFUN([GMP_TRY_ASSEMBLE],
@@ -160,12 +160,12 @@ AC_DEFUN([GMP_TRY_ASSEMBLE],
 EOF
 gmp_assemble="$CCAS $CCASFLAGS -c conftest.s >conftest.out 2>&1"
 if AC_TRY_EVAL(gmp_assemble); then
-  cat conftest.out >&AC_FD_CC
+  cat conftest.out >&AS_MESSAGE_LOG_FD
   ifelse([$2],,:,[$2])
 else
-  cat conftest.out >&AC_FD_CC
-  echo "configure: failed program was:" >&AC_FD_CC
-  cat conftest.s >&AC_FD_CC
+  cat conftest.out >&AS_MESSAGE_LOG_FD
+  echo "configure: failed program was:" >&AS_MESSAGE_LOG_FD
+  cat conftest.s >&AS_MESSAGE_LOG_FD
   ifelse([$3],,:,[$3])
 fi
 rm -f conftest*
@@ -311,7 +311,7 @@ EOF
 EOF
     ;;
   esac
-  gmp_compile="$CC $CFLAGS $CPPFLAGS -c conftes1.c >&AC_FD_CC && $CCAS $CCASFLAGS -c conftes2.s >&AC_FD_CC && $CC $CFLAGS $LDFLAGS conftes1.$OBJEXT conftes2.$OBJEXT >&AC_FD_CC"
+  gmp_compile="$CC $CFLAGS $CPPFLAGS -c conftes1.c >&AS_MESSAGE_LOG_FD && $CCAS $CCASFLAGS -c conftes2.s >&AS_MESSAGE_LOG_FD && $CC $CFLAGS $LDFLAGS conftes1.$OBJEXT conftes2.$OBJEXT >&AS_MESSAGE_LOG_FD"
   if AC_TRY_EVAL(gmp_compile); then
     eval tmp_result$tmp_underscore=yes
   else
@@ -439,6 +439,11 @@ AC_ARG_WITH(cuda_compiler,
             [a directory that contains a C and C++ compiler compatible with the CUDA compiler nvcc. If given, the value is used as '--compiler-bindir' argument for nvcc ]),
   [ cuda_compiler=$withval ])
 
+AC_ARG_WITH(cgbn_include,
+  AS_HELP_STRING([--with-cgbn-include=DIR],
+                 [CGBN include directory]),
+  [ cgbn_include=$withval ])
+
 AS_IF([test "x$enable_gpu" = "xyes" ],
   [
     AS_IF([test "x$cuda_include" != "x"],
@@ -462,10 +467,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
         #include <cuda.h>
       ]],[[
         printf("(%d.%d) ", CUDA_VERSION/1000, (CUDA_VERSION/10) % 10);
-        if (CUDA_VERSION < 3000)
-          return 1;
-        else
-          return 0;
+        return (CUDA_VERSION < 3000);
       ]])],
       [AC_MSG_RESULT([yes])],
       [
@@ -545,10 +547,12 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
       ])
 
     AS_IF([test "x$cuda_compiler" != "x" ], 
-          [NVCCFLAGS=" --compiler-bindir $cuda_compiler NVCCFLAGS"])
+          [NVCCFLAGS=" --compiler-bindir $cuda_compiler $NVCCFLAGS"],
+          [AS_IF([test "x$CC" != "x" ],
+          [NVCCFLAGS=" --compiler-bindir $CC $NVCCFLAGS"])])
  
     dnl check that gcc version is compatible with nvcc version
-    dnl (seth) How is this checking if gcc and nvcc are compatible?
+    dnl nvcc may produce an error like "unsupported GNU version! gcc versions later than 12 are not supported!"
     AC_MSG_CHECKING([for compatibility between gcc and nvcc])
     NVCC_CHECK_COMPILE([], [$NVCCFLAGS],
       [AC_MSG_RESULT([yes])],
@@ -559,7 +563,7 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
       
     dnl Check which GPU architecture nvcc knows
     GPU_ARCH=""
-    m4_foreach_w([compute_capability], [30 32 35 37 50 52 53 60 61 62 70 72 75 80 86 87 90],
+    m4_foreach_w([compute_capability], [35 37 50 52 53 60 61 62 70 72 75 80 86 87 90],
       [
         testcc=compute_capability
         AS_IF([test -z "$WANTED_GPU_ARCH" -o "$WANTED_GPU_ARCH" = "$testcc"],
@@ -583,52 +587,26 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
     AS_IF([test -z "$GPU_ARCH"],
         [AC_MSG_ERROR([No supported compute capabilities found])])
 
-    dnl check that nvcc know ptx instruction madc
-    AC_MSG_CHECKING([if nvcc knows ptx instruction madc])
+    AS_IF([test -d "$cgbn_include"],
+      [],
+      [AC_MSG_ERROR([Specified CGBN include directory "$cgbn_include" does not exist])])
+
+    AC_MSG_CHECKING([if CGBN is present])
+
+    dnl AC_CHECK_HEADER can't verify NVCC compilability hence NVCC_CHECK_COMPILE
     NVCC_CHECK_COMPILE(
       [
-         __global__ void test (int *a, int b) {
-         asm(\"mad.lo.cc.u32 %0, %0, %1, %1;\":
-         \"+r\"(*a) : \"r\"(b));}
+        #include <gmp.h>
+        #include <cgbn.h>
       ],
-      [$NVCCFLAGS --generate-code arch=compute_${MIN_CC},code=compute_${MIN_CC}],
+      [-I$cgbn_include $GMPLIB $NVCCFLAGS],
       [AC_MSG_RESULT([yes])],
       [
         AC_MSG_RESULT([no])
-        AC_MSG_ERROR([nvcc does not recognize ptx instruction madc, you should upgrade it])
-      ])
-
-    AC_ARG_WITH(cgbn_include,
-      AS_HELP_STRING([--with-cgbn-include=DIR], [CGBN include directory]),
-      [
-        cgbn_include=$withval
-        AC_MSG_NOTICE([Using CGBN from $cgbn_include])
-        AS_IF([test "x$with_cgbn_include" != "xno"],
-          [
-            AS_IF([test -d "$cgbn_include"],
-              [],
-              [AC_MSG_ERROR([Specified CGBN include directory "$cgbn_include" does not exist])])
-
-            AC_MSG_CHECKING([if CGBN is present])
-
-            dnl AC_CHECK_HEADER can't verify NVCC compilability hence NVCC_CHECK_COMPILE
-            NVCC_CHECK_COMPILE(
-              [
-                #include <gmp.h>
-                #include <cgbn.h>
-              ],
-              [-I$cgbn_include $GMPLIB],
-              [AC_MSG_RESULT([yes])],
-              [
-                AC_MSG_RESULT([no])
-                AC_MSG_ERROR([cgbn.h not found (check if /cgbn needed after <PATH>/include)])
-              ]
-            )
-            AC_DEFINE([HAVE_CGBN_H], [1], [Define to 1 if cgbn.h exists])
-            NVCCFLAGS="-I$with_cgbn_include $GMPLIB $NVCCFLAGS"
-            want_cgbn="yes"
-        ])
-      ])
+        AC_MSG_ERROR([cgbn.h not found (check if /cgbn needed after <PATH>/include)])
+      ]
+    )
+    NVCCFLAGS="-I$with_cgbn_include $GMPLIB $NVCCFLAGS"
 
     LIBS="$LIBS_BACKUP"
     LDFLAGS="$LDFLAGS_BACKUP"
@@ -653,8 +631,6 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
   ])
 #Set this conditional if cuda is wanted
 AM_CONDITIONAL([WANT_GPU], [test "x$enable_gpu" = "xyes" ])
-#Set this conditional if cuda & cgbn_include
-AM_CONDITIONAL([WANT_CGBN], [test "x$want_cgbn" = "xyes" ])
 
 AC_SUBST(NVCC)
 AC_SUBST(NVCCFLAGS)

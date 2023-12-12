@@ -357,8 +357,8 @@ syntax that is handled:
 9. Simple Primorial using the # character with example of 11# == 2*3*5*7*11
 10. Reduced Primorial n#m with example of 17#5 == 5.7.11.13.17
 11. Functions are possible with the expression parser. Currently, the only 
-    available function is Phi(x,n), however other functions should be easy
-    to add in the future.
+    available function is Phi(n,x), which is the value of the n-th cyclotomic
+    polynomial at x, however other functions should be easy to add.
 
 Note: Expressions are maintained as much as possible (even if the expression
 becomes longer than the decimal expansion). Expressions are output as cofactors
@@ -649,6 +649,13 @@ If you do an out-of-source build, then:
 * copy the new ecm-params.h file into the source folder
 * run "make clean" and "make" again
 
+Note: for -param 0 only, this release includes an optional improvement to
+stage 1. For each prime p, 11 <= p <= B1, the Lucas chain for p (produced
+by the 'prac' routine) is replaced by a near-optimal Lucas chain
+reconstructed from a 64-bit code read out of a file. For instructions on
+how to generate and use this file, see the README file in the
+LucasChainGenerator folder.
+
 The ecm program automatically selects what it thinks is the best
 arithmetic for the given input number. If that choice is not optimal, you may 
 force the use of a certain arithmetic by trying options -modmulm, -mpzmod, 
@@ -756,7 +763,7 @@ This means that your factor might be a champion, i.e., one of the top-ten
 largest factors ever found by the corresponding method (P-1, P+1 or ECM).
 Cf the following URLs:
 
-ECM: http://wwwmaths.anu.edu.au/~brent/ftp/champs.txt
+ECM: https://maths-people.anu.edu.au/~brent/ftp/champs.txt
 P-1: http://www.loria.fr/~zimmerma/records/Pminus1.html
 P+1: http://www.loria.fr/~zimmerma/records/Pplus1.html
 

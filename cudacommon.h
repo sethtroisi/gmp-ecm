@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 int get_device_prop(int device, struct cudaDeviceProp *deviceProp);
-int select_and_init_GPU (int, unsigned int*, int, int);
+int select_and_init_GPU (int, unsigned int*, int);
 
 #ifdef __cplusplus
 }

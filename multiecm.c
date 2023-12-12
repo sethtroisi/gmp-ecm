@@ -751,15 +751,14 @@ conclude_on_factor(mpz_t N, mpz_t f, int verbose)
 	    ECM_COMP_FAC_COMP_COFAC;
     if (verbose >= 1)
       {
-        printf ("Found %s factor of %u digits: ", 
+        gmp_printf ("Found %s factor of %u digits: %Zd\n",
 		factor_is_prime ? "probable prime" : "composite",
-		nb_digits (f));
-	mpz_out_str (stdout, 10, f);
-	printf ("\n");
-	printf ("%s cofactor ",
-		cofactor_is_prime ? "Probable prime" : "Composite");
-	mpz_out_str (stdout, 10, C);
-	printf (" has %u digits\n", nb_digits(C));
+		nb_digits (f),
+                f);
+	gmp_printf ("%s cofactor %Zd has %u digits\n",
+		cofactor_is_prime ? "Probable prime" : "Composite",
+                C,
+                nb_digits(C));
       }
     mpz_clear(C);
     return ret;
@@ -1055,9 +1054,7 @@ compute_all_inverses(mpz_t f, mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char 
 	if(!mpres_invert(inv[i], x[i], n)){
 	    mpres_gcd(inv[0], x[i], n); // FIXME!!
 #if DEBUG_ADD_LAWS >= 1
-	    printf("Factor[%d]: ", i);
-            mpz_out_str (stdout, 10, inv[0]);
-            printf ("\n");
+	    gmp_printf ("Factor[%d]: %Zd\n", i, inv[0]);
 #endif
 	    return 0;
 	}
@@ -1082,18 +1079,14 @@ compute_all_inverses(mpz_t f, mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char 
     if(!mpres_invert(x[nx], inv[nx-1], n)){
 	mpres_gcd(f, inv[nx-1], n);
 #if DEBUG_ADD_LAWS >= 1
-	printf("Factor[%d]: ", i);
-	mpz_out_str (stdout, 10, f);
-	printf ("\n");
+	gmp_printf ("Factor[%d]: %Zd\n", i, f);
 #endif
 	/* identifying the x[i]'s */
 	for(i = 0; i < nx; i++){
 	    mpres_gcd(f, x[i], n);
 	    if(mpz_cmp_ui(f, 1) != 0){
 #if DEBUG_ADD_LAWS >= 0
-		printf("# x[%d] not invertible: ", i);
-		mpz_out_str (stdout, 10, f);
-		printf ("\n");
+		gmp_printf ("# x[%d] not invertible: %Zd\n", i, f);
 #endif
 		/* ONE DAY: if x[nx] != inv[0], we have another factor! */
 		takeit[i] = 2;
@@ -1610,9 +1603,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, mpz_t B2,
 	    ret = process_one_curve(f, n->orig_modulus, B1, B2, params,
 				    tE[i], tP[i]);
 	    if(ret != ECM_NO_FACTOR_FOUND){
-		printf("## factor found in Step 2: ");
-		mpz_out_str (stdout, 10, f);
-		printf ("\n");
+		gmp_printf ("## factor found in Step 2: %Zd\n");
 		ret = conclude_on_factor(n->orig_modulus, f, params->verbose);
 		break;
 	    }
@@ -1833,9 +1824,7 @@ odd_square_root_mod_N(mpz_t f, int *status, mpz_t *sqroots,
 	mpz_sub_si(f, zeta, 1);
 	mpz_gcd(f, f, N);
 	if(mpz_cmp_ui(f, 1) != 0){
-	    printf("# Factor found (gcd(zeta_%d-1, N)): ", q);
-	    mpz_out_str(stdout, 10, f);
-	    printf("\n");
+	    gmp_printf ("# Factor found (gcd(zeta_%d-1, N)): %Zd\n", q, f);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_odd_sqrt;
 	}
