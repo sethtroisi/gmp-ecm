@@ -414,28 +414,6 @@ echo 294940575713329370427113862790368174424655176416322150390973123306949586795
 $ECM -resume $TEST 1001
 checkcode $? 6
 
-if [ "$MUL" != "redc" -a "$MUL" != "mpzmod" ]; then
-  if [ $GMP_NUMB_BITS -eq 64 ]; then
-    # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
-    /bin/rm -f $TEST
-    echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 1:101 300 1
-    $ECM -resume $TEST 300
-    checkcode $? 14
-  fi
-
-  # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
-  /bin/rm -f $TEST
-  echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 2:103 200 1
-  $ECM -resume $TEST 200
-  checkcode $? 14
-
-  # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
-  /bin/rm -f $TEST
-  echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 3:101 200 1
-  $ECM -resume $TEST 200
-  checkcode $? 14
-fi
-
 # test savea with existing file
 printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > $TEST
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea $TEST -param 0 -sigma 585928442 174000 0
@@ -569,7 +547,25 @@ echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads $TEST -v
 echo 4294967291 | $ECM -param 1 -A 17 1000
 checkcode $? 8
 
+# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+/bin/rm -f $TEST
+echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 1:101 300 1
+$ECM -resume $TEST 300
+checkcode $? 14
+
 fi # $GMP_NUMB_BITS -eq 64
+
+# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+/bin/rm -f $TEST
+echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 2:103 200 1
+$ECM -resume $TEST 200
+checkcode $? 14
+
+# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+/bin/rm -f $TEST
+echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 3:101 200 1
+$ECM -resume $TEST 200
+checkcode $? 14
 
 echo 31622776601683791911 | $ECM -sigma 2:5539417145734457396 11000; checkcode $? 0
 echo 31622776601683791911 | $ECM -sigma 3:3462003578 11000; checkcode $? 0
