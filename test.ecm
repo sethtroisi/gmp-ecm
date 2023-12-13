@@ -414,25 +414,27 @@ echo 294940575713329370427113862790368174424655176416322150390973123306949586795
 $ECM -resume $TEST 1001
 checkcode $? 6
 
-if [ $GMP_NUMB_BITS -eq 64 ]; then
+if [ "$MUL" != "redc" -a "$MUL" != "mpzmod" ]; then
+  if [ $GMP_NUMB_BITS -eq 64 ]; then
+    # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+    /bin/rm -f $TEST
+    echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 1:101 300 1
+    $ECM -resume $TEST 300
+    checkcode $? 14
+  fi
+
   # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
   /bin/rm -f $TEST
-  echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 1:101 300 1
-  $ECM -resume $TEST 300
+  echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 2:103 200 1
+  $ECM -resume $TEST 200
+  checkcode $? 14
+
+  # bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
+  /bin/rm -f $TEST
+  echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 3:101 200 1
+  $ECM -resume $TEST 200
   checkcode $? 14
 fi
-
-# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
-/bin/rm -f $TEST
-echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 2:103 200 1
-$ECM -resume $TEST 200
-checkcode $? 14
-
-# bug in ecm7 with -resume (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21866)
-/bin/rm -f $TEST
-echo 399168730698221569893043643349449251777 | $ECM -save $TEST -sigma 3:101 200 1
-$ECM -resume $TEST 200
-checkcode $? 14
 
 # test savea with existing file
 printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > $TEST
