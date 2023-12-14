@@ -342,7 +342,7 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   }
   else if( power_count == 2 && mul_indx < prev_pwr_indx )
   {
-    for (i = 0; i < prev_pwr_indx; i++)
+    for (i = 0; i < (unsigned long)prev_pwr_indx; i++)
     {
       if (z[i] == '(' || z[i] == '{' || z[i] == '[')
         continue;
@@ -467,7 +467,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
       mpres_clear (b, modulus);
     }
   
-  outputf (OUTPUT_VERBOSE, 
+  outputf (OUTPUT_NORMAL, 
            "Using gwnum_ecmStage1(%.0f, %d, %d, %d, %.0f, %ld)\n",
            gw_k, gw_b, gw_n, gw_c, B1, gw_B1done);
 
