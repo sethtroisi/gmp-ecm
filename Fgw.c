@@ -209,20 +209,22 @@ kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c, mpz_t z)
 }
 
 /* This function searches for a nice representation of z
-   We are trying to see if z = k*b^n + c
+   We are trying to see if z = (k*b^n + c)/(factors, if any)
    Some examples that we can find:
    "3^218+5123"
    "(199*3^218+5123)/(2*17*587*1187)"
-   "(199*3^218 + 5123)/2/17/587/1187" */
+   "(199*3^218 + 5123)/2/17/587/1187"
+
+   This function also handles inputs of the form
+   z = (k*b^(b2^n2) + c)/(factors, if any) */
 int
 kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
           char *z, mpz_t num)
 {
   unsigned long i = 0, s_len, b2, n2, i2, pow;
-  char power_count = 0, prev_pwr_indx = 0,
-               last_pwr_indx = 0, mul_count = 0, mul_indx = 0,
-               sign_count = 0, sign_indx = 0;
-  int total = 0;
+  unsigned long prev_pwr_indx = 0, last_pwr_indx = 0,
+                mul_indx = 0, sign_indx = 0;
+  int total = 0, power_count = 0, mul_count = 0, sign_count = 0;
   char strk[11];
   char strb[11];
   char strn[11];
@@ -342,7 +344,7 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   }
   else if( power_count == 2 && mul_indx < prev_pwr_indx )
   {
-    for (i = 0; i < (unsigned long)prev_pwr_indx; i++)
+    for (i = 0; i < prev_pwr_indx; i++)
     {
       if (z[i] == '(' || z[i] == '{' || z[i] == '[')
         continue;
