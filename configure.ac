@@ -363,18 +363,12 @@ if test "x$with_gwnum" != "x"; then
       AC_MSG_ERROR([Woltman's GWNUM currently cannot be used together with OpenMP])
   fi
   AC_CHECK_FILE([$with_gwnum/gwnum.a], [
-    AC_DEFINE([HAVE_GWNUM], 1, [Define to 1 if gwnum.a or gwnum.lib exist])
+    AC_DEFINE([HAVE_GWNUM], 1, [Define to 1 if gwnum.a exists])
     GWLIB="$with_gwnum/gwnum.a -lpthread"
     CPPFLAGS="$CPPFLAGS -I$with_gwnum"
   ],[
-    AC_CHECK_FILE([$with_gwnum/gwnum.lib], [
-      AC_DEFINE([HAVE_GWNUM], 1, [Define to 1 if gwnum.a or gwnum.lib exist])
-      GWLIB="$with_gwnum/gwnum.lib -lpthread"
-      CPPFLAGS="$CPPFLAGS -I$with_gwnum"
-    ],[
-      with_gwnum=
-      AC_MSG_ERROR([Woltman's GWNUM library not found])
-    ])
+    with_gwnum=
+    AC_MSG_ERROR([Woltman's GWNUM library not found])
   ])
 fi
 AM_CONDITIONAL([WITH_GWNUM], [test "x$with_gwnum" != "x"])
