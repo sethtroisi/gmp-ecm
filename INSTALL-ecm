@@ -63,21 +63,19 @@ Instructions to install GMP-ECM:
    builds, regardless of these parameters.
 
    Note 3: If you want to use George Woltman's GWNUM library for speeding up
-   factoring base 2 numbers, obtain the source file from
-   <https://www.mersenne.org/download/software> (on November 2023 the latest
+   factoring numbers of the form k*b^n +/- c, obtain the source file from
+   <https://www.mersenne.org/download/software> (as of November 2023 the latest
    source is v30/30.8/p95v308b15.source.zip), build the gwnum library for
    your operating system (for example under 64-bit Linux go to the gwnum
    directory and type "make -f make64"), then use:
 
    $ ./configure --with-gwnum=<gwnum directory>
 
-   The directory must include the gwnum.a or gwnum.lib file as well as 
-   gwnum.h and related header files. The source file of the gwnum library
-   is available at <http://www.mersenne.org/source.htm>.
+   The directory must include the gwnum.a file as well as gwnum.h and
+   related header files.
 
-   Note: Jonathan Crombie reported an error (Segmentation fault) with GWNUM
-   29.6 with some inputs. George Woltman says the error lies in the giants
-   half-GCD code. This issue is fixed in p95v298b7.
+   Note: Prime 95 versions older than p95v298b7 may not work properly
+   and should be avoided.
 
 2) compile the program with:
 
