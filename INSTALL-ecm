@@ -74,8 +74,18 @@ Instructions to install GMP-ECM:
    The directory must include the gwnum.a file as well as gwnum.h and
    related header files.
 
-   Note: Prime 95 versions older than p95v298b7 may not work properly
-   and should be avoided.
+   Also note:
+   (1) Prime 95 versions older than p95v298b7 may not work properly
+       and should be avoided.
+   (2) To use the gwnum stage 1 routines, '-param 0' must be specified, and
+       the input number to be factored must be > 2^350.
+   (3) Input integers should generally be entered in the form
+       "(k*b^n+c)/(factors, if any)". The 'k*' term is not required if k = 1.
+       The exponent 'n' may be entered as an integer or in the form (b2^n2),
+       with 'n' or '(b2^n2)' < 10^10. Also, k must be a positive integer with
+       1 <= k <= 2^49, and c must be a non-zero integer with |c| < 2^23.
+   (4) The current Prime 95 release may not include support for the newest
+       processor types, and if not will default to older, slower FFT code.
 
 2) compile the program with:
 
