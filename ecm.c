@@ -1142,7 +1142,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     }
     else
     {
-      outputf (OUTPUT_NORMAL, "Lchain_codes.dat file failed to open, using prac\n");
+      outputf (OUTPUT_VERBOSE, "Lchain_codes.dat file failed to open, using prac\n");
     }
   }
 
