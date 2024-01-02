@@ -77,15 +77,22 @@ Instructions to install GMP-ECM:
    Also note:
    (1) Prime 95 versions older than p95v298b7 may not work properly
        and should be avoided.
-   (2) To use the gwnum stage 1 routines, '-param 0' must be specified, and
-       the input number to be factored must be > 2^350.
-   (3) Input integers should generally be entered in the form
+   (2) Input integers should generally be entered in the form
        "(k*b^n+c)/(factors, if any)". The 'k*' term is not required if k = 1.
        The exponent 'n' may be entered as an integer or in the form (b2^n2),
        with 'n' or '(b2^n2)' < 10^10. Also, k must be a positive integer with
        1 <= k <= 2^49, and c must be a non-zero integer with |c| < 2^23.
-   (4) The current Prime 95 release may not include support for the newest
-       processor types, and if not will default to older, slower FFT code.
+       Finally, the input number to be factored must be > 2^350.
+   (3) For integer-character-only input strings N, GMP-ECM may detect if
+       N = k*b^n+c, and find k, b, n, and c, but if possible the form above
+       should be used.
+   (4) Since the gwnum routines use classical Montgomery curves of the form
+       By^2 = x^3 + Ax^2 + x, "-param 0" or "-sigma 0:<val>" should always be
+       specified on the command line. Note that -param may default to 1 if
+       "-param" is unspecified, in which case the gwnum routines will not be
+       used.
+   (5) The current Prime 95 release may not include support for the newest
+       processor types, and if not may default to older, slower FFT code.
 
 2) compile the program with:
 
