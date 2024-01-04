@@ -377,7 +377,7 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
 
       st = cputime ();
       /* construct the batch exponent */
-      compute_s (mutable_params->batch_s, B1, NULL);
+      compute_s (mutable_params->batch_s, B1, /* B1done */ 0, NULL);
       outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
                                " bits) of primes up to B1=%1.0f took %ldms\n",
                                mpz_sizeinbase (params->batch_s, 2), B1, cputime () - st);

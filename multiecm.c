@@ -669,7 +669,7 @@ compute_s_4_add_sub(mpz_t s, ecm_uint B1, int disc)
 
     mpz_init(t);
     tp = cputime();
-    compute_s(t, B1, forbiddenres);
+    compute_s(t, B1, /* B1done */ 0, forbiddenres);
     free(forbiddenres);
     printf("# computing prod(p^e <= %lu): %ldms\n", B1, elltime(tp,cputime()));
 #if USE_ADD_SUB_CHAINS == 0 /* keeping it simple for the time being */

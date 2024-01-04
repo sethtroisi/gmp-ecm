@@ -57,7 +57,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    Typical example: "4 3 -1" for curves Y^2 = X^3 + a * X.
 */
 void
-compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
+compute_s (mpz_t s, ecm_uint B1, ecm_uint B1done, int *forbiddenres ATTRIBUTE_UNUSED)
 {
   mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
   mpz_t ppz;
@@ -67,7 +67,7 @@ compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
 
   prime_info_init (prime_info);
 
-  ASSERT_ALWAYS (B1 <= MAX_B1_BATCH);
+  ASSERT_ALWAYS (B1 <= MAX_B1_BATCH); /* Must increase MAX_HEIGHT to use very large B1 */
 
   for (j = 0; j < MAX_HEIGHT; j++)
     mpz_init (acc[j]); /* sets acc[j] to 0 */
@@ -103,13 +103,19 @@ compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
             }
         }
 #endif
+      /* Set prime power (pp) to largest power of qi < B1, avoid overflow */
+      ecm_uint add = (pi > B1done) ? 1 : pp;
       while (pp <= maxpp)
+        {
           pp *= qi;
+          if (pp > B1done) add *= qi;
+        }
+
 
 #if ECM_UINT_MAX == 4294967295
-      mpz_set_ui (ppz, pp);
+      mpz_set_ui (ppz, add);
 #else
-      mpz_set_uint64 (ppz, pp);
+      mpz_set_uint64 (ppz, add);
 #endif
 
       if ((i & 1) == 0)
@@ -139,7 +145,10 @@ compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
     }
 
   for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
+  {
     mpz_mul (s, s, acc[j]);
+    mpz_set_ui(acc[j], 0);
+  }
 
   prime_info_clear (prime_info); /* free the prime tables */
   
