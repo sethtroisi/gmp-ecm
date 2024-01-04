@@ -2028,7 +2028,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
     want_output = (thread_nr == 0);
 
     if (want_output)
-      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+      outputf (OUTPUT_VERBOSE, " using %d thread(s)", nr_chunks);
 #endif
 
   /* Make a private copy of the mpmod_t struct */
@@ -2220,7 +2220,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
       unsigned long chunklen;
       
       if (thread_nr == 0)
-	outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+	outputf (OUTPUT_VERBOSE, " using %d thread(s)", nr_chunks);
 
       /* chunklen = ceil (len / nr_chunks) */
       chunklen = (len - 1UL) / (unsigned long) nr_chunks + 1UL;
@@ -2556,7 +2556,7 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
       len = 0;
 #pragma omp master
     {
-      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+      outputf (OUTPUT_VERBOSE, " using %d thread(s)", nr_chunks);
     }
 #endif
 
@@ -2877,6 +2877,16 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   return youpi;
 }
 
+#ifdef _OPENMP
+static int
+get_num_threads (void)
+{
+  int nthreads;
+#pragma omp parallel
+  nthreads = omp_get_num_threads ();
+  return nthreads;
+}
+#endif
 
 int 
 pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus, 
@@ -3006,7 +3016,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Compute the DCT-I of h */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
 #ifdef _OPENMP
-  outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads ());
+  outputf (OUTPUT_VERBOSE, " using %d thread(s)", get_num_threads ());
 #endif
   timestart = cputime ();
   realstart = realtime ();
@@ -3034,7 +3044,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       /* Do the convolution */
       outputf (OUTPUT_VERBOSE, "Computing g*h");
 #ifdef _OPENMP
-      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads ());
+      outputf (OUTPUT_VERBOSE, " using %d thread(s)", get_num_threads ());
 #endif
       timestart = cputime ();
       realstart = realtime ();
@@ -3460,7 +3470,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 
     want_output = (omp_get_thread_num() == 0);
     if (want_output)
-      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+      outputf (OUTPUT_VERBOSE, " using %d thread(s)", nr_chunks);
 #endif
     mpmod_init_set (modulus, modulus_param);
     mpres_init (r_x, modulus);
@@ -3763,7 +3773,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
       l = 0;
 
     if (thread_nr == 0)
-      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+      outputf (OUTPUT_VERBOSE, " using %d thread(s)", nr_chunks);
     outputf (OUTPUT_TRACE, "\n");
 #endif
 
@@ -4382,7 +4392,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Compute DCT-I of h_x and h_y */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_x");
 #ifdef _OPENMP
-  outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads ());
+  outputf (OUTPUT_VERBOSE, " using %d thread(s)", get_num_threads ());
 #endif
   timestart = cputime ();
   realstart = realtime ();
@@ -4392,7 +4402,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_y");
 #ifdef _OPENMP
-  outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads ());
+  outputf (OUTPUT_VERBOSE, " using %d thread(s)", get_num_threads ());
 #endif
   timestart = cputime ();
   realstart = realtime ();
@@ -4423,7 +4433,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  /* Do the convolution product of g_x * h_x */
 	  outputf (OUTPUT_VERBOSE, "Computing g_x*h_x");
 #ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads ());
+          outputf (OUTPUT_VERBOSE, " using %d thread(s)", get_num_threads ());
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
@@ -4441,7 +4451,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  /* Do the convolution product of g_y * (Delta * h_y) */
 	  outputf (OUTPUT_VERBOSE, "Computing g_y*h_y");
 #ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads ());
+          outputf (OUTPUT_VERBOSE, " using %d thread(s)", get_num_threads ());
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
@@ -4463,7 +4473,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
 #ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads ());
+          outputf (OUTPUT_VERBOSE, " using %d thread(s)", get_num_threads ());
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
@@ -4473,7 +4483,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
 #ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads ());
+          outputf (OUTPUT_VERBOSE, " using %d thread(s)", get_num_threads ());
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
@@ -4483,7 +4493,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  
 	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
 #ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads ());
+          outputf (OUTPUT_VERBOSE, " using %d thread(s)", get_num_threads ());
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
