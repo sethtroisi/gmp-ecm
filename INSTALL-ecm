@@ -90,7 +90,11 @@ Instructions to install GMP-ECM:
        By^2 = x^3 + Ax^2 + x, "-param 0" or "-sigma 0:<val>" should always be
        specified on the command line. Note that -param may default to 1 if
        "-param" is unspecified, in which case the gwnum routines will not be
-       used.
+       used. The message "Using gwnum_ecmStage1(k, b, n, c, B1, gw_B1done)"
+       (with parameters replaced by actual values) will be output at the start
+       of stage 1 whenever the gwnum routines are used. If this message
+       is expected but doesn't appear, repeat the test with "-v" (verbose)
+       in the command line to discover the reason.
    (5) The current Prime 95 release may not include support for the newest
        processor types, and if not may default to older, slower FFT code.
 
