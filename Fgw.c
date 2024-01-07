@@ -209,21 +209,29 @@ kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c, mpz_t z)
 }
 
 /* This function searches for a nice representation of z
-   We are trying to see if z = k*b^n + c
+   We are trying to see if z = (k*b^n + c)/(factors, if any)
    Some examples that we can find:
    "3^218+5123"
    "(199*3^218+5123)/(2*17*587*1187)"
-   "(199*3^218 + 5123)/2/17/587/1187" */
+   "(199*3^218 + 5123)/2/17/587/1187"
+
+   This function also handles inputs of the form
+   z = (k*b^(b2^n2) + c)/(factors, if any) */
 int
 kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
           char *z, mpz_t num)
 {
-  unsigned long i = 0;
-  int total = 0;
+  unsigned long i = 0, s_len, b2, n2, i2, pow;
+  unsigned long prev_pwr_indx = 0, last_pwr_indx = 0,
+                mul_indx = 0, sign_indx = 0;
+  int total = 0, power_count = 0, mul_count = 0, sign_count = 0;
   char strk[11];
   char strb[11];
   char strn[11];
   char strc[11];
+  char strb2[11];
+  char strn2[11];
+  char sign=0;
   mpz_t tmp;
 
   /* make sure we have a place to put our results */
@@ -232,7 +240,52 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
 
   *b = 0;
 
-  for (i = 0; i < strlen(z); i++)
+  /* ignore everything after a '/', if there is one */
+  s_len = strlen(z);
+  for (i = 0; i < s_len; i++)
+  {
+    if( z[i] == '^' )
+    {
+      power_count++;
+      prev_pwr_indx = last_pwr_indx;
+      last_pwr_indx = i;
+    }
+
+    if( z[i] == '*' )
+    {
+      mul_count++;
+      mul_indx = i;
+    }
+
+    if( z[i] == '+' )
+    {
+      sign_count++;
+      sign_indx = i;
+      sign = 1;
+    }
+
+    if( z[i] == '-' )
+    {
+      sign_count++;
+      sign_indx = i;
+      sign = -1;
+    }
+
+    if( z[i] == '/' )
+    {
+       s_len = i;
+       break;
+    }
+  }
+  /* exit if there is no '^' in the string
+     or the input is not of the right form */
+  if( power_count == 0 || power_count > 2 || mul_count > 1 || sign_count != 1 ||
+        sign_indx < last_pwr_indx || mul_indx > sign_indx)
+    return 0;
+
+  if( power_count == 1 && mul_indx < last_pwr_indx)
+  {
+    for (i = 0; i < s_len; i++)
     {
       if (z[i] == '(' || z[i] == '{' || z[i] == '[')
         continue;
@@ -288,6 +341,82 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
         }
       break;
     }
+  }
+  else if( power_count == 2 && mul_indx < prev_pwr_indx )
+  {
+    for (i = 0; i < prev_pwr_indx; i++)
+    {
+      if (z[i] == '(' || z[i] == '{' || z[i] == '[')
+        continue;
+
+      /* find k & b */
+      if( mul_indx == 0 ) /* k = 1.0 */
+      {
+        total = sscanf (z+i, "%10[0-9]", strb);
+        if(total == 1)
+        {
+          *k = 1.0;
+          *b = strtoul (strb, NULL, 10);
+          break;
+        }
+      }
+      else
+      {
+        total = sscanf (z+i, "%10[0-9]*%10[0-9]", strk, strb);
+        if( total == 2 )
+        {
+          *k = (double) strtoul (strk, NULL, 10);
+          *b = strtoul (strb, NULL, 10);
+          break;
+        }
+      }
+      break;
+    }
+
+    for (i = (prev_pwr_indx + 1); i < s_len; i++)
+    {
+      if (z[i] == '(' || z[i] == '{' || z[i] == '[')
+        continue;
+
+      total = sscanf (z+i, "%10[0-9]^%10[0-9]", strb2, strn2);
+      if (total == 2)
+      {
+        b2 = strtoul (strb2, NULL, 10);
+        n2 = strtoul (strn2, NULL, 10);
+
+        if( (double)n2*log10((double)b2) >= 10.0 )
+        {
+          outputf (OUTPUT_NORMAL, 
+           "Exponent (%lu^%lu) too large in kbnc_str!\n", b2, n2);
+          return 0;
+        }
+
+        pow = b2;
+        for( i2 = 1; i2 < n2; i2++)
+          pow *= b2;
+
+        *n = pow;
+        break;
+      }
+      break;
+    }
+
+    for (i = (sign_indx + 1); i < s_len; i++)
+    {
+      if (z[i] == '(' || z[i] == '{' || z[i] == '[')
+        continue;
+
+      total = sscanf (z+i, "%10[0-9]", strc);
+      if(total == 1)
+      {
+        *c = sign*strtoul (strc, NULL, 10);
+        break;
+      }
+      break;
+    }
+  }
+  else
+    return 0;
 
   /* first, check to see if we found a k*b^n+c */
   if (*b)
@@ -340,7 +469,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
       mpres_clear (b, modulus);
     }
   
-  outputf (OUTPUT_VERBOSE, 
+  outputf (OUTPUT_NORMAL, 
            "Using gwnum_ecmStage1(%.0f, %d, %d, %d, %.0f, %ld)\n",
            gw_k, gw_b, gw_n, gw_c, B1, gw_B1done);
 
@@ -361,6 +490,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   /* kbnc_size = bits per word * # of whole words required to hold k*b^n+c */
   kbnc_size = 8*sizeof(mp_size_t)*(tmp->_mp_size); 
   ASSERT_ALWAYS ( (unsigned long)tmp_bitsize >= kbnc_size );
+  mpz_clear (tmp);
 
   /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
   /* ecmstag1.c in gwnum says it needs 60 bits more than the gwnum modulus size,
@@ -368,7 +498,6 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   mpz_init2 (gw_x, kbnc_size + 64);
   mpz_init2 (gw_z, kbnc_size + 64);
   mpres_init (gw_A, modulus);
-  mpz_clear (tmp);
 
   /* mpres_get_z always produces non-negative integers */
   mpres_get_z (gw_x, P->x, modulus);

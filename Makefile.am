@@ -99,16 +99,23 @@ rho_CPPFLAGS = -DTESTDRIVE
 rho_LDADD = -lprimesieve -lgsl $(GMPLIB)
 
 if WITH_GWNUM
-  gwdata.ld :
-	echo "SECTIONS { .data : { . = ALIGN(0x20); *(_GWDATA) } }" >gwdata.ld
-  
+#
+# gwdata.ld is obsolete. Both the current prime95 version (30.8)
+#  and the pre-release version 30.18b2 link and run with gwnum.a
+#  without this file. PBMcL Oct 2023.
+#
+#  gwdata.ld :
+#	echo "SECTIONS { .data : { . = ALIGN(0x20); *(_GWDATA) } }" >gwdata.ld
+
   libecm_la_SOURCES += Fgw.c
-  # Use ecm_DEPENDENCIES += gwdata.ld instead? Is that possible?
-  ecm_DEPENDENCIES = gwdata.ld
-  ecm_LDFLAGS = $(AM_LDFLAGS) -Wl,gwdata.ld
   LIBS += -ldl
-  Fgwtest : Fgw.c gwdata.ld
-	$(CC) $(CFLAGS) $(CPPFLAGS) -g -DTESTDRIVE -Wl,gwdata.ld -o Fgwtest Fgw.c libecm.a $(LIBS)
+
+# Use ecm_DEPENDENCIES += gwdata.ld instead? Is that possible?
+#  ecm_DEPENDENCIES = gwdata.ld
+#  ecm_LDFLAGS = $(AM_LDFLAGS) -Wl,gwdata.ld
+#
+#  Fgwtest : Fgw.c gwdata.ld
+#	$(CC) $(CFLAGS) $(CPPFLAGS) -g -DTESTDRIVE -Wl,gwdata.ld -o Fgwtest Fgw.c libecm.a $(LIBS)
 endif
 
 include_HEADERS = ecm.h
