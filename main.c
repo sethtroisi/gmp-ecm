@@ -1455,7 +1455,7 @@ main (int argc, char *argv[])
 
 #ifdef HAVE_GWNUM
       /* check if the input number can be represented as k*b^n+c */
-      if (kbnc_z (&gw_k, &gw_b, &gw_n, &gw_c, n.n))
+      if (kbnc_str (&gw_k, &gw_b, &gw_n, &gw_c, n.cpExpr, n.n))
         {
           params->gw_k = gw_k;
           params->gw_b = gw_b;
@@ -1465,7 +1465,7 @@ main (int argc, char *argv[])
             printf ("Found number: %.0f*%lu^%lu + %ld\n",
                     gw_k, gw_b, gw_n, gw_c);
         }
-      else if (kbnc_str (&gw_k, &gw_b, &gw_n, &gw_c, n.cpExpr, n.n))
+      else if (kbnc_z (&gw_k, &gw_b, &gw_n, &gw_c, n.n))
         {
           params->gw_k = gw_k;
           params->gw_b = gw_b;
