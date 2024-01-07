@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if ndef _MSC_VER
+#ifndef _MSC_VER
 #  include <sys/types.h>
 #  include <sys/resource.h>
 #else
