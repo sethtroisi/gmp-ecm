@@ -12,11 +12,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #ifndef _MSC_VER
-#  include <sys/types.h>
 #  include <sys/resource.h>
-#else
-#  include <stdint.h>
 #endif
 #include <time.h>
 #include "LucasChainGen.h"
