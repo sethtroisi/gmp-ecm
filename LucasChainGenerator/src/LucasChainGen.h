@@ -54,9 +54,9 @@
 
 typedef struct
 {
-	u_int32_t	prime;
-	u_int64_t	sieve_space_start_index;
-	u_int32_t	dif_table_start_index;
+	uint32_t	prime;
+	uint64_t	sieve_space_start_index;
+	uint32_t	dif_table_start_index;
 
 } sieve_params;
 
@@ -64,19 +64,19 @@ typedef struct
  *  for prime = 17, save_index = 0; for 19 save -index = 1, etc. */
 typedef struct
 {
-	u_int64_t	prime;
-	u_int32_t	save_index;
+	uint64_t	prime;
+	uint32_t	save_index;
 
 } target_prime;
 
 typedef struct
 {
-	u_int64_t	value;			/* integer value of this chain element */
-	u_int8_t	comp_offset_1;	/* larger summand (summand_1) component index counting back from parent (parent = 0) */
-	u_int8_t	comp_offset_2;	/* smaller summand (summand_2) component index counting back from parent */
-	u_int8_t	dif_offset;		/* component index of (summand_1 - summand_2) counting back from parent */
+	uint64_t	value;			/* integer value of this chain element */
+	uint8_t	comp_offset_1;	/* larger summand (summand_1) component index counting back from parent (parent = 0) */
+	uint8_t	comp_offset_2;	/* smaller summand (summand_2) component index counting back from parent */
+	uint8_t	dif_offset;		/* component index of (summand_1 - summand_2) counting back from parent */
 								/* note: dif_offset = 0 will indicate this is a doubled element */
-	u_int8_t	chain_dbl_count;	/* total # of doubled elements in the working chain up to and including this element */
+	uint8_t	chain_dbl_count;	/* total # of doubled elements in the working chain up to and including this element */
 
 } chain_element;
 
@@ -84,53 +84,53 @@ typedef struct
 typedef struct
 {
 /*	target_prime tgt_prime_list[MAX_CODE_OR_PRIME_COUNT]; */
-	u_int64_t chain_code_list[MAX_CODE_OR_PRIME_COUNT];
-	u_int32_t chain_count[MAX_CODE_OR_PRIME_COUNT];
-	u_int8_t chain_max_dbl_count[MAX_CODE_OR_PRIME_COUNT];
-	u_int16_t chain_count_max_dbls[MAX_CODE_OR_PRIME_COUNT];
-	u_int8_t tgt_prime_code_length[MAX_CODE_OR_PRIME_COUNT];
+	uint64_t chain_code_list[MAX_CODE_OR_PRIME_COUNT];
+	uint32_t chain_count[MAX_CODE_OR_PRIME_COUNT];
+	uint8_t chain_max_dbl_count[MAX_CODE_OR_PRIME_COUNT];
+	uint16_t chain_count_max_dbls[MAX_CODE_OR_PRIME_COUNT];
+	uint8_t tgt_prime_code_length[MAX_CODE_OR_PRIME_COUNT];
 	chain_element working_chain[MAX_WORKING_CHAIN_LENGTH];
-	u_int64_t chain_values[MAX_WORKING_CHAIN_LENGTH];
+	uint64_t chain_values[MAX_WORKING_CHAIN_LENGTH];
 	chain_element candidate_list[MAX_CAND_LIST_COUNT];
-	u_int64_t Fib[FIB_LIMIT];
-	u_int64_t Luc[FIB_LIMIT];
+	uint64_t Fib[FIB_LIMIT];
+	uint64_t Luc[FIB_LIMIT];
 	chain_element raw_c_list[MAX_CANDIDATE_COUNT];
-	u_int8_t check_result[MAX_CANDIDATE_COUNT];
-	u_int8_t check_index;
-	u_int32_t chain_code_list_start_index;
-	u_int32_t tgt_p_count;
-	u_int8_t w_chain_length;
-	u_int8_t current_partial_length; /* current # of elements in the working chain */
-	u_int16_t c_list_start_index; /* next available slot in the candidate list */
-	u_int16_t current_c_index;
+	uint8_t check_result[MAX_CANDIDATE_COUNT];
+	uint8_t check_index;
+	uint32_t chain_code_list_start_index;
+	uint32_t tgt_p_count;
+	uint8_t w_chain_length;
+	uint8_t current_partial_length; /* current # of elements in the working chain */
+	uint16_t c_list_start_index; /* next available slot in the candidate list */
+	uint16_t current_c_index;
 	double index_count_per_val;
-	u_int8_t code_length;
+	uint8_t code_length;
 
 } mem_struct;
 
 typedef struct
 {
 	chain_element working_chain[15];
-	u_int8_t current_partial_length; /* starting # of elements in the working chain */
+	uint8_t current_partial_length; /* starting # of elements in the working chain */
 
 } work_struct;
 
 typedef struct
 {
-	u_int8_t thrd_indx;
+	uint8_t thrd_indx;
 
 } thread_io_struct;
 
 /* prototypes */
 
-u_int8_t	*get_dif_table_ptr(void);
-u_int8_t	*get_sieve_space_ptr(void);
+uint8_t	*get_dif_table_ptr(void);
+uint8_t	*get_sieve_space_ptr(void);
 sieve_params	*get_sieve_primes_ptr(void);
-u_int32_t	sieve_init(void);
-void		standard_sieve(u_int32_t);
-u_int32_t	prime_count( u_int32_t *, u_int32_t *);
+uint32_t	sieve_init(void);
+void		standard_sieve(uint32_t);
+uint32_t	prime_count( uint32_t *, uint32_t *);
 
-u_int64_t	cputime(void);
+uint64_t	cputime(void);
 void		init_working_chains(void);
 void 		set_work_assignments(void);
 void		init_Fib_sequence(void);
@@ -140,90 +140,90 @@ void		consolidate_results(void);
 void		*recursive_work(void *);
 
 /* subroutines requiring templates */
-void copy_work_assignment_to_thread( u_int8_t );
-void copy_work_assignment_to_thread_01( u_int8_t );
-void copy_work_assignment_to_thread_02( u_int8_t );
-void copy_work_assignment_to_thread_03( u_int8_t );
-void copy_work_assignment_to_thread_04( u_int8_t );
-void copy_work_assignment_to_thread_05( u_int8_t );
-void copy_work_assignment_to_thread_06( u_int8_t );
-void copy_work_assignment_to_thread_07( u_int8_t );
-void copy_work_assignment_to_thread_08( u_int8_t );
-void copy_work_assignment_to_thread_09( u_int8_t );
-void copy_work_assignment_to_thread_10( u_int8_t );
-void copy_work_assignment_to_thread_11( u_int8_t );
-void copy_work_assignment_to_thread_12( u_int8_t );
-void copy_work_assignment_to_thread_13( u_int8_t );
-void copy_work_assignment_to_thread_14( u_int8_t );
-void copy_work_assignment_to_thread_15( u_int8_t );
+void copy_work_assignment_to_thread( uint8_t );
+void copy_work_assignment_to_thread_01( uint8_t );
+void copy_work_assignment_to_thread_02( uint8_t );
+void copy_work_assignment_to_thread_03( uint8_t );
+void copy_work_assignment_to_thread_04( uint8_t );
+void copy_work_assignment_to_thread_05( uint8_t );
+void copy_work_assignment_to_thread_06( uint8_t );
+void copy_work_assignment_to_thread_07( uint8_t );
+void copy_work_assignment_to_thread_08( uint8_t );
+void copy_work_assignment_to_thread_09( uint8_t );
+void copy_work_assignment_to_thread_10( uint8_t );
+void copy_work_assignment_to_thread_11( uint8_t );
+void copy_work_assignment_to_thread_12( uint8_t );
+void copy_work_assignment_to_thread_13( uint8_t );
+void copy_work_assignment_to_thread_14( uint8_t );
+void copy_work_assignment_to_thread_15( uint8_t );
 
-u_int64_t	encode_Lchain(void);
-u_int64_t	encode_Lchain_01(void);
-u_int64_t	encode_Lchain_02(void);
-u_int64_t	encode_Lchain_03(void);
-u_int64_t	encode_Lchain_04(void);
-u_int64_t	encode_Lchain_05(void);
-u_int64_t	encode_Lchain_06(void);
-u_int64_t	encode_Lchain_07(void);
-u_int64_t	encode_Lchain_08(void);
-u_int64_t	encode_Lchain_09(void);
-u_int64_t	encode_Lchain_10(void);
-u_int64_t	encode_Lchain_11(void);
-u_int64_t	encode_Lchain_12(void);
-u_int64_t	encode_Lchain_13(void);
-u_int64_t	encode_Lchain_14(void);
-u_int64_t	encode_Lchain_15(void);
+uint64_t	encode_Lchain(void);
+uint64_t	encode_Lchain_01(void);
+uint64_t	encode_Lchain_02(void);
+uint64_t	encode_Lchain_03(void);
+uint64_t	encode_Lchain_04(void);
+uint64_t	encode_Lchain_05(void);
+uint64_t	encode_Lchain_06(void);
+uint64_t	encode_Lchain_07(void);
+uint64_t	encode_Lchain_08(void);
+uint64_t	encode_Lchain_09(void);
+uint64_t	encode_Lchain_10(void);
+uint64_t	encode_Lchain_11(void);
+uint64_t	encode_Lchain_12(void);
+uint64_t	encode_Lchain_13(void);
+uint64_t	encode_Lchain_14(void);
+uint64_t	encode_Lchain_15(void);
 
-u_int8_t	not_divisible_by_3( u_int64_t );
-u_int8_t	not_divisible_by_3_01( u_int64_t );
-u_int8_t	not_divisible_by_3_02( u_int64_t );
-u_int8_t	not_divisible_by_3_03( u_int64_t );
-u_int8_t	not_divisible_by_3_04( u_int64_t );
-u_int8_t	not_divisible_by_3_05( u_int64_t );
-u_int8_t	not_divisible_by_3_06( u_int64_t );
-u_int8_t	not_divisible_by_3_07( u_int64_t );
-u_int8_t	not_divisible_by_3_08( u_int64_t );
-u_int8_t	not_divisible_by_3_09( u_int64_t );
-u_int8_t	not_divisible_by_3_10( u_int64_t );
-u_int8_t	not_divisible_by_3_11( u_int64_t );
-u_int8_t	not_divisible_by_3_12( u_int64_t );
-u_int8_t	not_divisible_by_3_13( u_int64_t );
-u_int8_t	not_divisible_by_3_14( u_int64_t );
-u_int8_t	not_divisible_by_3_15( u_int64_t );
+uint8_t	not_divisible_by_3( uint64_t );
+uint8_t	not_divisible_by_3_01( uint64_t );
+uint8_t	not_divisible_by_3_02( uint64_t );
+uint8_t	not_divisible_by_3_03( uint64_t );
+uint8_t	not_divisible_by_3_04( uint64_t );
+uint8_t	not_divisible_by_3_05( uint64_t );
+uint8_t	not_divisible_by_3_06( uint64_t );
+uint8_t	not_divisible_by_3_07( uint64_t );
+uint8_t	not_divisible_by_3_08( uint64_t );
+uint8_t	not_divisible_by_3_09( uint64_t );
+uint8_t	not_divisible_by_3_10( uint64_t );
+uint8_t	not_divisible_by_3_11( uint64_t );
+uint8_t	not_divisible_by_3_12( uint64_t );
+uint8_t	not_divisible_by_3_13( uint64_t );
+uint8_t	not_divisible_by_3_14( uint64_t );
+uint8_t	not_divisible_by_3_15( uint64_t );
 
-u_int8_t	not_divisible_by_5( u_int64_t );
-u_int8_t	not_divisible_by_5_01( u_int64_t );
-u_int8_t	not_divisible_by_5_02( u_int64_t );
-u_int8_t	not_divisible_by_5_03( u_int64_t );
-u_int8_t	not_divisible_by_5_04( u_int64_t );
-u_int8_t	not_divisible_by_5_05( u_int64_t );
-u_int8_t	not_divisible_by_5_06( u_int64_t );
-u_int8_t	not_divisible_by_5_07( u_int64_t );
-u_int8_t	not_divisible_by_5_08( u_int64_t );
-u_int8_t	not_divisible_by_5_09( u_int64_t );
-u_int8_t	not_divisible_by_5_10( u_int64_t );
-u_int8_t	not_divisible_by_5_11( u_int64_t );
-u_int8_t	not_divisible_by_5_12( u_int64_t );
-u_int8_t	not_divisible_by_5_13( u_int64_t );
-u_int8_t	not_divisible_by_5_14( u_int64_t );
-u_int8_t	not_divisible_by_5_15( u_int64_t );
+uint8_t	not_divisible_by_5( uint64_t );
+uint8_t	not_divisible_by_5_01( uint64_t );
+uint8_t	not_divisible_by_5_02( uint64_t );
+uint8_t	not_divisible_by_5_03( uint64_t );
+uint8_t	not_divisible_by_5_04( uint64_t );
+uint8_t	not_divisible_by_5_05( uint64_t );
+uint8_t	not_divisible_by_5_06( uint64_t );
+uint8_t	not_divisible_by_5_07( uint64_t );
+uint8_t	not_divisible_by_5_08( uint64_t );
+uint8_t	not_divisible_by_5_09( uint64_t );
+uint8_t	not_divisible_by_5_10( uint64_t );
+uint8_t	not_divisible_by_5_11( uint64_t );
+uint8_t	not_divisible_by_5_12( uint64_t );
+uint8_t	not_divisible_by_5_13( uint64_t );
+uint8_t	not_divisible_by_5_14( uint64_t );
+uint8_t	not_divisible_by_5_15( uint64_t );
 
-u_int8_t	extract_chain_values(void);
-u_int8_t	extract_chain_values_01(void);
-u_int8_t	extract_chain_values_02(void);
-u_int8_t	extract_chain_values_03(void);
-u_int8_t	extract_chain_values_04(void);
-u_int8_t	extract_chain_values_05(void);
-u_int8_t	extract_chain_values_06(void);
-u_int8_t	extract_chain_values_07(void);
-u_int8_t	extract_chain_values_08(void);
-u_int8_t	extract_chain_values_09(void);
-u_int8_t	extract_chain_values_10(void);
-u_int8_t	extract_chain_values_11(void);
-u_int8_t	extract_chain_values_12(void);
-u_int8_t	extract_chain_values_13(void);
-u_int8_t	extract_chain_values_14(void);
-u_int8_t	extract_chain_values_15(void);
+uint8_t	extract_chain_values(void);
+uint8_t	extract_chain_values_01(void);
+uint8_t	extract_chain_values_02(void);
+uint8_t	extract_chain_values_03(void);
+uint8_t	extract_chain_values_04(void);
+uint8_t	extract_chain_values_05(void);
+uint8_t	extract_chain_values_06(void);
+uint8_t	extract_chain_values_07(void);
+uint8_t	extract_chain_values_08(void);
+uint8_t	extract_chain_values_09(void);
+uint8_t	extract_chain_values_10(void);
+uint8_t	extract_chain_values_11(void);
+uint8_t	extract_chain_values_12(void);
+uint8_t	extract_chain_values_13(void);
+uint8_t	extract_chain_values_14(void);
+uint8_t	extract_chain_values_15(void);
 
 void		copy_candidate_to_working_chain(void);
 void		copy_candidate_to_working_chain_01(void);
@@ -242,22 +242,22 @@ void		copy_candidate_to_working_chain_13(void);
 void		copy_candidate_to_working_chain_14(void);
 void		copy_candidate_to_working_chain_15(void);
 
-u_int16_t	gen_candidate_list(void);
-u_int16_t	gen_candidate_list_01(void);
-u_int16_t	gen_candidate_list_02(void);
-u_int16_t	gen_candidate_list_03(void);
-u_int16_t	gen_candidate_list_04(void);
-u_int16_t	gen_candidate_list_05(void);
-u_int16_t	gen_candidate_list_06(void);
-u_int16_t	gen_candidate_list_07(void);
-u_int16_t	gen_candidate_list_08(void);
-u_int16_t	gen_candidate_list_09(void);
-u_int16_t	gen_candidate_list_10(void);
-u_int16_t	gen_candidate_list_11(void);
-u_int16_t	gen_candidate_list_12(void);
-u_int16_t	gen_candidate_list_13(void);
-u_int16_t	gen_candidate_list_14(void);
-u_int16_t	gen_candidate_list_15(void);
+uint16_t	gen_candidate_list(void);
+uint16_t	gen_candidate_list_01(void);
+uint16_t	gen_candidate_list_02(void);
+uint16_t	gen_candidate_list_03(void);
+uint16_t	gen_candidate_list_04(void);
+uint16_t	gen_candidate_list_05(void);
+uint16_t	gen_candidate_list_06(void);
+uint16_t	gen_candidate_list_07(void);
+uint16_t	gen_candidate_list_08(void);
+uint16_t	gen_candidate_list_09(void);
+uint16_t	gen_candidate_list_10(void);
+uint16_t	gen_candidate_list_11(void);
+uint16_t	gen_candidate_list_12(void);
+uint16_t	gen_candidate_list_13(void);
+uint16_t	gen_candidate_list_14(void);
+uint16_t	gen_candidate_list_15(void);
 
 void		check_candidate(void);
 void		check_candidate_01(void);
@@ -276,8 +276,8 @@ void		check_candidate_13(void);
 void		check_candidate_14(void);
 void		check_candidate_15(void);
 
-/* u_int8_t	generate_Lchain( u_int64_t, u_int64_t, chain_element *, u_int8_t *, u_int8_t *, u_int32_t * ); */
-/* void		max_continuation( chain_element *, u_int8_t *, u_int8_t ); */
+/* uint8_t	generate_Lchain( uint64_t, uint64_t, chain_element *, uint8_t *, uint8_t *, uint32_t * ); */
+/* void		max_continuation( chain_element *, uint8_t *, uint8_t ); */
 
 void		generate_and_process_candidate_list(void);
 void		generate_and_process_candidate_list_01(void);

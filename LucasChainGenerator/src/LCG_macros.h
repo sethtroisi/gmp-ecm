@@ -4,29 +4,29 @@
 	static chain_element *working_chain;\
 	static chain_element *raw_c_list;\
 /*	static target_prime *tgt_prime_list; */\
-	static u_int8_t *check_result, *check_index;\
-	static u_int64_t *chain_code_list;\
-	static u_int32_t *chain_code_list_start_index;\
-	static u_int32_t *chain_count, *tgt_p_count;\
-	static u_int64_t *Fib;\
-	static u_int64_t *chain_values;\
-	static u_int16_t *chain_count_max_dbls;\
-	static u_int8_t *chain_max_dbl_count, *current_partial_length;\
-	static u_int8_t *code_length;\
-	static u_int8_t *tgt_prime_code_length;\
-	static u_int8_t *w_chain_length, thrd_indx = (thrd), init = 0;\
+	static uint8_t *check_result, *check_index;\
+	static uint64_t *chain_code_list;\
+	static uint32_t *chain_code_list_start_index;\
+	static uint32_t *chain_count, *tgt_p_count;\
+	static uint64_t *Fib;\
+	static uint64_t *chain_values;\
+	static uint16_t *chain_count_max_dbls;\
+	static uint8_t *chain_max_dbl_count, *current_partial_length;\
+	static uint8_t *code_length;\
+	static uint8_t *tgt_prime_code_length;\
+	static uint8_t *w_chain_length, thrd_indx = (thrd), init = 0;\
 	static double *index_count_per_val;\
 	double approx_start_index, del;\
-	u_int64_t temp_var;\
-	u_int64_t gcd_c_p = 1;\
-	u_int64_t c, max_val, p_val, compare_val;\
-	u_int32_t k, k_old, code_index;\
-	u_int64_t beta, upper_limit_1_step = 0, a1, a2 = 0;\
-	u_int8_t kk, steps_to_go, c_length, element_count, doubles_count;\
-	u_int8_t compare_val_in_chain, next_c_count, max_c_flag;\
-	u_int64_t next_step_c_list[MAX_CANDIDATE_COUNT];\
-	u_int64_t cand, dif;\
-	u_int8_t i, j, c_flag, ii;\
+	uint64_t temp_var;\
+	uint64_t gcd_c_p = 1;\
+	uint64_t c, max_val, p_val, compare_val;\
+	uint32_t k, k_old, code_index;\
+	uint64_t beta, upper_limit_1_step = 0, a1, a2 = 0;\
+	uint8_t kk, steps_to_go, c_length, element_count, doubles_count;\
+	uint8_t compare_val_in_chain, next_c_count, max_c_flag;\
+	uint64_t next_step_c_list[MAX_CANDIDATE_COUNT];\
+	uint64_t cand, dif;\
+	uint8_t i, j, c_flag, ii;\
 \
 	if( init == 0 )\
 	{\
@@ -52,7 +52,7 @@
 	}\
 \
 	c = raw_c_list[*check_index].value;\
-	steps_to_go = (u_int8_t)(*w_chain_length - *current_partial_length - 1);\
+	steps_to_go = (uint8_t)(*w_chain_length - *current_partial_length - 1);\
 	max_val = Fib[steps_to_go + 1]*c + Fib[steps_to_go]*chain_values[0];\
 	/* note that max_val == c when steps_to_go == 0 */\
 \
@@ -297,7 +297,7 @@ bypass:\
 						 	note that max_val >= tgt_prime_list[0].prime here, so approx_start_index >= 0 */\
 						approx_start_index = (double)( max_val - tgt_prime_list[0].prime )*( *index_count_per_val );\
 \
-						k = (u_int32_t)approx_start_index;\
+						k = (uint32_t)approx_start_index;\
 						/* Note: since  tgt_prime_list[0].prime <= max_val <= Fib[test_length + 2],\
 						 * and *index_count_per_val = (*tgt_p_count - 1) / (Fib[test_length + 2] - tgt_prime_list[0].prime)\
 						 * in double precision floating point, then  0 <= k <= (*tgt_p_count - 1) */\
@@ -309,17 +309,17 @@ bypass:\
 							del = ( (double)( tgt_prime_list[k].prime - max_val ) )*( *index_count_per_val ) + 1.0;\
 							approx_start_index -= del;\
 							if( approx_start_index < 0 ) approx_start_index = 0;\
-							k = (u_int32_t)approx_start_index;\
+							k = (uint32_t)approx_start_index;\
 						}\
 \
 						del = ( (double)( max_val - tgt_prime_list[k].prime ) )*( *index_count_per_val )*0.5 + 1.0;\
-						k_old = k + (u_int32_t)del;\
+						k_old = k + (uint32_t)del;\
 \
 						while( (k_old < *tgt_p_count) && (max_val > tgt_prime_list[k_old].prime) )\
 						{\
 							k = k_old;\
 							del = ( (double)( max_val - tgt_prime_list[k].prime ) )*( *index_count_per_val )*0.5 + 1.0;\
-							k_old = k + (u_int32_t)del;\
+							k_old = k + (uint32_t)del;\
 						}\
 					}\
 					else\
@@ -402,7 +402,7 @@ bypass:\
 				 	note that c >= tgt_prime_list[0].prime here, so approx_start_index >= 0 */\
 				approx_start_index = (double)( c - tgt_prime_list[0].prime )*( *index_count_per_val );\
 \
-				k = (u_int32_t)approx_start_index;\
+				k = (uint32_t)approx_start_index;\
 \
 				/* if c < tgt_prime_list[k].prime,\
 				 *  reduce k until c >= tgt_prime_list[k].prime */\
@@ -411,17 +411,17 @@ bypass:\
 					del = ( (double)( tgt_prime_list[k].prime - c ) )*( *index_count_per_val ) + 1.0;\
 					approx_start_index -= del;\
 					if( approx_start_index < 0 ) approx_start_index = 0;\
-					k = (u_int32_t)approx_start_index;\
+					k = (uint32_t)approx_start_index;\
 				}\
 \
 				del = ( (double)( c - tgt_prime_list[k].prime ) )*( *index_count_per_val )*0.5 + 1.0;\
-				k_old = k + (u_int32_t)del;\
+				k_old = k + (uint32_t)del;\
 \
 				while( (k_old < *tgt_p_count) && (c > tgt_prime_list[k_old].prime) )\
 				{\
 					k = k_old;\
 					del = ( (double)( c - tgt_prime_list[k].prime ) )*( *index_count_per_val )*0.5 + 1.0;\
-					k_old = k + (u_int32_t)del;\
+					k_old = k + (uint32_t)del;\
 				}\
 			}\
 			else\
@@ -497,11 +497,11 @@ bypass:\
 
 #define GEN_AND_PROCESS_C_LIST_1(thrd) \
 {\
-	static u_int16_t *c_list_start_index, *current_c_index;\
-	static u_int16_t c_count[MAX_WORKING_CHAIN_LENGTH];\
-	static u_int16_t c_indx[MAX_WORKING_CHAIN_LENGTH];\
-	static u_int8_t *current_partial_length;\
-	static u_int8_t thrd_indx = (thrd), init = 0, r_level = 0;\
+	static uint16_t *c_list_start_index, *current_c_index;\
+	static uint16_t c_count[MAX_WORKING_CHAIN_LENGTH];\
+	static uint16_t c_indx[MAX_WORKING_CHAIN_LENGTH];\
+	static uint8_t *current_partial_length;\
+	static uint8_t thrd_indx = (thrd), init = 0, r_level = 0;\
 \
 	if( init == 0 )\
 	{\
@@ -542,13 +542,13 @@ bypass:\
 }
 
 
-/* u_int8_t extract_chain_values(void) */
+/* uint8_t extract_chain_values(void) */
 #define EXTRACT_CHAIN_VALUES(thrd) {\
 	static chain_element *working_chain;\
-	static u_int64_t *chain_values;\
-	static u_int8_t *current_partial_length;\
-	static u_int8_t thrd_indx = (thrd), init = 0;\
-	u_int8_t i, indx, double_count;\
+	static uint64_t *chain_values;\
+	static uint8_t *current_partial_length;\
+	static uint8_t thrd_indx = (thrd), init = 0;\
+	uint8_t i, indx, double_count;\
 \
 	if( init == 0 )\
 	{\
@@ -577,11 +577,11 @@ bypass:\
 #define COPY_C_TO_W_CHAIN(thrd) \
 {\
 	static chain_element *working_chain, *candidate_list;\
-	static u_int8_t *current_partial_length;\
-	static u_int16_t *current_c_index;\
-	static u_int8_t thrd_indx = (thrd), init = 0;\
-	u_int16_t c_index;\
-	u_int8_t w_index;\
+	static uint8_t *current_partial_length;\
+	static uint16_t *current_c_index;\
+	static uint8_t thrd_indx = (thrd), init = 0;\
+	uint16_t c_index;\
+	uint8_t w_index;\
 \
 	if(init == 0)\
 	{\
@@ -592,7 +592,7 @@ bypass:\
 		init = 1;\
 	}\
 \
-	w_index = (u_int8_t)(*current_partial_length + 1);\
+	w_index = (uint8_t)(*current_partial_length + 1);\
 	c_index = *current_c_index;\
 \
 	working_chain[w_index].value           = candidate_list[c_index].value;\
@@ -608,15 +608,15 @@ bypass:\
 {\
 	static chain_element *candidate_list;\
 	static chain_element *raw_c_list;\
-	static u_int64_t *chain_values;\
-	static u_int16_t *c_list_start_index;\
-	static u_int8_t *current_partial_length;\
-	static u_int8_t *w_chain_length, thrd_indx = (thrd), init = 0;\
-	static u_int8_t *check_result, *check_index;\
+	static uint64_t *chain_values;\
+	static uint16_t *c_list_start_index;\
+	static uint8_t *current_partial_length;\
+	static uint8_t *w_chain_length, thrd_indx = (thrd), init = 0;\
+	static uint8_t *check_result, *check_index;\
 \
-	u_int64_t dif, c;\
-	u_int16_t c_index, c_count, ii;\
-	u_int8_t i, j, k, c_flag, doubles_count, steps_to_go, rcl_index;\
+	uint64_t dif, c;\
+	uint16_t c_index, c_count, ii;\
+	uint8_t i, j, k, c_flag, doubles_count, steps_to_go, rcl_index;\
 \
 	if( init == 0 )\
 	{\
@@ -754,7 +754,7 @@ bypass:\
 
 #define NOT_DIVISIBLE_3 \
 {\
-	u_int64_t q, r;\
+	uint64_t q, r;\
 \
 	q = arg*0x55555555;\
 	r = q & 0xFFFFFFFF;\
@@ -767,7 +767,7 @@ bypass:\
 
 #define NOT_DIVISIBLE_5 \
 {\
-	u_int64_t q, r;\
+	uint64_t q, r;\
 \
 	q = arg*0x33333333;\
 	r = q & 0xFFFFFFFF;\
@@ -782,7 +782,7 @@ bypass:\
 #define COPY_WORK_TO_THREAD(thrd) \
 {\
 	chain_element *work, *thrd_wrk;\
-	u_int8_t cpl, i, thrd_indx = (thrd);\
+	uint8_t cpl, i, thrd_indx = (thrd);\
 \
 	work = work_assignment[wrk_indx].working_chain;\
 	cpl = work_assignment[wrk_indx].current_partial_length;\
@@ -801,21 +801,21 @@ bypass:\
 	}\
 }
 
-/* u_int64_t encode_Lchain(void) */
+/* uint64_t encode_Lchain(void) */
 #define ENCODE_LCHAIN_TEMPLATE(thrd) \
 {\
 	static chain_element *working_chain, *raw_c_list;\
-	static u_int8_t *current_partial_length;\
-	static u_int8_t *check_index;\
-	static u_int8_t *code_length;\
-	static u_int8_t thrd_indx = (thrd), init = 0;\
+	static uint8_t *current_partial_length;\
+	static uint8_t *check_index;\
+	static uint8_t *code_length;\
+	static uint8_t thrd_indx = (thrd), init = 0;\
 \
-	u_int64_t chain_code;\
-	u_int64_t val3, val4, val5;\
-	u_int8_t i, j, len, index1, index2;\
-	u_int8_t step_type[MAX_WORKING_CHAIN_LENGTH];\
-	u_int8_t step_index2[MAX_WORKING_CHAIN_LENGTH];\
-	u_int8_t type_count, type_index, increment, lower_limit;\
+	uint64_t chain_code;\
+	uint64_t val3, val4, val5;\
+	uint8_t i, j, len, index1, index2;\
+	uint8_t step_type[MAX_WORKING_CHAIN_LENGTH];\
+	uint8_t step_index2[MAX_WORKING_CHAIN_LENGTH];\
+	uint8_t type_count, type_index, increment, lower_limit;\
 \
 	if( init == 0 )\
 	{\
@@ -1147,7 +1147,7 @@ bypass:\
 							case 1:\
 							case 2:\
 							case 3:\
-								chain_code += (u_int64_t)(i*16 + 0xE);\
+								chain_code += (uint64_t)(i*16 + 0xE);\
 								break;\
 							case 4:\
 								chain_code += 0x0D;\
@@ -1170,7 +1170,7 @@ bypass:\
 						}\
 						chain_code <<= 2;\
 						*code_length += 2;\
-						chain_code += (u_int64_t)(i*16 + 0xF);\
+						chain_code += (uint64_t)(i*16 + 0xF);\
 						increment = 1;\
 						break;\
 \

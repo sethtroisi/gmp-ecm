@@ -162,9 +162,6 @@
     <ClInclude Include="..\..\ecm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\cudakernel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -178,10 +175,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\..\cudakernel.cu">
+    <CudaCompile Include="..\..\cudacommon.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
-    <CudaCompile Include="..\..\cudacommon.cu">
+    <CudaCompile Include="..\..\cgbn_stage1.cu">
       <Filter>Source Files</Filter>
     </CudaCompile>
   </ItemGroup>

@@ -282,7 +282,6 @@
     <ClInclude Include="..\..\aprtcle\mpz_aprcl.h" />
     <ClInclude Include="..\..\champions.h" />
     <ClInclude Include="..\..\config.h" />
-    <ClInclude Include="..\..\cudakernel.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
     <ClInclude Include="..\..\ecm-gpu.h" />
@@ -296,10 +295,8 @@
     <ClInclude Include="..\..\torsions.h" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="..\..\cgbn_stage1.cu" />
     <CudaCompile Include="..\..\cudacommon.cu" />
-    <CudaCompile Include="..\..\cudakernel.cu">
-      <FileType>Document</FileType>
-    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <YASM Include="..\assembler\mulredc.asm" />

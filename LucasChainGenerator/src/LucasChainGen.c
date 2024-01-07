@@ -12,16 +12,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/resource.h>
+#if ndef _MSC_VER
+#  include <sys/types.h>
+#  include <sys/resource.h>
+#else
+#  include <stdint.h>
+#endif
 #include <time.h>
 #include "LucasChainGen.h"
 #include "LCG_macros.h"
 
-
 mem_struct thread_mem[MAX_THREADS];
 
-u_int8_t thread_count;
+uint8_t thread_count;
 
 /* target prime list, used by all threads */
 target_prime tgt_prime_list[MAX_CODE_OR_PRIME_COUNT];
@@ -38,18 +41,18 @@ int *work_request[MAX_THREADS];
 work_struct work_assignment[TOTAL_WORK_COUNT];
 
 /* returns current clock count in microseconds */
-u_int64_t cputime(void)
+uint64_t cputime(void)
 {
-    return (u_int64_t)clock();
+    return (uint64_t)clock();
 }
 
 void *recursive_work(void *io)
 {
 	void (*gen_ptr)(void);
-	void (*work_ptr)(u_int8_t);
+	void (*work_ptr)(uint8_t);
 	thread_io_struct *thrd_io;
     int my_work = -1;
-	u_int8_t thrd_indx, work_indx;
+	uint8_t thrd_indx, work_indx;
 
 	thrd_io = (thread_io_struct *)io;
 	thrd_indx = thrd_io->thrd_indx;
@@ -179,7 +182,7 @@ void *recursive_work(void *io)
 
         if(my_work != -1)
         {
-            work_indx = (u_int8_t)my_work;
+            work_indx = (uint8_t)my_work;
            	(*work_ptr)(work_indx);
            	(*gen_ptr)();
            	my_work = -1;
@@ -194,7 +197,7 @@ void *recursive_work(void *io)
 void init_working_chains(void)
 {
 	chain_element *working_chain;
-	u_int8_t i;
+	uint8_t i;
 
 	for( i = 0; i < thread_count; i++ )
 	{
@@ -1972,7 +1975,7 @@ void set_work_assignments(void)
 /* Fibonacci numbers */
 void init_Fib_sequence(void)
 {
-	u_int64_t *Fib;
+	uint64_t *Fib;
 	int32_t i, k;
 
 	for( k = 0; k < thread_count; k++ )
@@ -1991,7 +1994,7 @@ void init_Fib_sequence(void)
 /* Lucas numbers */
 void init_Luc_sequence(void)
 {
-	u_int64_t *Luc;
+	uint64_t *Luc;
 	int32_t i, k;
 
 	for( k = 0; k < thread_count; k++ )
@@ -2007,15 +2010,15 @@ void init_Luc_sequence(void)
 	}
 }
 
-u_int8_t *get_dif_table_ptr(void)
+uint8_t *get_dif_table_ptr(void)
 {
-	static u_int8_t dif_table[5760];
+	static uint8_t dif_table[5760];
 	return dif_table;
 }
 
-u_int8_t *get_sieve_space_ptr(void)
+uint8_t *get_sieve_space_ptr(void)
 {
-	static u_int8_t sieve_space[SIEVE_SPACE_SIZE];
+	static uint8_t sieve_space[SIEVE_SPACE_SIZE];
 	return sieve_space;
 }
 
@@ -2027,15 +2030,15 @@ sieve_params *get_sieve_primes_ptr(void)
 
 
 /* sieving & prime generation routines */
-u_int32_t sieve_init(void)
+uint32_t sieve_init(void)
 {
-	u_int8_t *dif_table, *newsieve;
+	uint8_t *dif_table, *newsieve;
 	sieve_params *sieve_primes;
-	u_int32_t i, j;
-	u_int32_t s_index, indx_p, last_index, dif_index, dif_sum, max_dif, max_dif_sum = 0;
-	u_int32_t small_primes[5] = {3, 5, 7, 11, 13};
-	u_int32_t p = 0;
-	u_int64_t tmp;
+	uint32_t i, j;
+	uint32_t s_index, indx_p, last_index, dif_index, dif_sum, max_dif, max_dif_sum = 0;
+	uint32_t small_primes[5] = {3, 5, 7, 11, 13};
+	uint32_t p = 0;
+	uint64_t tmp;
 
 	dif_table = get_dif_table_ptr();
 	newsieve = get_sieve_space_ptr();
@@ -2076,7 +2079,7 @@ u_int32_t sieve_init(void)
 	do
 	{
 		while(newsieve[s_index] == 0) s_index++;
-		dif_table[j] = (u_int8_t)(s_index - last_index);
+		dif_table[j] = (uint8_t)(s_index - last_index);
 		last_index = s_index;
 		j++;
 		s_index++;
@@ -2129,7 +2132,7 @@ u_int32_t sieve_init(void)
 		{
 			p = 2*s_index + 1;
 			sieve_primes[i].prime = p;
-			tmp = (u_int64_t)p;
+			tmp = (uint64_t)p;
 			sieve_primes[i].sieve_space_start_index = (tmp*tmp - 1)/2;
 			sieve_primes[i].dif_table_start_index = dif_index;
 			i++;
@@ -2149,14 +2152,14 @@ u_int32_t sieve_init(void)
 	return i;
 }
 
-void standard_sieve( u_int32_t sieve_prime_count )
+void standard_sieve( uint32_t sieve_prime_count )
 {
-	static u_int8_t *dif_table, *sieve_space, init = 0;
+	static uint8_t *dif_table, *sieve_space, init = 0;
 	static sieve_params *sieve_primes;
 
-	u_int32_t i, j, k, dif_index;
-	u_int64_t indx;
-	u_int32_t p, p_multiples[11];
+	uint32_t i, j, k, dif_index;
+	uint64_t indx;
+	uint32_t p, p_multiples[11];
 
 	if(init == 0)
 	{
@@ -2200,11 +2203,11 @@ void standard_sieve( u_int32_t sieve_prime_count )
 	}
 }
 
-u_int32_t prime_count( u_int32_t *sieve_space_start_index, u_int32_t *dif_table_start_index )
+uint32_t prime_count( uint32_t *sieve_space_start_index, uint32_t *dif_table_start_index )
 {
-	static u_int8_t *dif_table, *sieve_space, init = 0;
+	static uint8_t *dif_table, *sieve_space, init = 0;
 
-	u_int32_t indx, dif_index, p_count;
+	uint32_t indx, dif_index, p_count;
 
 	if(init == 0)
 	{
@@ -2235,12 +2238,12 @@ u_int32_t prime_count( u_int32_t *sieve_space_start_index, u_int32_t *dif_table_
 /* routines to re-generate Lucas chain from code. Used for test only */
 #if 0
 /* generate Lucas chains for primes >= 5. Returns chain length */
-u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *Lchain, u_int8_t *dbl_count, u_int8_t *max_index, u_int32_t *start_frag_count )
+uint8_t generate_Lchain( uint64_t prime, uint64_t chain_code, chain_element *Lchain, uint8_t *dbl_count, uint8_t *max_index, uint32_t *start_frag_count )
 {
-	static u_int8_t init = 0;
-	u_int8_t code_fragment, chain_length, i, k;
-	u_int64_t dif;
-	u_int64_t chain_code_save;
+	static uint8_t init = 0;
+	uint8_t code_fragment, chain_length, i, k;
+	uint64_t dif;
+	uint64_t chain_code_save;
 
 	if( init == 0 )
 	{
@@ -2299,7 +2302,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 	}
 
 	/* first 3 bits of code give the next two or three chain components */
-	code_fragment = (u_int8_t)(chain_code & 0x7);
+	code_fragment = (uint8_t)(chain_code & 0x7);
 	chain_code >>= 3;
 	switch( code_fragment )
 	{
@@ -2451,13 +2454,13 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 	/* rebuild chain from code fragments */
 	while( chain_code != 0 )
 	{
-		code_fragment = (u_int8_t)( chain_code & 0xF );
+		code_fragment = (uint8_t)( chain_code & 0xF );
 		chain_code >>= 4;
 		switch( code_fragment )
 		{
 			case 0: /* step type 1 or 4 */
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				if( i == 3 )
 				{
@@ -2471,7 +2474,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 				}
 				else
 				{
-					i = (u_int8_t)(12*(i + 1));
+					i = (uint8_t)(12*(i + 1));
 					max_continuation( Lchain, &chain_length, i );
 				}
 				break;
@@ -2575,7 +2578,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			}
 			case 9:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				i += 4;
 				max_continuation( Lchain, &chain_length, i );
@@ -2588,7 +2591,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			}
 			case 10:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				i += 4;
 				max_continuation( Lchain, &chain_length, i );
@@ -2602,7 +2605,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			}
 			case 11:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				i += 8;
 				max_continuation( Lchain, &chain_length, i );
@@ -2615,7 +2618,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			}
 			case 12:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				i += 8;
 				max_continuation( Lchain, &chain_length, i );
@@ -2629,7 +2632,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			}
 			case 13:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 
 				switch( i )
@@ -2724,7 +2727,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			}
 			case 14:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 
 				Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-3-i ].value;
@@ -2746,7 +2749,7 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 			}
 			case 15:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 
 				Lchain[ chain_length+1 ].value = Lchain[ chain_length-1 ].value + Lchain[ chain_length-2-i ].value;
@@ -2810,10 +2813,10 @@ u_int8_t generate_Lchain( u_int64_t prime, u_int64_t chain_code, chain_element *
 }
 
 /* extend the chain with maximum elements for i steps */
-void max_continuation( chain_element *Lchain, u_int8_t *chain_length, u_int8_t i )
+void max_continuation( chain_element *Lchain, uint8_t *chain_length, uint8_t i )
 {
-	u_int8_t k;
-	u_int64_t dif;
+	uint8_t k;
+	uint64_t dif;
 
 	Lchain[ *chain_length+1 ].value = Lchain[ *chain_length ].value + Lchain[ *chain_length-1 ].value;
 	Lchain[ *chain_length+1 ].comp_offset_1 = 0;
@@ -2867,7 +2870,7 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain(void)
 COPY_C_TO_W_CHAIN(0)
 
-u_int8_t extract_chain_values(void)
+uint8_t extract_chain_values(void)
 EXTRACT_CHAIN_VALUES(0)
 
 /* to be as short as possible, chain codes are "incomplete," i.e.
@@ -2917,17 +2920,17 @@ For chain elements ai , i >= 6, we use the following:
 0xjE.  Type 5 with k = i – j - 3.
 0xjF.  Type 6 with k = i – j - 2.
 */
-u_int64_t encode_Lchain(void)
+uint64_t encode_Lchain(void)
 ENCODE_LCHAIN_TEMPLATE(0)
 
 /* This routine returns 0 if arg % 3 = 0, 1 otherwise */
 /* NOTE: arg must be <= 3*2^32 + 2 */
-u_int8_t not_divisible_by_3( u_int64_t arg )
+uint8_t not_divisible_by_3( uint64_t arg )
 NOT_DIVISIBLE_3
 
 /* This routine returns 0 if arg % 5 = 0, 1 otherwise */
 /* NOTE: arg must be <= 5*2^32 + 4 */
-u_int8_t not_divisible_by_5( u_int64_t arg )
+uint8_t not_divisible_by_5( uint64_t arg )
 NOT_DIVISIBLE_5
 
 /* First, throw out a candidate if the maximum possible continuation
@@ -2960,7 +2963,7 @@ CHECK_CAN_TEMPLATE_9
 /* find all candidates to extend the working chain that pass
  * the filters in check_candidate(). If steps_to_go == 1, valid candidates
  * will be compared to the list of target primes and all successes will be recorded */
-u_int16_t gen_candidate_list(void)
+uint16_t gen_candidate_list(void)
 GEN_C_LIST_1(0)
 	doubles_count = extract_chain_values();
 GEN_C_LIST_2
@@ -2971,7 +2974,7 @@ GEN_C_LIST_3A
 							check_candidate(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(0)
 
 
@@ -2988,16 +2991,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_01(void)
 COPY_C_TO_W_CHAIN(1)
 
-u_int8_t extract_chain_values_01(void)
+uint8_t extract_chain_values_01(void)
 EXTRACT_CHAIN_VALUES(1)
 
-u_int64_t encode_Lchain_01(void)
+uint64_t encode_Lchain_01(void)
 ENCODE_LCHAIN_TEMPLATE(1)
 
-u_int8_t not_divisible_by_3_01( u_int64_t arg )
+uint8_t not_divisible_by_3_01( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_01( u_int64_t arg )
+uint8_t not_divisible_by_5_01( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_01(void)
@@ -3016,7 +3019,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_01();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_01(void)
+uint16_t gen_candidate_list_01(void)
 GEN_C_LIST_1(1)
 	doubles_count = extract_chain_values_01();
 GEN_C_LIST_2
@@ -3027,7 +3030,7 @@ GEN_C_LIST_3A
 							check_candidate_01(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_01( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_01( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(1)
 #endif
 
@@ -3045,16 +3048,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_02(void)
 COPY_C_TO_W_CHAIN(2)
 
-u_int8_t extract_chain_values_02(void)
+uint8_t extract_chain_values_02(void)
 EXTRACT_CHAIN_VALUES(2)
 
-u_int64_t encode_Lchain_02(void)
+uint64_t encode_Lchain_02(void)
 ENCODE_LCHAIN_TEMPLATE(2)
 
-u_int8_t not_divisible_by_3_02( u_int64_t arg )
+uint8_t not_divisible_by_3_02( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_02( u_int64_t arg )
+uint8_t not_divisible_by_5_02( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_02(void)
@@ -3073,7 +3076,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_02();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_02(void)
+uint16_t gen_candidate_list_02(void)
 GEN_C_LIST_1(2)
 	doubles_count = extract_chain_values_02();
 GEN_C_LIST_2
@@ -3084,7 +3087,7 @@ GEN_C_LIST_3A
 							check_candidate_02(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_02( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_02( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(2)
 #endif
 
@@ -3102,16 +3105,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_03(void)
 COPY_C_TO_W_CHAIN(3)
 
-u_int8_t extract_chain_values_03(void)
+uint8_t extract_chain_values_03(void)
 EXTRACT_CHAIN_VALUES(3)
 
-u_int64_t encode_Lchain_03(void)
+uint64_t encode_Lchain_03(void)
 ENCODE_LCHAIN_TEMPLATE(3)
 
-u_int8_t not_divisible_by_3_03( u_int64_t arg )
+uint8_t not_divisible_by_3_03( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_03( u_int64_t arg )
+uint8_t not_divisible_by_5_03( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_03(void)
@@ -3130,7 +3133,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_03();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_03(void)
+uint16_t gen_candidate_list_03(void)
 GEN_C_LIST_1(3)
 	doubles_count = extract_chain_values_03();
 GEN_C_LIST_2
@@ -3141,7 +3144,7 @@ GEN_C_LIST_3A
 							check_candidate_03(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_03( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_03( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(3)
 #endif
 
@@ -3159,16 +3162,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_04(void)
 COPY_C_TO_W_CHAIN(4)
 
-u_int8_t extract_chain_values_04(void)
+uint8_t extract_chain_values_04(void)
 EXTRACT_CHAIN_VALUES(4)
 
-u_int64_t encode_Lchain_04(void)
+uint64_t encode_Lchain_04(void)
 ENCODE_LCHAIN_TEMPLATE(4)
 
-u_int8_t not_divisible_by_3_04( u_int64_t arg )
+uint8_t not_divisible_by_3_04( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_04( u_int64_t arg )
+uint8_t not_divisible_by_5_04( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_04(void)
@@ -3187,7 +3190,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_04();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_04(void)
+uint16_t gen_candidate_list_04(void)
 GEN_C_LIST_1(4)
 	doubles_count = extract_chain_values_04();
 GEN_C_LIST_2
@@ -3198,7 +3201,7 @@ GEN_C_LIST_3A
 							check_candidate_04(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_04( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_04( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(4)
 #endif
 
@@ -3216,16 +3219,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_05(void)
 COPY_C_TO_W_CHAIN(5)
 
-u_int8_t extract_chain_values_05(void)
+uint8_t extract_chain_values_05(void)
 EXTRACT_CHAIN_VALUES(5)
 
-u_int64_t encode_Lchain_05(void)
+uint64_t encode_Lchain_05(void)
 ENCODE_LCHAIN_TEMPLATE(5)
 
-u_int8_t not_divisible_by_3_05( u_int64_t arg )
+uint8_t not_divisible_by_3_05( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_05( u_int64_t arg )
+uint8_t not_divisible_by_5_05( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_05(void)
@@ -3244,7 +3247,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_05();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_05(void)
+uint16_t gen_candidate_list_05(void)
 GEN_C_LIST_1(5)
 	doubles_count = extract_chain_values_05();
 GEN_C_LIST_2
@@ -3255,7 +3258,7 @@ GEN_C_LIST_3A
 							check_candidate_05(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_05( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_05( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(5)
 #endif
 
@@ -3273,16 +3276,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_06(void)
 COPY_C_TO_W_CHAIN(6)
 
-u_int8_t extract_chain_values_06(void)
+uint8_t extract_chain_values_06(void)
 EXTRACT_CHAIN_VALUES(6)
 
-u_int64_t encode_Lchain_06(void)
+uint64_t encode_Lchain_06(void)
 ENCODE_LCHAIN_TEMPLATE(6)
 
-u_int8_t not_divisible_by_3_06( u_int64_t arg )
+uint8_t not_divisible_by_3_06( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_06( u_int64_t arg )
+uint8_t not_divisible_by_5_06( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_06(void)
@@ -3301,7 +3304,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_06();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_06(void)
+uint16_t gen_candidate_list_06(void)
 GEN_C_LIST_1(6)
 	doubles_count = extract_chain_values_06();
 GEN_C_LIST_2
@@ -3312,7 +3315,7 @@ GEN_C_LIST_3A
 							check_candidate_06(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_06( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_06( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(6)
 #endif
 
@@ -3330,16 +3333,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_07(void)
 COPY_C_TO_W_CHAIN(7)
 
-u_int8_t extract_chain_values_07(void)
+uint8_t extract_chain_values_07(void)
 EXTRACT_CHAIN_VALUES(7)
 
-u_int64_t encode_Lchain_07(void)
+uint64_t encode_Lchain_07(void)
 ENCODE_LCHAIN_TEMPLATE(7)
 
-u_int8_t not_divisible_by_3_07( u_int64_t arg )
+uint8_t not_divisible_by_3_07( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_07( u_int64_t arg )
+uint8_t not_divisible_by_5_07( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_07(void)
@@ -3358,7 +3361,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_07();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_07(void)
+uint16_t gen_candidate_list_07(void)
 GEN_C_LIST_1(7)
 	doubles_count = extract_chain_values_07();
 GEN_C_LIST_2
@@ -3369,7 +3372,7 @@ GEN_C_LIST_3A
 							check_candidate_07(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_07( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_07( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(7)
 #endif
 
@@ -3387,16 +3390,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_08(void)
 COPY_C_TO_W_CHAIN(8)
 
-u_int8_t extract_chain_values_08(void)
+uint8_t extract_chain_values_08(void)
 EXTRACT_CHAIN_VALUES(8)
 
-u_int64_t encode_Lchain_08(void)
+uint64_t encode_Lchain_08(void)
 ENCODE_LCHAIN_TEMPLATE(8)
 
-u_int8_t not_divisible_by_3_08( u_int64_t arg )
+uint8_t not_divisible_by_3_08( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_08( u_int64_t arg )
+uint8_t not_divisible_by_5_08( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_08(void)
@@ -3415,7 +3418,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_08();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_08(void)
+uint16_t gen_candidate_list_08(void)
 GEN_C_LIST_1(8)
 	doubles_count = extract_chain_values_08();
 GEN_C_LIST_2
@@ -3426,7 +3429,7 @@ GEN_C_LIST_3A
 							check_candidate_08(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_08( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_08( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(8)
 #endif
 
@@ -3444,16 +3447,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_09(void)
 COPY_C_TO_W_CHAIN(9)
 
-u_int8_t extract_chain_values_09(void)
+uint8_t extract_chain_values_09(void)
 EXTRACT_CHAIN_VALUES(9)
 
-u_int64_t encode_Lchain_09(void)
+uint64_t encode_Lchain_09(void)
 ENCODE_LCHAIN_TEMPLATE(9)
 
-u_int8_t not_divisible_by_3_09( u_int64_t arg )
+uint8_t not_divisible_by_3_09( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_09( u_int64_t arg )
+uint8_t not_divisible_by_5_09( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_09(void)
@@ -3472,7 +3475,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_09();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_09(void)
+uint16_t gen_candidate_list_09(void)
 GEN_C_LIST_1(9)
 	doubles_count = extract_chain_values_09();
 GEN_C_LIST_2
@@ -3483,7 +3486,7 @@ GEN_C_LIST_3A
 							check_candidate_09(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_09( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_09( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(9)
 #endif
 
@@ -3501,16 +3504,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_10(void)
 COPY_C_TO_W_CHAIN(10)
 
-u_int8_t extract_chain_values_10(void)
+uint8_t extract_chain_values_10(void)
 EXTRACT_CHAIN_VALUES(10)
 
-u_int64_t encode_Lchain_10(void)
+uint64_t encode_Lchain_10(void)
 ENCODE_LCHAIN_TEMPLATE(10)
 
-u_int8_t not_divisible_by_3_10( u_int64_t arg )
+uint8_t not_divisible_by_3_10( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_10( u_int64_t arg )
+uint8_t not_divisible_by_5_10( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_10(void)
@@ -3529,7 +3532,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_10();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_10(void)
+uint16_t gen_candidate_list_10(void)
 GEN_C_LIST_1(10)
 	doubles_count = extract_chain_values_10();
 GEN_C_LIST_2
@@ -3540,7 +3543,7 @@ GEN_C_LIST_3A
 							check_candidate_10(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_10( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_10( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(10)
 #endif
 
@@ -3558,16 +3561,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_11(void)
 COPY_C_TO_W_CHAIN(11)
 
-u_int8_t extract_chain_values_11(void)
+uint8_t extract_chain_values_11(void)
 EXTRACT_CHAIN_VALUES(11)
 
-u_int64_t encode_Lchain_11(void)
+uint64_t encode_Lchain_11(void)
 ENCODE_LCHAIN_TEMPLATE(11)
 
-u_int8_t not_divisible_by_3_11( u_int64_t arg )
+uint8_t not_divisible_by_3_11( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_11( u_int64_t arg )
+uint8_t not_divisible_by_5_11( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_11(void)
@@ -3586,7 +3589,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_11();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_11(void)
+uint16_t gen_candidate_list_11(void)
 GEN_C_LIST_1(11)
 	doubles_count = extract_chain_values_11();
 GEN_C_LIST_2
@@ -3597,7 +3600,7 @@ GEN_C_LIST_3A
 							check_candidate_11(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_11( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_11( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(11)
 #endif
 
@@ -3615,16 +3618,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_12(void)
 COPY_C_TO_W_CHAIN(12)
 
-u_int8_t extract_chain_values_12(void)
+uint8_t extract_chain_values_12(void)
 EXTRACT_CHAIN_VALUES(12)
 
-u_int64_t encode_Lchain_12(void)
+uint64_t encode_Lchain_12(void)
 ENCODE_LCHAIN_TEMPLATE(12)
 
-u_int8_t not_divisible_by_3_12( u_int64_t arg )
+uint8_t not_divisible_by_3_12( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_12( u_int64_t arg )
+uint8_t not_divisible_by_5_12( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_12(void)
@@ -3643,7 +3646,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_12();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_12(void)
+uint16_t gen_candidate_list_12(void)
 GEN_C_LIST_1(12)
 	doubles_count = extract_chain_values_12();
 GEN_C_LIST_2
@@ -3654,7 +3657,7 @@ GEN_C_LIST_3A
 							check_candidate_12(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_12( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_12( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(12)
 #endif
 
@@ -3672,16 +3675,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_13(void)
 COPY_C_TO_W_CHAIN(13)
 
-u_int8_t extract_chain_values_13(void)
+uint8_t extract_chain_values_13(void)
 EXTRACT_CHAIN_VALUES(13)
 
-u_int64_t encode_Lchain_13(void)
+uint64_t encode_Lchain_13(void)
 ENCODE_LCHAIN_TEMPLATE(13)
 
-u_int8_t not_divisible_by_3_13( u_int64_t arg )
+uint8_t not_divisible_by_3_13( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_13( u_int64_t arg )
+uint8_t not_divisible_by_5_13( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_13(void)
@@ -3700,7 +3703,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_13();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_13(void)
+uint16_t gen_candidate_list_13(void)
 GEN_C_LIST_1(13)
 	doubles_count = extract_chain_values_13();
 GEN_C_LIST_2
@@ -3711,7 +3714,7 @@ GEN_C_LIST_3A
 							check_candidate_13(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_13( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_13( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(13)
 #endif
 
@@ -3729,16 +3732,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_14(void)
 COPY_C_TO_W_CHAIN(14)
 
-u_int8_t extract_chain_values_14(void)
+uint8_t extract_chain_values_14(void)
 EXTRACT_CHAIN_VALUES(14)
 
-u_int64_t encode_Lchain_14(void)
+uint64_t encode_Lchain_14(void)
 ENCODE_LCHAIN_TEMPLATE(14)
 
-u_int8_t not_divisible_by_3_14( u_int64_t arg )
+uint8_t not_divisible_by_3_14( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_14( u_int64_t arg )
+uint8_t not_divisible_by_5_14( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_14(void)
@@ -3757,7 +3760,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_14();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_14(void)
+uint16_t gen_candidate_list_14(void)
 GEN_C_LIST_1(14)
 	doubles_count = extract_chain_values_14();
 GEN_C_LIST_2
@@ -3768,7 +3771,7 @@ GEN_C_LIST_3A
 							check_candidate_14(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_14( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_14( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(14)
 #endif
 
@@ -3786,16 +3789,16 @@ GEN_AND_PROCESS_C_LIST_4
 void copy_candidate_to_working_chain_15(void)
 COPY_C_TO_W_CHAIN(15)
 
-u_int8_t extract_chain_values_15(void)
+uint8_t extract_chain_values_15(void)
 EXTRACT_CHAIN_VALUES(15)
 
-u_int64_t encode_Lchain_15(void)
+uint64_t encode_Lchain_15(void)
 ENCODE_LCHAIN_TEMPLATE(15)
 
-u_int8_t not_divisible_by_3_15( u_int64_t arg )
+uint8_t not_divisible_by_3_15( uint64_t arg )
 NOT_DIVISIBLE_3
 
-u_int8_t not_divisible_by_5_15( u_int64_t arg )
+uint8_t not_divisible_by_5_15( uint64_t arg )
 NOT_DIVISIBLE_5
 
 void check_candidate_15(void)
@@ -3814,7 +3817,7 @@ CHECK_CAN_TEMPLATE_8
 									temp_var = encode_Lchain_15();
 CHECK_CAN_TEMPLATE_9
 
-u_int16_t gen_candidate_list_15(void)
+uint16_t gen_candidate_list_15(void)
 GEN_C_LIST_1(15)
 	doubles_count = extract_chain_values_15();
 GEN_C_LIST_2
@@ -3825,15 +3828,15 @@ GEN_C_LIST_3A
 							check_candidate_15(); /* results written to check_result[] array */
 GEN_C_LIST_4
 
-void copy_work_assignment_to_thread_15( u_int8_t wrk_indx )
+void copy_work_assignment_to_thread_15( uint8_t wrk_indx )
 COPY_WORK_TO_THREAD(15)
 #endif
 
 
 void init_thread_memory(void)
 {
-	u_int8_t i;
-	u_int32_t k, lim;
+	uint8_t i;
+	uint32_t k, lim;
 
 	lim = tgt_prime_list[thread_mem[0].tgt_p_count - 1].save_index - tgt_prime_list[0].save_index;
 
@@ -3859,10 +3862,10 @@ void init_thread_memory(void)
 
 void consolidate_results(void)
 {
-	u_int32_t i, k, chain_sum;
-	u_int32_t code_index, max_dbls_thrd_indx;
-	u_int16_t max_dbls_chain_sum;
-	u_int8_t max_dbls, min_code_length;
+	uint32_t i, k, chain_sum;
+	uint32_t code_index, max_dbls_thrd_indx;
+	uint16_t max_dbls_chain_sum;
+	uint8_t max_dbls, min_code_length;
 
 	/* find and store best chain for each target prime */
 	for( i = 0; i < thread_mem[0].tgt_p_count; i++ )
@@ -3921,38 +3924,38 @@ void consolidate_results(void)
 
 int32_t main( int argc, char *argv[])
 {
-	u_int8_t *dif_table;
-	u_int8_t *sieve_space;
-	u_int32_t dif_table_start_index, sieve_prime_count, p_count, total_p_count;
-	u_int32_t sieve_space_start_index;
-	u_int32_t indx, dif_index;
-	u_int64_t true_indx, max_indx_value, max_odd_val, i64;
+	uint8_t *dif_table;
+	uint8_t *sieve_space;
+	uint32_t dif_table_start_index, sieve_prime_count, p_count, total_p_count;
+	uint32_t sieve_space_start_index;
+	uint32_t indx, dif_index;
+	uint64_t true_indx, max_indx_value, max_odd_val, i64;
 
 /*	target_prime *tgt_prime_list; */
-	u_int64_t *chain_code_list, clock_start, clock_stop, temp_var;
-	u_int32_t *chain_code_list_start_index;
-	u_int32_t code_save_index, last_save_index = 0xFFFFFFFF;
-	u_int32_t j, last_j;
-	u_int32_t *tgt_p_count, *chain_count;
-	u_int64_t *Fib, *Luc;
+	uint64_t *chain_code_list, clock_start, clock_stop, temp_var;
+	uint32_t *chain_code_list_start_index;
+	uint32_t code_save_index, last_save_index = 0xFFFFFFFF;
+	uint32_t j, last_j;
+	uint32_t *tgt_p_count, *chain_count;
+	uint64_t *Fib, *Luc;
 	int32_t i;
-	u_int32_t k;
+	uint32_t k;
 #if 0
-	u_int16_t exception_count, exception_index, prime_exception_count;
-	u_int64_t excp_1_val, exception_list_1_step[40];
-	u_int8_t on_list_flag;
-	u_int32_t unique_chain_count;
+	uint16_t exception_count, exception_index, prime_exception_count;
+	uint64_t excp_1_val, exception_list_1_step[40];
+	uint8_t on_list_flag;
+	uint32_t unique_chain_count;
 #endif
-	u_int16_t *c_list_start_index;
-	u_int8_t *current_partial_length, *w_chain_length;
-	u_int16_t *chain_count_max_dbls;
-	u_int8_t *chain_max_dbl_count;
-	u_int64_t total_prime_chain_count, interval_chain_count;
-	u_int64_t total_chain_count_max_dbls;
-	u_int8_t test_length, min_test_length, max_test_length, test_length_restart;
-	u_int8_t restart_flag, new_length_init, final_interval = 0;
-    u_int8_t truncating_for_B1, gen_exit_flag, reached_last_prime = 0;
-	u_int32_t code_save_count;
+	uint16_t *c_list_start_index;
+	uint8_t *current_partial_length, *w_chain_length;
+	uint16_t *chain_count_max_dbls;
+	uint8_t *chain_max_dbl_count;
+	uint64_t total_prime_chain_count, interval_chain_count;
+	uint64_t total_chain_count_max_dbls;
+	uint8_t test_length, min_test_length, max_test_length, test_length_restart;
+	uint8_t restart_flag, new_length_init, final_interval = 0;
+    uint8_t truncating_for_B1, gen_exit_flag, reached_last_prime = 0;
+	uint32_t code_save_count;
 	double c_value_range, *index_count_per_val;
 
 	thread_io_struct thrd_io[MAX_THREADS];
@@ -3960,19 +3963,19 @@ int32_t main( int argc, char *argv[])
 	pthread_t tid[MAX_THREADS];
 
 	double B1_in, thread_count_in;
-	u_int64_t B1;
-	u_int32_t old_tgt_prime_list_count, old_pending_code_list_count;
-	u_int32_t old_tgt_p_file_read_count, old_pending_code_file_read_count;
-	u_int32_t new_tgt_prime_list_count, new_pending_code_list_count;
-	u_int32_t chain_list_zero_count, old_smallest_unsaved_code_index;
-	u_int32_t smallest_unsaved_code_index;
-	u_int64_t smallest_target_prime_next_list;
-	u_int32_t pending_list_read_count, pending_list_zero_count;
-	u_int32_t chain_code_array_space_remaining, chain_code_array_count;
-	u_int64_t largest_target_prime_next_list = 0;
-	u_int8_t max_code_length;
-	u_int8_t *tgt_prime_code_length;
-	u_int32_t code_index;
+	uint64_t B1;
+	uint32_t old_tgt_prime_list_count, old_pending_code_list_count;
+	uint32_t old_tgt_p_file_read_count, old_pending_code_file_read_count;
+	uint32_t new_tgt_prime_list_count, new_pending_code_list_count;
+	uint32_t chain_list_zero_count, old_smallest_unsaved_code_index;
+	uint32_t smallest_unsaved_code_index;
+	uint64_t smallest_target_prime_next_list;
+	uint32_t pending_list_read_count, pending_list_zero_count;
+	uint32_t chain_code_array_space_remaining, chain_code_array_count;
+	uint64_t largest_target_prime_next_list = 0;
+	uint8_t max_code_length;
+	uint8_t *tgt_prime_code_length;
+	uint32_t code_index;
 	FILE *chain_code_file;
 	FILE *old_tgt_p_list_read_file, *new_tgt_p_list_write_file;
 	FILE *old_pending_code_list_read_file, *new_pending_code_list_write_file;
@@ -4018,7 +4021,7 @@ int32_t main( int argc, char *argv[])
       return -1;
     }
 
-    B1 = (u_int64_t)B1_in;
+    B1 = (uint64_t)B1_in;
     printf("\nGenerator upper limit B1 = %lu\n\n", B1);
 
     if( thread_count_in > 0 )
@@ -4029,7 +4032,7 @@ int32_t main( int argc, char *argv[])
         		  "Example: ./LucasChainGen -B1 3e6 -nT 8");
           return -1;
         }
-        thread_count = (u_int8_t)thread_count_in;
+        thread_count = (uint8_t)thread_count_in;
     	printf("Number of threads set to %u\n\n", thread_count);
     }
     else
@@ -4066,7 +4069,7 @@ int32_t main( int argc, char *argv[])
 		for( i = 0; i < thread_count; i++)
 		{
 			work_request[i] = NULL;
-			thrd_io[i].thrd_indx = (u_int8_t)i;
+			thrd_io[i].thrd_indx = (uint8_t)i;
 
 			rc = pthread_create(&tid[i], NULL, recursive_work, (void *)&thrd_io[i]);
 			if (rc)
@@ -4127,7 +4130,7 @@ int32_t main( int argc, char *argv[])
 		chain_code_list[1] = CHAIN_START_5_8_13;
 
 		chain_code_file = fopen(file_1,"w");
-		fwrite((int8_t *)chain_code_list, sizeof(u_int64_t), 2, chain_code_file);
+		fwrite((int8_t *)chain_code_list, sizeof(uint64_t), 2, chain_code_file);
 		fclose(chain_code_file);
 		printf("\nChain codes for 11 and 13 written to file %s\n", file_1);
 
@@ -4151,26 +4154,26 @@ int32_t main( int argc, char *argv[])
 	else /* resume from where we left off */
 	{
 		current_status_file = fopen(file_6,"r");
-		dum = fread((int8_t *)chain_code_list_start_index, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&smallest_unsaved_code_index, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&old_smallest_unsaved_code_index, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&smallest_target_prime_next_list, sizeof(u_int64_t), 1, current_status_file);
-		dum = fread((int8_t *)&old_tgt_prime_list_count, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&old_tgt_p_file_read_count, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&old_pending_code_list_count, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&old_pending_code_file_read_count, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&new_tgt_prime_list_count, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&new_pending_code_list_count, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&chain_list_zero_count, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&total_prime_chain_count, sizeof(u_int64_t), 1, current_status_file);
-		dum = fread((int8_t *)&total_chain_count_max_dbls, sizeof(u_int64_t), 1, current_status_file);
-		dum = fread((int8_t *)&indx, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&code_save_index, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&dif_index, sizeof(u_int32_t), 1, current_status_file);
-		dum = fread((int8_t *)&true_indx, sizeof(u_int64_t), 1, current_status_file);
-		dum = fread((int8_t *)&test_length_restart, sizeof(u_int8_t), 1, current_status_file);
-		dum = fread((int8_t *)&new_length_init, sizeof(u_int8_t), 1, current_status_file);
-		dum = fread((int8_t *)&max_code_length, sizeof(u_int8_t), 1, current_status_file);
+		dum = fread((int8_t *)chain_code_list_start_index, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&smallest_unsaved_code_index, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_smallest_unsaved_code_index, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&smallest_target_prime_next_list, sizeof(uint64_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_tgt_prime_list_count, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_tgt_p_file_read_count, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_pending_code_list_count, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&old_pending_code_file_read_count, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&new_tgt_prime_list_count, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&new_pending_code_list_count, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&chain_list_zero_count, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&total_prime_chain_count, sizeof(uint64_t), 1, current_status_file);
+		dum = fread((int8_t *)&total_chain_count_max_dbls, sizeof(uint64_t), 1, current_status_file);
+		dum = fread((int8_t *)&indx, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&code_save_index, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&dif_index, sizeof(uint32_t), 1, current_status_file);
+		dum = fread((int8_t *)&true_indx, sizeof(uint64_t), 1, current_status_file);
+		dum = fread((int8_t *)&test_length_restart, sizeof(uint8_t), 1, current_status_file);
+		dum = fread((int8_t *)&new_length_init, sizeof(uint8_t), 1, current_status_file);
+		dum = fread((int8_t *)&max_code_length, sizeof(uint8_t), 1, current_status_file);
 		if(dum == 0)
 			printf("ERROR: Size mismatch reading status file!\n");
 		fclose(current_status_file);
@@ -4224,7 +4227,7 @@ int32_t main( int argc, char *argv[])
 
 			/* bypass any chain codes which have already been processed */
 			if( old_pending_code_file_read_count > 0 )
-				fseek( old_pending_code_list_read_file, (long int)(old_pending_code_file_read_count*sizeof(u_int64_t)), SEEK_SET );
+				fseek( old_pending_code_list_read_file, (long int)(old_pending_code_file_read_count*sizeof(uint64_t)), SEEK_SET );
 		}
 
 		/* set maximum possible sieve index value for a chain of length == test_length */
@@ -4272,7 +4275,7 @@ int32_t main( int argc, char *argv[])
 				pending_list_read_count = old_pending_code_list_count - old_pending_code_file_read_count;
 				if( pending_list_read_count > MAX_CODE_OR_PRIME_COUNT )
 					pending_list_read_count = MAX_CODE_OR_PRIME_COUNT;
-				dum = fread((int8_t *)chain_code_list, sizeof(u_int64_t), pending_list_read_count, old_pending_code_list_read_file);
+				dum = fread((int8_t *)chain_code_list, sizeof(uint64_t), pending_list_read_count, old_pending_code_list_read_file);
 				if(dum == 0)
 					printf("ERROR: End-Of-File reading old pending list file!\n");
 				old_pending_code_file_read_count += pending_list_read_count;
@@ -4304,7 +4307,7 @@ int32_t main( int argc, char *argv[])
 
 				/* # of records remaining in the old target prime list file */
 				i = (int32_t)(old_tgt_prime_list_count - old_tgt_p_file_read_count);
-				if( pending_list_zero_count > (u_int32_t)i ) /* sanity check - should never happen */
+				if( pending_list_zero_count > (uint32_t)i ) /* sanity check - should never happen */
 				{
 					printf("ERROR: code array zero count %u > remaining records in old target prime file %d!\n",
 							pending_list_zero_count, i);
@@ -4409,7 +4412,7 @@ int32_t main( int argc, char *argv[])
 				i = (int32_t)(*tgt_p_count - pending_list_zero_count);
 				if( i > 0 )
 				{
-					k = pending_list_read_count + (u_int32_t)i;
+					k = pending_list_read_count + (uint32_t)i;
 					for(j = pending_list_read_count; j < k; j++)
 						chain_code_list[ j ] = 0;
 				}
@@ -4453,9 +4456,9 @@ int32_t main( int argc, char *argv[])
 				exception_list_1_step[0] = Luc[test_length];
 				exception_count = 1;
 				if( (test_length & 1) != 0 )
-					j = (u_int32_t)((test_length - 3)/2);
+					j = (uint32_t)((test_length - 3)/2);
 				else
-					j = (u_int32_t)((test_length - 2)/2);
+					j = (uint32_t)((test_length - 2)/2);
 
 				for(i=1;i < (int32_t)j;i++) /* note that min_test_length >= 6, so j >= 2 */
 				{
@@ -4546,7 +4549,7 @@ int32_t main( int argc, char *argv[])
 				i = 0;
 				do
 				{
-			        j = (u_int32_t)i;
+			        j = (uint32_t)i;
 			        for( k = 0; k < thread_count; k++ )
 			        {
 			        	if( work_request[k] != NULL)
@@ -4559,7 +4562,7 @@ int32_t main( int argc, char *argv[])
 			        	}
 			        }
 
-			        if( (u_int32_t)i != j )
+			        if( (uint32_t)i != j )
 			           	pthread_cond_broadcast(&my_cond);
 
 			        if( i < TOTAL_WORK_COUNT )
@@ -4606,7 +4609,7 @@ int32_t main( int argc, char *argv[])
 				if( code_save_count > 0  )
 				{
 					chain_code_file = fopen(file_1,"a");
-					fwrite((int8_t *)chain_code_list, sizeof(u_int64_t), code_save_count, chain_code_file);
+					fwrite((int8_t *)chain_code_list, sizeof(uint64_t), code_save_count, chain_code_file);
 					fclose(chain_code_file);
 					printf("info: stored %u chain codes in file %s\n", code_save_count, file_1);
 					/* sanity check: make sure all saved codes are nonzero */
@@ -4620,7 +4623,7 @@ int32_t main( int argc, char *argv[])
 					/* save the rest of the chain code array to the new pending chain code file */
 					k = chain_code_array_count - code_save_count;
 					new_pending_code_list_write_file = fopen(new_pending_code_filename, "w");
-					fwrite((int8_t *)&chain_code_list[code_save_count], sizeof(u_int64_t), k, new_pending_code_list_write_file);
+					fwrite((int8_t *)&chain_code_list[code_save_count], sizeof(uint64_t), k, new_pending_code_list_write_file);
 					printf("info: stored %u chain codes in file %s\n", k, new_pending_code_filename);
 					new_pending_code_list_count = k;
 					last_j = 0;
@@ -4631,19 +4634,19 @@ int32_t main( int argc, char *argv[])
 						k = 0;
 						while( old_pending_code_file_read_count < old_pending_code_list_count )
 						{
-							dum = fread((int8_t *)&temp_var, sizeof(u_int64_t), 1, old_pending_code_list_read_file);
+							dum = fread((int8_t *)&temp_var, sizeof(uint64_t), 1, old_pending_code_list_read_file);
 							if(dum == 0)
 								printf("ERROR: Early EOF reading old pending list file!\n");
 							if( temp_var != 0 )
 							{
-								fwrite((int8_t *)&temp_var, sizeof(u_int64_t), 1, new_pending_code_list_write_file);
+								fwrite((int8_t *)&temp_var, sizeof(uint64_t), 1, new_pending_code_list_write_file);
 								old_pending_code_file_read_count++;
 								k++;
 							}
 							else
 							{
 								/* rewind one record */
-								fseek(old_pending_code_list_read_file, -(long int)sizeof(u_int64_t), SEEK_CUR );
+								fseek(old_pending_code_list_read_file, -(long int)sizeof(uint64_t), SEEK_CUR );
 								break;
 							}
 						}
@@ -4668,7 +4671,7 @@ int32_t main( int argc, char *argv[])
 					/* save target primes with no chain yet to the new target prime file */
 					new_tgt_p_list_write_file = fopen(new_target_prime_filename, "w");
 					k = 0;
-					for(j = (u_int32_t)i; j < *tgt_p_count; j++)
+					for(j = (uint32_t)i; j < *tgt_p_count; j++)
 					{
 						if( chain_count[j] == 0 )
 						{
@@ -4693,19 +4696,19 @@ int32_t main( int argc, char *argv[])
 						chain_code_file = fopen(file_1,"a");
 						while( old_pending_code_file_read_count < old_pending_code_list_count )
 						{
-							dum = fread((int8_t *)&temp_var, sizeof(u_int64_t), 1, old_pending_code_list_read_file);
+							dum = fread((int8_t *)&temp_var, sizeof(uint64_t), 1, old_pending_code_list_read_file);
 							if(dum == 0)
 								printf("ERROR: Early EOF reading old pending list file!\n");
 							if( temp_var != 0 )
 							{
-								fwrite((int8_t *)&temp_var, sizeof(u_int64_t), 1, chain_code_file);
+								fwrite((int8_t *)&temp_var, sizeof(uint64_t), 1, chain_code_file);
 								old_pending_code_file_read_count++;
 								k++;
 							}
 							else
 							{
 								/* rewind one record */
-								fseek(old_pending_code_list_read_file, -(long int)sizeof(u_int64_t), SEEK_CUR );
+								fseek(old_pending_code_list_read_file, -(long int)sizeof(uint64_t), SEEK_CUR );
 								break;
 							}
 						}
@@ -4732,7 +4735,7 @@ int32_t main( int argc, char *argv[])
 			{
 				/* write the chain code array to the new pending code list file */
 				new_pending_code_list_write_file = fopen(new_pending_code_filename, "a");
-				fwrite((int8_t *)chain_code_list, sizeof(u_int64_t), chain_code_array_count, new_pending_code_list_write_file);
+				fwrite((int8_t *)chain_code_list, sizeof(uint64_t), chain_code_array_count, new_pending_code_list_write_file);
 				new_pending_code_list_count += chain_code_array_count;
 				printf("info: stored %u chain codes in file %s\n", chain_code_array_count, new_pending_code_filename);
 
@@ -4744,12 +4747,12 @@ int32_t main( int argc, char *argv[])
 					k = 0;
 					while( old_pending_code_file_read_count < old_pending_code_list_count )
 					{
-						dum = fread((int8_t *)&temp_var, sizeof(u_int64_t), 1, old_pending_code_list_read_file);
+						dum = fread((int8_t *)&temp_var, sizeof(uint64_t), 1, old_pending_code_list_read_file);
 						if(dum == 0)
 							printf("ERROR: Early EOF reading old pending list file!\n");
 						if( temp_var != 0 )
 						{
-							fwrite((int8_t *)&temp_var, sizeof(u_int64_t), 1, new_pending_code_list_write_file);
+							fwrite((int8_t *)&temp_var, sizeof(uint64_t), 1, new_pending_code_list_write_file);
 							old_pending_code_file_read_count++;
 							new_pending_code_list_count++;
 							k++;
@@ -4757,7 +4760,7 @@ int32_t main( int argc, char *argv[])
 						else
 						{
 							/* rewind one record */
-							fseek(old_pending_code_list_read_file, -(long int)sizeof(u_int64_t), SEEK_CUR );
+							fseek(old_pending_code_list_read_file, -(long int)sizeof(uint64_t), SEEK_CUR );
 							break;
 						}
 					}
@@ -4934,26 +4937,26 @@ int32_t main( int argc, char *argv[])
 
 			/* save current parameters for possible future restart */
 			current_status_file = fopen(file_6,"w");
-			fwrite((int8_t *)chain_code_list_start_index, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&smallest_unsaved_code_index, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&old_smallest_unsaved_code_index, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&smallest_target_prime_next_list, sizeof(u_int64_t), 1, current_status_file);
-			fwrite((int8_t *)&old_tgt_prime_list_count, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&old_tgt_p_file_read_count, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&old_pending_code_list_count, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&old_pending_code_file_read_count, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&new_tgt_prime_list_count, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&new_pending_code_list_count, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&chain_list_zero_count, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&total_prime_chain_count, sizeof(u_int64_t), 1, current_status_file);
-			fwrite((int8_t *)&total_chain_count_max_dbls, sizeof(u_int64_t), 1, current_status_file);
-			fwrite((int8_t *)&indx, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&code_save_index, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&dif_index, sizeof(u_int32_t), 1, current_status_file);
-			fwrite((int8_t *)&true_indx, sizeof(u_int64_t), 1, current_status_file);
-			fwrite((int8_t *)&test_length_restart, sizeof(u_int8_t), 1, current_status_file);
-			fwrite((int8_t *)&new_length_init, sizeof(u_int8_t), 1, current_status_file);
-			fwrite((int8_t *)&max_code_length, sizeof(u_int8_t), 1, current_status_file);
+			fwrite((int8_t *)chain_code_list_start_index, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&smallest_unsaved_code_index, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&old_smallest_unsaved_code_index, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&smallest_target_prime_next_list, sizeof(uint64_t), 1, current_status_file);
+			fwrite((int8_t *)&old_tgt_prime_list_count, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&old_tgt_p_file_read_count, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&old_pending_code_list_count, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&old_pending_code_file_read_count, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&new_tgt_prime_list_count, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&new_pending_code_list_count, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&chain_list_zero_count, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&total_prime_chain_count, sizeof(uint64_t), 1, current_status_file);
+			fwrite((int8_t *)&total_chain_count_max_dbls, sizeof(uint64_t), 1, current_status_file);
+			fwrite((int8_t *)&indx, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&code_save_index, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&dif_index, sizeof(uint32_t), 1, current_status_file);
+			fwrite((int8_t *)&true_indx, sizeof(uint64_t), 1, current_status_file);
+			fwrite((int8_t *)&test_length_restart, sizeof(uint8_t), 1, current_status_file);
+			fwrite((int8_t *)&new_length_init, sizeof(uint8_t), 1, current_status_file);
+			fwrite((int8_t *)&max_code_length, sizeof(uint8_t), 1, current_status_file);
 			fclose(current_status_file);
 		}
 /*		while( true_indx <= max_indx_value); */

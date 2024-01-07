@@ -81,16 +81,16 @@ void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
 typedef struct
 {
 	/* note: "parent" is the immediately previous chain element */
-	u_int64_t	value;			/* integer value of this chain element */
-	u_int8_t	comp_offset_1;	/* larger summand (summand_1) component index counting back from parent (parent = 0) */
-	u_int8_t	comp_offset_2;	/* smaller summand (summand_2) component index counting back from parent */
-	u_int8_t	dif_offset;		/* component index of (summand_1 - summand_2) counting back from parent */
+	uint64_t	value;			/* integer value of this chain element */
+	uint8_t	comp_offset_1;	/* larger summand (summand_1) component index counting back from parent (parent = 0) */
+	uint8_t	comp_offset_2;	/* smaller summand (summand_2) component index counting back from parent */
+	uint8_t	dif_offset;		/* component index of (summand_1 - summand_2) counting back from parent */
 								/* note: dif_offset = 0 will indicate that this is a doubled element */
 } chain_element;
 
 /* prototypes */
-void max_continuation( chain_element *, u_int8_t *, u_int8_t );
-u_int8_t generate_Lucas_chain( u_int64_t, u_int64_t, chain_element * );
+void max_continuation( chain_element *, uint8_t *, uint8_t );
+uint8_t generate_Lucas_chain( uint64_t, uint64_t, chain_element * );
 
 /* end PBMcL additions */
 
@@ -544,11 +544,11 @@ prac (mpres_t xA, mpres_t zA, ecm_uint k, mpmod_t n, mpres_t b,
  * Outputs: (1) Lchain - an array of Lucas chain elements leading to p
  *          (2) chain length
 */
-u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_element *Lchain )
+uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element *Lchain )
 {
-	static u_int8_t init = 0;
-	u_int8_t code_fragment, chain_length, i, k;
-	u_int64_t dif;
+	static uint8_t init = 0;
+	uint8_t code_fragment, chain_length, i, k;
+	uint64_t dif;
 
 	if( init == 0 )
 	{
@@ -614,7 +614,7 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 	}
 
 	/* first 3 bits of code give the next two or three chain components */
-	code_fragment = (u_int8_t)(chain_code & 0x7);
+	code_fragment = (uint8_t)(chain_code & 0x7);
 	chain_code >>= 3;
 	switch( code_fragment )
 	{
@@ -753,13 +753,13 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 	/* rebuild chain from code fragments */
 	while( chain_code != 0 )
 	{
-		code_fragment = (u_int8_t)( chain_code & 0xF );
+		code_fragment = (uint8_t)( chain_code & 0xF );
 		chain_code >>= 4;
 		switch( code_fragment )
 		{
 			case 0: /* step type 1 or 4 */
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				if( i == 3 )
 				{
@@ -869,7 +869,7 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 			}
 			case 9:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				i += 4;
 				max_continuation( Lchain, &chain_length, i );
@@ -882,7 +882,7 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 			}
 			case 10:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				i += 4;
 				max_continuation( Lchain, &chain_length, i );
@@ -895,7 +895,7 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 			}
 			case 11:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				i += 8;
 				max_continuation( Lchain, &chain_length, i );
@@ -908,7 +908,7 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 			}
 			case 12:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 				i += 8;
 				max_continuation( Lchain, &chain_length, i );
@@ -921,7 +921,7 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 			}
 			case 13:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 
 				switch( i )
@@ -990,7 +990,7 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 			}
 			case 14:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 
 				Lchain[ chain_length+1 ].value = Lchain[ chain_length ].value + Lchain[ chain_length-3-i ].value;
@@ -1008,7 +1008,7 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 			}
 			case 15:
 			{
-				i = (u_int8_t)( chain_code & 0x3 );
+				i = (uint8_t)( chain_code & 0x3 );
 				chain_code >>= 2;
 
 				Lchain[ chain_length+1 ].value = Lchain[ chain_length-1 ].value + Lchain[ chain_length-2-i ].value;
@@ -1040,10 +1040,10 @@ u_int8_t generate_Lucas_chain( u_int64_t prime, u_int64_t chain_code, chain_elem
 }
 
 /* extend the chain with maximum elements for i steps */
-void max_continuation( chain_element *Lchain, u_int8_t *chain_length, u_int8_t i )
+void max_continuation( chain_element *Lchain, uint8_t *chain_length, uint8_t i )
 {
-	u_int8_t k;
-	u_int64_t dif;
+	uint8_t k;
+	uint64_t dif;
 
 	Lchain[ *chain_length+1 ].value = Lchain[ *chain_length ].value + Lchain[ *chain_length-1 ].value;
 	Lchain[ *chain_length+1 ].comp_offset_1 = 0;
@@ -1095,17 +1095,17 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   prime_info_t prime_info;
 
   /* Lucas chain code file mods */
-  u_int64_t chain_code;
-  u_int8_t dum, chain_length;
+  uint64_t chain_code;
+  uint8_t dum, chain_length;
   int32_t i;
   static FILE *chain_code_file;
   static chain_element Lchain[64];
-  static u_int8_t using_code_file; /* logical */
+  static uint8_t using_code_file; /* logical */
 
   /* Elliptic curve states as we follow the Lucas chain */
   mpres_t LCS_x[16];
   mpres_t LCS_z[16];
-  u_int8_t base_indx, next_indx, s1_indx, s2_indx, dif_indx;
+  uint8_t base_indx, next_indx, s1_indx, s2_indx, dif_indx;
   /* end mods */
 
   prime_info_init (prime_info);
@@ -1188,7 +1188,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       if(using_code_file)
       {
         if(p >= 11) /* code file starts at p = 11 */
-        dum = fread((int8_t *)&chain_code, sizeof(u_int64_t), 1, chain_code_file);
+        dum = fread((int8_t *)&chain_code, sizeof(uint64_t), 1, chain_code_file);
 
         if(dum || (p < 11))
         {
