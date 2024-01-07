@@ -248,7 +248,7 @@ void allocate_vars()
 
 /* ============================================================================================== */
 
-void free_vars()
+void free_vars (int verbose)
 {
   int i = 0;
   for (i = 0 ; i < PWmax; i++)
@@ -278,6 +278,10 @@ void free_vars()
   mpz_clear(biT);
   mpz_clear(biExp);
   mpz_clear(biTmp);
+
+  // clear the APR line (issue #21872)
+  if (verbose >= APRTCLE_VERBOSE1)
+    printf ("                                                          \r");
 }
 
 /* ============================================================================================== */
@@ -562,7 +566,7 @@ int mpz_aprtcle(mpz_t N, int verbose)
   } /* End for i */
   if (i == LEVELmax)
   { /* too big */
-    free_vars();
+    free_vars (verbose);
     return mpz_probab_prime_p(N, 1);
   }
   LEVELnow = i;
@@ -998,7 +1002,7 @@ MainStart:
             if (W != P - 1)
             {
               /* Not prime */
-              free_vars();
+              free_vars (verbose);
               return APRTCLE_COMPOSITE;
             }
             for (I = 0; I < PM; I++)
@@ -1014,7 +1018,7 @@ MainStart:
             if (I == PM)
             {
               /* Not prime */
-              free_vars();
+              free_vars (verbose);
               return APRTCLE_COMPOSITE;
             }
             for (J = 1; J <= P - 2; J++)
@@ -1025,7 +1029,7 @@ MainStart:
               if (mpz_cmp_ui(biTmp, 0) != 0)/* (!BigNbrIsZero(biTmp)) */
               {
                 /* Not prime */
-                free_vars();
+                free_vars (verbose);
                 return APRTCLE_COMPOSITE;
               }
             }
@@ -1066,7 +1070,7 @@ MainStart:
           if (mpz_cmp_ui(biTmp, 0) != 0)/* (!BigNbrIsZero(biTmp)) */
           {
             /* Not prime */
-            free_vars();
+            free_vars (verbose);
             return APRTCLE_COMPOSITE;
           }
           SW = 1;
@@ -1092,7 +1096,7 @@ MainStart:
           LEVELnow++;
           if (LEVELnow == LEVELmax)
           {
-            free_vars();
+            free_vars (verbose);
             return mpz_probab_prime_p(N, 1); /* Cannot tell */
           }
           T = aiT[LEVELnow];
@@ -1118,7 +1122,7 @@ MainStart:
               goto MainStart;
             }
           } /* end for J */
-          free_vars();
+          free_vars (verbose);
           return mpz_probab_prime_p(N, 1); /* Program error */
         } /* end if */
         break;
@@ -1140,18 +1144,18 @@ MainStart:
       if (mpz_cmp_ui(biR, 1) == 0) /* biR == 1 */
       {
         /* Number is prime */
-        free_vars();
+        free_vars (verbose);
         return APRTCLE_PRIME;
       }
       if (mpz_divisible_p(TestNbr, biR) && mpz_cmp(biR, TestNbr) < 0) /* biR < N and biR | TestNbr */
       {
         /* Number is composite */
-        free_vars();
+        free_vars (verbose);
         return APRTCLE_COMPOSITE;
       }
     } /* End for U */
     /* This should never be reached. */
-    free_vars();
+    free_vars (verbose);
     return mpz_probab_prime_p(N, 1);
   }
 }
