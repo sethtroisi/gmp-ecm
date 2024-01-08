@@ -38,19 +38,67 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define CHECKSUM 1
 */
 
+#ifndef THREAD_SAFE_GT
+/* Set the following define to choose which version of code to use:
+ * 0 == old, i.e. original code where variable gt is not thread-safe,
+ * 1 == alpha, makes the variable gt thread-safe with minimal code disruption,
+ * 2 == beta, thread-safe with more disruption to code, but possibly faster.
+ * NOTE: Limited testing shows alpha slightly faster than beta, possibly due
+ * to an additional argument being passed on many calls with beta version. */
+#define THREAD_SAFE_GT 1
+#endif
+
+#if THREAD_SAFE_GT > 0
+#include <pthread.h>
+
+static pthread_key_t gtkey;
+static pthread_once_t gtkey_once = PTHREAD_ONCE_INIT;
+
+#define gt (*gtptr)	/* NOTE: Has pervasive effect throughout this file. */
+#else
 static mpz_t gt;
 static int gt_inited = 0;
+#endif
 unsigned int Fermat;
+
+#if THREAD_SAFE_GT > 0
+static void
+set_gtkey (void)
+{
+  (void) pthread_key_create (&gtkey, NULL);
+}
+
+static mpz_t *
+get_gtptr (void)
+{
+  (void) pthread_once (&gtkey_once, set_gtkey);
+  mpz_t *res = pthread_getspecific (gtkey);
+  if (!res) /* True:: this thread's first time through here */
+    {
+      res = calloc (1, sizeof (mpz_t));
+      (void) pthread_setspecific (gtkey, res);
+    }
+  return res;
+}
+#endif
 
 #define CACHESIZE 512U
 
 /* a' <- a+b, b' <- a-b. */
 
+#if THREAD_SAFE_GT == 2
+#define ADDSUB_MOD(a, b) \
+  mpz_sub (gt, a, b); \
+  mpz_add (a, a, b);  \
+  F_mod_gt (b, n, gtptr);\
+  F_mod_1 (a, n);
+#else
 #define ADDSUB_MOD(a, b) \
   mpz_sub (gt, a, b); \
   mpz_add (a, a, b);  \
   F_mod_gt (b, n);    \
   F_mod_1 (a, n);
+#endif
 
 __GMP_DECLSPEC mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t*, mp_size_t);
 
@@ -101,9 +149,16 @@ F_mod_1 (mpz_t RS, unsigned int n)
 
 /* R = gt (mod 2^n+1) */
 
-static inline void 
+static inline void
+#if THREAD_SAFE_GT == 2
+F_mod_gt (mpz_t R, unsigned int n, mpz_t *gtptr)
+#else
 F_mod_gt (mpz_t R, unsigned int n)
+#endif
 {
+#if THREAD_SAFE_GT == 1
+  mpz_t *gtptr = pthread_getspecific (gtkey);
+#endif
   mp_size_t size;
   mp_limb_t v;
   
@@ -137,8 +192,15 @@ F_mod_gt (mpz_t R, unsigned int n)
    S1 == S2, S1 == R, S2 == R ok, but none may == gt.
    Assume n >= GMP_NUMB_BITS, and GMP_NUMB_BITS is a power of two. */
 static void 
+#if THREAD_SAFE_GT == 2
+F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n, mpz_t *gtptr)
+#else
 F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
+#endif
 {
+#if THREAD_SAFE_GT == 1
+  mpz_t *gtptr = pthread_getspecific (gtkey);
+#endif
   int n2 = n / GMP_NUMB_BITS; /* type of _mp_size is int */
 
   F_mod_1 (S1, n);
@@ -159,11 +221,19 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
       mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
       MPN_NORMALIZE(PTR(gt), n2);
       SIZ(gt) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? n2 : -n2;
+#if THREAD_SAFE_GT == 2
+      F_mod_gt (R, n, gtptr);
+#else
       F_mod_gt (R, n);
+#endif
       return;
     }
   mpz_mul (gt, S1, S2);
+#if THREAD_SAFE_GT == 2
+  F_mod_gt (R, n, gtptr);
+#else
   F_mod_gt (R, n);
+#endif
   return;
 }
 
@@ -330,8 +400,15 @@ F_divby5_1 (mpz_t RS, unsigned int n)
 /* Assumes 0 < e < 4*n, and e <> 2*n */
 
 static void 
+#if THREAD_SAFE_GT == 2
+F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n, mpz_t *gtptr)
+#else
 F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n) 
+#endif
 {
+#if THREAD_SAFE_GT == 1
+  mpz_t *gtptr = pthread_getspecific (gtkey);
+#endif
   int chgsgn = 0, odd;
 
   ASSERT(S != gt);
@@ -388,8 +465,15 @@ F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n)
    Currently this routine is always called with e=n, with n a power of 2,
    thus we assume e is even. Moreover we assume 0 < e < 2n. */
 static void 
+#if THREAD_SAFE_GT == 2
+F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n, mpz_t *gtptr)
+#else
 F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
+#endif
 {
+#if THREAD_SAFE_GT == 1
+  mpz_t *gtptr = pthread_getspecific (gtkey);
+#endif
   ASSERT (S != R);
   ASSERT (R != gt);
   ASSERT (0 < e && (unsigned) e < 2 * n);
@@ -417,8 +501,15 @@ F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
    Performs forward transform.
    Assumes l > 1. */
 static void 
+#if THREAD_SAFE_GT == 2
+F_fft_dif (mpz_t *A, int l, int stride2, int n, mpz_t *gtptr)
+#else
 F_fft_dif (mpz_t *A, int l, int stride2, int n) 
+#endif
 {
+#if THREAD_SAFE_GT == 1
+  mpz_t *gtptr = pthread_getspecific (gtkey);
+#endif
   int i, omega = (4 * n) / l, iomega;
 
   ASSERT (l > 1);
@@ -435,7 +526,11 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
 
   mpz_sub (gt, A1s, A3s);            /* gt = a1 - a3 */
   mpz_add (A1s, A1s, A3s);           /* A1 = a1 + a3 */
+#if THREAD_SAFE_GT == 2
+  F_mul_sqrt2exp_2 (A3s, gt, n, n, gtptr);  /* A3 = i * (a1 - a3) */
+#else
   F_mul_sqrt2exp_2 (A3s, gt, n, n);  /* A3 = i * (a1 - a3) */
+#endif
       
   mpz_sub (gt, A[0], A2s);           /* gt = a0 - a2 */
   mpz_add (A[0], A[0], A2s);         /* A0 = a0 + a2 */
@@ -449,7 +544,11 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
     {
       mpz_sub (gt, A1is, A3is);
       mpz_add (A1is, A1is, A3is);
+#if THREAD_SAFE_GT == 2
+      F_mul_sqrt2exp_2 (A3is, gt, n, n, gtptr);
+#else
       F_mul_sqrt2exp_2 (A3is, gt, n, n);
+#endif
           
       mpz_sub (gt, A0is, A2is);
       mpz_add (A0is, A0is, A2is);
@@ -460,21 +559,40 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
       mpz_sub (A3is, gt, A3is);
       /* iomega goes from 4n/l to n-4n/l (with original l) thus cannot
          equal 0 nor 2n */
+#if THREAD_SAFE_GT == 2
+      F_mul_sqrt2exp (A1is, A1is, iomega, n, gtptr);
+#else
       F_mul_sqrt2exp (A1is, A1is, iomega, n);
+#endif
       /* 2*iomega goes from 8n/l to 2n-8n/l (with original l) thus cannot
          equal 0 nor 2n */
+#if THREAD_SAFE_GT == 2
+      F_mul_sqrt2exp (A2is, A2is, 2 * iomega, n, gtptr);
+#else
       F_mul_sqrt2exp (A2is, A2is, 2 * iomega, n);
+#endif
       /* 3*iomega goes from 12n/l to 3n-12n/l (with original l) thus cannot
          equal 0 nor 2n (because n is a power of 2) */
+#if THREAD_SAFE_GT == 2
+      F_mul_sqrt2exp (A3is, A3is, 3 * iomega, n, gtptr);
+#else
       F_mul_sqrt2exp (A3is, A3is, 3 * iomega, n);
+#endif
     }
 
   if (l > 1)
     {
+#if THREAD_SAFE_GT == 2
+      F_fft_dif (A, l, stride2, n, gtptr);
+      F_fft_dif (A + (l << stride2), l, stride2, n, gtptr);
+      F_fft_dif (A + (2 * l << stride2), l, stride2, n, gtptr);
+      F_fft_dif (A + (3 * l << stride2), l, stride2, n, gtptr);
+#else
       F_fft_dif (A, l, stride2, n);
       F_fft_dif (A + (l << stride2), l, stride2, n);
       F_fft_dif (A + (2 * l << stride2), l, stride2, n);
       F_fft_dif (A + (3 * l << stride2), l, stride2, n);
+#endif
     }
 }
 
@@ -482,8 +600,15 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
    Does not perform divide-by-length. l, and n as in F_fft_dif().
    Assume l > 1. */
 static void 
+#if THREAD_SAFE_GT == 2
+F_fft_dit (mpz_t *A, int l, int stride2, int n, mpz_t *gtptr)
+#else
 F_fft_dit (mpz_t *A, int l, int stride2, int n) 
+#endif
 {
+#if THREAD_SAFE_GT == 1
+  mpz_t *gtptr = pthread_getspecific (gtkey);
+#endif
   int i, omega = (4 * n) / l, iomega;
 
   ASSERT (l > 1);
@@ -500,15 +625,26 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
       
   if (l > 1)
     {
+#if THREAD_SAFE_GT == 2
+      F_fft_dit (A, l, stride2, n, gtptr);
+      F_fft_dit (A + (l << stride2), l, stride2, n, gtptr);
+      F_fft_dit (A + (2 * l << stride2), l, stride2, n, gtptr);
+      F_fft_dit (A + (3 * l << stride2), l, stride2, n, gtptr);
+#else
       F_fft_dit (A, l, stride2, n);
       F_fft_dit (A + (l << stride2), l, stride2, n);
       F_fft_dit (A + (2 * l << stride2), l, stride2, n);
       F_fft_dit (A + (3 * l << stride2), l, stride2, n);
+#endif
     }
 
   mpz_sub (gt, A3s, A1s);            /* gt = -(a1 - a3) */
   mpz_add (A1s, A1s, A3s);           /* A1 = a1 + a3 */
+#if THREAD_SAFE_GT == 2
+  F_mul_sqrt2exp_2 (A3s, gt, n, n, gtptr);  /* A3 = i * -(a1 - a3) */
+#else
   F_mul_sqrt2exp_2 (A3s, gt, n, n);  /* A3 = i * -(a1 - a3) */
+#endif
       
   mpz_sub (gt, A[0], A2s);           /* gt = a0 - a2 */
   mpz_add (A[0], A[0], A2s);         /* A0 = a0 + a2 */
@@ -524,16 +660,32 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
          this is like multiplying by omega^(4*n-i) */
       /* iomega goes from 4n/l to n-4n/l (with original l) thus
          3n < 4*n-iomega < 4n */
+#if THREAD_SAFE_GT == 2
+      F_mul_sqrt2exp (A1is, A1is, 4 * n - iomega, n, gtptr);
+#else
       F_mul_sqrt2exp (A1is, A1is, 4 * n - iomega, n);
+#endif
       /* 2n < 4*n-2*iomega < 4n */
+#if THREAD_SAFE_GT == 2
+      F_mul_sqrt2exp (A2is, A2is, 4 * n - 2 * iomega, n, gtptr);
+#else
       F_mul_sqrt2exp (A2is, A2is, 4 * n - 2 * iomega, n);
+#endif
       /* n < 4*n-3*iomega < 4n, and 4*n-3*iomega cannot equal 2n since
          n is a power of 2 and 3*iomega is divisible by 3 */
+#if THREAD_SAFE_GT == 2
+      F_mul_sqrt2exp (A3is, A3is, 4 * n - 3 * iomega, n, gtptr);
+#else
       F_mul_sqrt2exp (A3is, A3is, 4 * n - 3 * iomega, n);
+#endif
 
       mpz_sub (gt, A3is, A1is);
       mpz_add (A1is, A1is, A3is);
+#if THREAD_SAFE_GT == 2
+      F_mul_sqrt2exp_2 (A3is, gt, n, n, gtptr);
+#else
       F_mul_sqrt2exp_2 (A3is, gt, n, n);
+#endif
 
       mpz_sub (gt, A0is, A2is);
       mpz_add (A0is, A0is, A2is);
@@ -578,8 +730,15 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
  */
 static unsigned int
 F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n, 
+#if THREAD_SAFE_GT == 2
+             mpz_t *t, mpz_t *gtptr)
+#else
              mpz_t *t)
+#endif
 {
+#if THREAD_SAFE_GT == 1
+  mpz_t *gtptr = pthread_getspecific (gtkey);
+#endif
   unsigned int l, i, r;
 
   ASSERT(A != B);
@@ -772,8 +931,15 @@ F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
    Assume A <> B (there was code for squaring in revision <= 2788. */
 static unsigned int
 F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n, 
+#if THREAD_SAFE_GT == 2
+             mpz_t *t, mpz_t *gtptr)
+#else
              mpz_t *t)
+#endif
 {
+#if THREAD_SAFE_GT == 1
+  mpz_t *gtptr = pthread_getspecific (gtkey);
+#endif
   unsigned int i, r;
 
   ASSERT(len % 2 == 0);
@@ -863,11 +1029,17 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
   if (len == 0)
     return 0;
   
+#if THREAD_SAFE_GT > 0
+  mpz_t *gtptr = get_gtptr ();
+  if (ALLOC (gt) == 0) /* True:: this thread F_clear'd gt or just calloc'd gt */
+    mpz_init2 (gt, 2 * n);
+#else
   if (!gt_inited)
     {
       mpz_init2 (gt, 2 * n);
       gt_inited = 1;
     }
+#endif
   
   if (len == 1)
     {
@@ -875,14 +1047,23 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
         {
           /* (x + a0)(x + b0) = x^2 + (a0 + b0)x + a0*b0 */
           mpz_add (gt, A[0], B[0]);
+#if THREAD_SAFE_GT == 2
+          F_mod_gt (t[0], n, gtptr);
+          F_mulmod (R[0], A[0], B[0], n, gtptr); /* May overwrite A[0] */
+#else
           F_mod_gt (t[0], n);
           F_mulmod (R[0], A[0], B[0], n); /* May overwrite A[0] */
+#endif
           mpz_set (R[1], t[0]); /* May overwrite B[0] */
           /* We don't store the leading 1 monomial in the result poly */
         }
       else
         {
+#if THREAD_SAFE_GT == 2
+          F_mulmod (R[0], A[0], B[0], n, gtptr); /* May overwrite A[0] */
+#else
           F_mulmod (R[0], A[0], B[0], n); /* May overwrite A[0] */
+#endif
           mpz_set_ui (R[1], 0); /* May overwrite B[0] */
         }
       
@@ -924,18 +1105,34 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
     }
   
   mpz_mul (gt, gt, chksum1);
+#if THREAD_SAFE_GT == 2
+  F_mod_gt (chksum1, n, gtptr);
+#else
   F_mod_gt (chksum1, n);
+#endif
 
   mpz_mul (gt, chksum0, chksum_1);
+#if THREAD_SAFE_GT == 2
+  F_mod_gt (chksum_1, n, gtptr);
+#else
   F_mod_gt (chksum_1, n);
+#endif
 
   /* Compute A(0) * B(0) */
   mpz_mul (gt, A[0], B[0]);
+#if THREAD_SAFE_GT == 2
+  F_mod_gt (chksum0, n, gtptr);
+#else
   F_mod_gt (chksum0, n);
+#endif
 
   /* Compute A(inf) * B(inf) */
   mpz_mul (gt, A[len - 1], B[len - 1]);
+#if THREAD_SAFE_GT == 2
+  F_mod_gt (chksuminf, n, gtptr);
+#else
   F_mod_gt (chksuminf, n);
+#endif
   if (parameter == MONIC)
     {
       mpz_add (chksuminf, chksuminf, A[len - 2]);
@@ -975,7 +1172,11 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
           for (; i < transformlen; i++)
             mpz_set_ui (t[i], 0);
 
+#if THREAD_SAFE_GT == 2
+          F_fft_dif (t, transformlen, 0, n, gtptr);
+#else
           F_fft_dif (t, transformlen, 0, n);
+#endif
         } else
           t = R; /* Do squaring */
 
@@ -987,23 +1188,39 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
       for (; i < transformlen; i++)
         mpz_set_ui (R[i], 0); /* May overwrite B[i - len] */
 
+#if THREAD_SAFE_GT == 2
+      F_fft_dif (R, transformlen, 0, n, gtptr);
+#else
       F_fft_dif (R, transformlen, 0, n);
+#endif
 
       for (i = 0; i < transformlen; i++) 
         {
+#if THREAD_SAFE_GT == 2
+          F_mulmod (R[i], R[i], t[i], n, gtptr);
+#else
           F_mulmod (R[i], R[i], t[i], n);
+#endif
           /* Do the div-by-length. Transform length was transformlen, 
              len2 = log_2 (transformlen), so divide by 
              2^(len2) = sqrt(2)^(2*len2) */
 
           /* since transformlen = 2^len2 <= 4*n then for n >= 8 we have
              2*len2 <= 2*log2(4*n) < 2n */
+#if THREAD_SAFE_GT == 2
+          F_mul_sqrt2exp (R[i], R[i], 4 * n - 2 * len2, n, gtptr);
+#else
           F_mul_sqrt2exp (R[i], R[i], 4 * n - 2 * len2, n);
+#endif
         }
 
       r += transformlen;
 
+#if THREAD_SAFE_GT == 2
+      F_fft_dit (R, transformlen, 0, n, gtptr);
+#else
       F_fft_dit (R, transformlen, 0, n);
+#endif
 
       if (parameter == MONIC)
         mpz_sub_ui (R[0], R[0], 1);
@@ -1018,9 +1235,17 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
         }
       
       if (len / n == 4 || len == 2)
+#if THREAD_SAFE_GT == 2
+        r += F_karatsuba (R, A, B, len, n, t, gtptr);
+#else
         r += F_karatsuba (R, A, B, len, n, t);
+#endif
       else
+#if THREAD_SAFE_GT == 2
+        r += F_toomcook4 (R, A, B, len, n, t, gtptr);
+#else
         r += F_toomcook4 (R, A, B, len, n, t);
+#endif
 
       if (parameter == MONIC) /* Handle the leading monomial the hard way */
         {
@@ -1134,15 +1359,25 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
   
   ASSERT(lenA == lenB / 2 || lenA == lenB / 2 + 1);
 
+#if THREAD_SAFE_GT > 0
+  mpz_t *gtptr = get_gtptr ();
+  if (ALLOC (gt) == 0) /* True:: this thread F_clear'd gt or just calloc'd gt */
+    mpz_init2 (gt, 2 * n);
+#else
   if (!gt_inited)
     {
       mpz_init2 (gt, 2 * n);
       gt_inited = 1;
     }
+#endif
   
   if (lenB == 2)
     {
+#if THREAD_SAFE_GT == 2
+      F_mulmod (R[0], A[0], B[0], n, gtptr);
+#else
       F_mulmod (R[0], A[0], B[0], n);
+#endif
       return 1;
     }
 
@@ -1162,7 +1397,11 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
       for (i = 0; i < lenB; i++)
         mpz_set (t[i], B[i]);
 
+#if THREAD_SAFE_GT == 2
+      F_fft_dif (t, lenB, 0, n, gtptr);
+#else
       F_fft_dif (t, lenB, 0, n);
+#endif
 
       /* Put transform of reversed A into t + lenB */
       for (i = 0; i < lenA; i++) 
@@ -1170,21 +1409,37 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
       for (i = lenA; i < lenB; i++)
         mpz_set_ui (t[i + lenB], 0);
 
+#if THREAD_SAFE_GT == 2
+      F_fft_dif (t + lenB, lenB, 0, n, gtptr);
+#else
       F_fft_dif (t + lenB, lenB, 0, n);
+#endif
 
       for (i = 0; i < lenB; i++) 
         {
+#if THREAD_SAFE_GT == 2
+          F_mulmod (t[i], t[i], t[i + lenB], n, gtptr);
+#else
           F_mulmod (t[i], t[i], t[i + lenB], n);
+#endif
           /* Do the div-by-length. Transform length was len, so divide by
              2^len2 = sqrt(2)^(2*len2) */
           /* since len2 = log2(lenB) and lenB <= 4*n, for n >= 8 we have
              2*len2 < 2*n */
+#if THREAD_SAFE_GT == 2
+          F_mul_sqrt2exp (t[i], t[i], 4 * n - 2 * len2, n, gtptr);
+#else
           F_mul_sqrt2exp (t[i], t[i], 4 * n - 2 * len2, n);
+#endif
         }
 
       r += lenB;
 
+#if THREAD_SAFE_GT == 2
+      F_fft_dit (t, lenB, 0, n, gtptr);
+#else
       F_fft_dit (t, lenB, 0, n);
+#endif
       
       for (i = 0; i < lenB / 2; i++)
         mpz_set (R[i], t[i + lenA - 1]);
@@ -1242,9 +1497,20 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
   return r;
 }
 
-void F_clear ()
+void
+F_clear ()
 {
+#if THREAD_SAFE_GT > 0
+  mpz_t *gtptr = pthread_getspecific (gtkey);
+  if (gtptr)
+    {
+      mpz_clear (gt); /* Free this thread's gt limb space allocation */
+      memset (gtptr, 0, sizeof (mpz_t)); /* Zero out GMP context for this gt */
+      /* Don't free(gtptr); needed for this thread's next time through */
+    }
+#else
   if (gt_inited)
     mpz_clear (gt);
   gt_inited = 0;
+#endif
 }
