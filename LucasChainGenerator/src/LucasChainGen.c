@@ -1,12 +1,23 @@
-/*
- ============================================================================
- Name        : LucasChainGen.c
- Author      : P. B. McLaughlin
- Version     : 1.0
- Copyright   : Copyright 2023 by Philip McLaughlin. All rights reserved.
- Description : Minimal-length Lucas chain generator for prime numbers
- ============================================================================
- */
+/* LucasChainGen: a minimal-length Lucas chain generator for prime numbers.
+
+Copyright 2023, 2024 Paul Zimmermann, Philip McLaughlin.
+
+This file is part of the ECM Library.
+
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <pthread.h>
 #include <stdio.h>

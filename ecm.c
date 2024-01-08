@@ -1,7 +1,8 @@
 /* Elliptic Curve Method: toplevel and stage 1 routines.
 
 Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-2012, 2016 Paul Zimmermann, Alexander Kruppa, Cyril Bouvier, David Cleaver.
+2012, 2016, 2024 Paul Zimmermann, Alexander Kruppa, Cyril Bouvier,
+David Cleaver, Philip McLaughlin.
 
 This file is part of the ECM Library.
 
