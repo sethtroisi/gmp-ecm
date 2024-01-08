@@ -10,3 +10,12 @@ linux_gmp:
       - test-suite.log
   tags:
     - linux
+linux_gwnum:
+  stage: build
+  script:
+    - ./gwnum_linux.sh
+  artifacts:
+    paths:
+      - test-suite.log
+  tags:
+    - linux
