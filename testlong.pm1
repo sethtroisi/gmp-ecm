@@ -46,4 +46,5 @@ echo 123 | $PM1 4.42e8; checkcode $? 8
 # exercise factor of F_15
 echo "2^(2^15)+1" | $PM1 -go 2097152 3 193; checkcode $? 6
 
-echo "All ECM tests are ok."
+echo "All P-1 tests are ok."
+echo ""
