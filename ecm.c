@@ -2159,7 +2159,10 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
      is available */
 
   if (youpi != ECM_NO_FACTOR_FOUND)
-    goto end_of_ecm_rhotable;
+    {
+      outputf (OUTPUT_NORMAL, "Step 1 took %ldms\n", elltime (st, cputime ()));
+      goto end_of_ecm_rhotable;
+    }
 #endif /* HAVE_GWNUM */
 
   if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
