@@ -73,8 +73,8 @@ typedef struct
 {
   int method;     /* factorization method, default is ecm */
   mpz_t x, y;        /* starting point (if non zero) */
-  int param;      /* (ECM only) What parametrization do we used */ 
-  mpz_t sigma;    /* (ECM only) The parameter for the parametrization */ 
+  int param;      /* (ECM only) What parametrization do we use */
+  mpz_t sigma;    /* (ECM only) The parameter for the parametrization */
                       /* May contains A */
   int sigma_is_A; /* if  1, 'parameter' contains A (Montgomery form),
 		     if  0, 'parameter' contains sigma (Montgomery form),
