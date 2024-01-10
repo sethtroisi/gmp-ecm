@@ -90,8 +90,8 @@ typedef struct
 } chain_element;
 
 /* prototypes */
-void max_continuation( chain_element *, uint8_t *, uint8_t );
-uint8_t generate_Lucas_chain( uint64_t, uint64_t, chain_element * );
+static void max_continuation( chain_element *, uint8_t *, uint8_t );
+static uint8_t generate_Lucas_chain( uint64_t, uint64_t, chain_element * );
 
 /* end PBMcL additions */
 
@@ -545,29 +545,11 @@ prac (mpres_t xA, mpres_t zA, ecm_uint k, mpmod_t n, mpres_t b,
  * Outputs: (1) Lchain - an array of Lucas chain elements leading to p
  *          (2) chain length
 */
+static
 uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element *Lchain )
 {
-	static uint8_t init = 0;
 	uint8_t code_fragment, chain_length, i, k;
 	uint64_t dif;
-
-	if( init == 0 )
-	{
-		/* the first 3 chain elements are always value = 1, 2, and 3, respectively */
-		Lchain[0].value = 1;
-
-		Lchain[1].value = 2;
-		Lchain[1].comp_offset_1 = 0;
-		Lchain[1].comp_offset_2 = 0;
-		Lchain[1].dif_offset = 0;
-
-		Lchain[2].value = 3;
-		Lchain[2].comp_offset_1 = 0;
-		Lchain[2].comp_offset_2 = 1;
-		Lchain[2].dif_offset = 1;
-
-		init = 1;
-	}
 
 	/* the code file starts at p = 11, so handle 2, 3, 5, or 7 separately */
 	if( prime < 11 )
@@ -1041,6 +1023,7 @@ uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element
 }
 
 /* extend the chain with maximum elements for i steps */
+static
 void max_continuation( chain_element *Lchain, uint8_t *chain_length, uint8_t i )
 {
 	uint8_t k;
@@ -1099,9 +1082,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   uint64_t chain_code;
   uint8_t dum, chain_length;
   int32_t i;
-  static FILE *chain_code_file;
-  static chain_element Lchain[64];
-  static uint8_t using_code_file; /* logical */
+  FILE *chain_code_file;
+  chain_element Lchain[64];
+  uint8_t using_code_file; /* logical */
 
   /* Elliptic curve states as we follow the Lucas chain */
   mpres_t LCS_x[16];
@@ -1140,6 +1123,19 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     {
       using_code_file = 1;
       outputf (OUTPUT_NORMAL, "Using Lucas chain codes\n");
+
+      /* the first 3 chain elements are always value = 1, 2, and 3, respectively */
+	  Lchain[0].value = 1;
+
+      Lchain[1].value = 2;
+      Lchain[1].comp_offset_1 = 0;
+      Lchain[1].comp_offset_2 = 0;
+      Lchain[1].dif_offset = 0;
+
+      Lchain[2].value = 3;
+      Lchain[2].comp_offset_1 = 0;
+      Lchain[2].comp_offset_2 = 1;
+      Lchain[2].dif_offset = 1;
     }
     else
     {
