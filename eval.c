@@ -41,7 +41,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
  *   Unary minus is supported:   -n     -500                     *
  *   Exponentation:              n^m    2^500                    *
  *   Simple factorial:           n!     53!  == 1*2*3*4...*52*53 *
- *   Multi-factorial:            n!m    15!3 == 15.12.9.6.3      *
+ *   Multi-factorial:            n!m    14!3 == 14.11.8.5.2      *
  *   Simple Primorial:           n#     11# == 2*3*5*7*11        *
  *   Reduced Primorial:          n#m    17#5 == 5.7.11.13.17     *
  *                                                               *
@@ -64,9 +64,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 static mpz_t t, mpOne;
 static char *expr_str;
 
-static void eval_power (mpz_t prior_n, mpz_t n,char op);
-static void eval_product (mpz_t prior_n, mpz_t n,char op);
-static void eval_sum (mpz_t prior_n, mpz_t n,char op);
+static void eval_power (mpz_t n, const mpz_t arg, char op);
+static void eval_product (mpz_t n, const mpz_t arg, char op);
+static void eval_sum (mpz_t n, const mpz_t arg, char op);
 static int  eval_Phi (mpz_t *params, mpz_t n);
 static int  eval_PhiL (mpz_t *params, mpz_t n);
 static int  eval_PhiM (mpz_t *params, mpz_t n);
@@ -158,6 +158,9 @@ ChompLine:
 	}
       mpz_clear(t);
     }
+#if defined (DEBUG_EVALUATOR)
+  gmp_fprintf (stderr, "eval(\"%s\") = %Zd\n", expr, n->n);
+#endif
   free(expr);
   return ret;
 }
@@ -218,77 +221,118 @@ JoinLinesLoop:
 	}
       mpz_clear(t);
     }
+#if defined (DEBUG_EVALUATOR)
+  gmp_fprintf (stderr, "eval_str(\"%s\") = %Zd\n", expr, n->n);
+#endif
   free(expr);
   if (EndChar && *EndChar)
     *EndChar = c;
   return ret;
 }
 
-void eval_power (mpz_t prior_n, mpz_t n, char op)
+/**
+ * Evaluate "power" style operations.
+ * Arguments
+ *      n: output also possibly second argument
+ *      arg: first argument to operation
+ *      op: operation to perform, no-op if not a power argument
+ */
+void
+eval_power (mpz_t n, const mpz_t arg, char op)
 {
 #if defined (DEBUG_EVALUATOR)
-  if ('#'==op || '^'==op || '!'==op || '@'==op || '$'==op)
+  if ('^'==op || '!'==op || '@'==op || '#'==op || '$'==op)
     {
-      gmp_fprintf (stderr, "eval power %Zd%c%Zd\n", prior_n, op, n);
+      gmp_fprintf (stderr, "eval power %Zd%c%Zd\n", arg, op, n);
     }
 #endif
 
+  // arg must be positive for everything except power
+  if (mpz_sgn(arg) < 0) {
+    if ('!'==op || '#'==op) {
+      gmp_fprintf (stderr, "\nError - negative argument [%Zd%c]\n", arg, op);
+      exit (EXIT_FAILURE);
+    }
+    if ('@'==op || '$'==op) {
+      gmp_fprintf (stderr, "\nError - negative argument [%Zd%c%Zd]\n", arg, op, n);
+      exit (EXIT_FAILURE);
+    }
+  }
+
+  // second arg must be positive for everything with two args
+  if ('^'==op || '@'==op || '$'==op) {
+    if (mpz_sgn(n) < 0) {
+      gmp_fprintf (stderr, "\nError - negative argument [%Zd%c%Zd]\n", arg, op, n);
+      exit (EXIT_FAILURE);
+    }
+  }
+
   if ('^'==op)
-    mpz_pow_ui(n,prior_n,mpz_get_ui(n));
-  else if ('!'==op)	/* simple factorial  (syntax n!    example: 7! == 1*2*3*4*5*6*7) */
-    mpz_fac_ui(n,mpz_get_ui(n));
-  else if ('@'==op)	/* Multi factorial   (syntax n!prior_n
-                           Example: 15!3 == 15*12*9*6*3
-                           Note: 15!3 is substituted into 15@3 by the parser */
+    mpz_pow_ui(n, arg, mpz_get_ui(n));
+  else if ('!'==op)	/* simple factorial  (syntax arg!    example: 7! == 1*2*3*4*5*6*7) */
+    mpz_fac_ui(n, mpz_get_ui(arg));
+  else if ('@'==op)	/* Multi factorial   (syntax arg!n
+                           Example: 14!3 == 14*11*8*5*2
+                           Note: 14!3 is substituted into 14@3 by the parser */
     {
-      long nCur;
-      unsigned long nDecr;
-      nCur = mpz_get_si(prior_n);
-      nDecr = mpz_get_ui(n);
-      mpz_set_ui(n,1);
-      while (nCur > 1)
+      /* gmp_printf ("Multi factorial  %Zd!%Zd\n", arg, n); */
+      ASSERT_ALWAYS (mpz_cmp(arg, n) >= 0); // arg >= n
+      mpz_t p, dec;
+      mpz_init_set (p, arg);
+      mpz_init_set (dec, n);
+      mpz_set_ui (n, 1);
+      while (mpz_cmp_ui(p, 1) > 0)
 	{
-	  /* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
-	  mpz_mul_ui(n,n,nCur);
-	  nCur -= nDecr;
+	  /* Could use factor-tree, not worth the extra code. */
+	  mpz_mul (n, n, p);
+	  mpz_sub (p, p, dec);
 	}
+      mpz_clear(p);
+      mpz_clear(dec);
     }
-  else if ('#'==op)  /* simple primorial (syntax  n#   example:  11# == 2*3*5*7*11 */
+  else if ('#'==op)  /* simple primorial (syntax  arg#   example:  11# == 2*3*5*7*11 */
     {
-      mpz_primorial_ui(n, mpz_get_ui(n));
+      mpz_primorial_ui(n, mpz_get_ui(arg));
     }
-  else if ('$'==op)  /* reduced primorial (syntax  n#prior_n   example:  13#5 == (5*7*11*13) */
+  else if ('$'==op)  /* reduced primorial (syntax  arg#n   example:  13#5 == (5*7*11*13) */
     {
-      /* gmp_printf ("Reduced-primorial  %Zd#%Zd\n", prior_n, n); */
+      /* gmp_printf ("Reduced-primorial  %Zd#%Zd\n", arg, n); */
+      ASSERT_ALWAYS (mpz_cmp(arg, n) >= 0); // arg >= n
       mpz_t p;
-      ASSERT_ALWAYS (mpz_cmp(prior_n, n) >= 0); // n >= prior_n
       mpz_init_set(p, n);
       mpz_set_ui (n, 1);
       mpz_sub_ui(p, p, 1);
       mpz_nextprime(p, p);
-      for (; mpz_cmp(p, prior_n) <= 0; mpz_nextprime(p, p))
+      for (; mpz_cmp(p, arg) <= 0; mpz_nextprime(p, p))
 	  /* Could use factor-tree, not worth the extra code. */
 	  mpz_mul (n, n, p);
       mpz_clear(p);
     }
 }
 
+/**
+ * Evaluate "product" style operations.
+ * Arguments
+ *      n: output also possibly second argument
+ *      arg: first argument to operation
+ *      op: operation to perform, no-op if not a power argument
+ */
 void
-eval_product (mpz_t prior_n, mpz_t n, char op)
+eval_product (mpz_t n, const mpz_t arg, char op)
 {
 #if defined (DEBUG_EVALUATOR)
   if ('*'==op || '.'==op || '/'==op || '%'==op)
     {
-      gmp_fprintf (stderr, "eval_product %Zd%c%Zd\n", prior_n, op, n);
+      gmp_fprintf (stderr, "eval_product %Zd%c%Zd\n", arg, op, n);
     }
 #endif
   if ('*' == op || '.' == op)
-    mpz_mul (n, prior_n, n);
+    mpz_mul (n, arg, n);
   else if ('/' == op)
     {
       mpz_t r;
       mpz_init (r);
-      mpz_tdiv_qr (n, r, prior_n, n);
+      mpz_tdiv_qr (n, r, arg, n);
       if (mpz_cmp_ui (r, 0) != 0)
         {
           fprintf (stderr, "Parsing Error: inexact division\n");
@@ -297,22 +341,30 @@ eval_product (mpz_t prior_n, mpz_t n, char op)
       mpz_clear (r);
     }
   else if ('%' == op)
-    mpz_tdiv_r (n, prior_n, n);
+    mpz_tdiv_r (n, arg, n);
 }
 
-void eval_sum (mpz_t prior_n, mpz_t n,char op)
+/**
+ * Evaluate "sum" style operations.
+ * Arguments
+ *      n: output also possibly second argument
+ *      arg: first argument to operation
+ *      op: operation to perform, no-op if not a power argument
+ */
+void
+eval_sum (mpz_t n, const mpz_t arg, char op)
 {
 #if defined (DEBUG_EVALUATOR)
   if ('+'==op || '-'==op)
     {
-      gmp_fprintf (stderr, "eval_sum %Zd%c%Zd\n", prior_n, op, n);
+      gmp_fprintf (stderr, "eval_sum %Zd%c%Zd\n", arg, op, n);
     }
 #endif
 
   if ('+' == op)
-    mpz_add(n,prior_n,n);
+    mpz_add(n, arg, n);
   else if ('-' == op)
-    mpz_sub(n,prior_n,n);
+    mpz_sub(n, arg, n);
 }
 
 int eval_Phi (mpz_t* params, mpz_t n)
@@ -877,13 +929,14 @@ MONADIC_SUFFIX_LOOP:
 	    
       if (0==op || ')'==op || ']'==op || '}'==op || (','==op&&bInFuncParams))
 	{
-	  eval_power (n_stack[2],n,op_stack[2]);
-	  eval_product (n_stack[1],n,op_stack[1]);
-	  eval_sum (n_stack[0],n,op_stack[0]);
+	  eval_power (n, n_stack[2], op_stack[2]);
+	  eval_product (n, n_stack[1], op_stack[1]);
+	  eval_sum (n, n_stack[0], op_stack[0]);
 	  mpz_set(t, n);
 	  mpz_clear(n);
 	  for (i=0;i<5;i++)
             {
+              op_stack[i]=0;
               mpz_clear(n_stack[i]);
               mpz_clear(param_stack[i]);
             }
@@ -894,7 +947,7 @@ MONADIC_SUFFIX_LOOP:
 	{
 	  if ('^' == op)
 	    {
-	      eval_power (n_stack[2],n,op_stack[2]);
+	      eval_power (n, n_stack[2], op_stack[2]);
 	      mpz_set(n_stack[2], n);
 	      op_stack[2]='^';
 	    }
@@ -907,7 +960,7 @@ MONADIC_SUFFIX_LOOP:
 		  op_stack[2]='!';
 		  goto MONADIC_SUFFIX_LOOP;
 		}
-	      eval_power (n_stack[2],n,op_stack[2]);
+	      eval_power (n, n_stack[2], op_stack[2]);
 	      mpz_set(n_stack[2], n);
 	      op_stack[2]='@';
 	    }
@@ -920,7 +973,7 @@ MONADIC_SUFFIX_LOOP:
 		  op_stack[2]='#';
 		  goto MONADIC_SUFFIX_LOOP;
 		}
-	      eval_power (n_stack[2],n,op_stack[2]);
+	      eval_power (n, n_stack[2], op_stack[2]);
 	      mpz_set(n_stack[2], n);
 	      op_stack[2]='$';
 	    }
@@ -928,9 +981,9 @@ MONADIC_SUFFIX_LOOP:
 	    {
 	      if ('.'==op || '*'==op || '/'==op || '%'==op)
 		{
-		  eval_power (n_stack[2],n,op_stack[2]);
+		  eval_power (n, n_stack[2], op_stack[2]);
 		  op_stack[2]=0;
-		  eval_product (n_stack[1],n,op_stack[1]);
+		  eval_product (n, n_stack[1], op_stack[1]);
 		  mpz_set(n_stack[1], n);
 		  op_stack[1]=op;
 		}
@@ -938,11 +991,11 @@ MONADIC_SUFFIX_LOOP:
 		{
 		  if ('+'==op || '-'==op)
 		    {
-		      eval_power (n_stack[2],n,op_stack[2]);
+		      eval_power (n, n_stack[2], op_stack[2]);
 		      op_stack[2]=0;
-		      eval_product (n_stack[1],n,op_stack[1]);
+		      eval_product (n, n_stack[1], op_stack[1]);
 		      op_stack[1]=0;
-		      eval_sum (n_stack[0],n,op_stack[0]);
+		      eval_sum (n, n_stack[0], op_stack[0]);
 		      mpz_set(n_stack[0], n);
 		      op_stack[0]=op;
 		    }
