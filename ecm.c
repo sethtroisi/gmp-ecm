@@ -1082,7 +1082,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   uint64_t chain_code;
   uint8_t dum, chain_length;
   int32_t i;
-  FILE *chain_code_file;
+  FILE *chain_code_file = NULL;
   chain_element Lchain[64];
   uint8_t using_code_file; /* logical */
 
