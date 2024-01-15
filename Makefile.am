@@ -46,7 +46,7 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime_r.c listz.c lucas.c \
 		   aprtcle/mpz_aprcl.c addlaws.c torsions.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
-libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
+libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g -lpthread
 # www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 # If any interfaces have been added, removed, or changed since the last
 # update, increment current, and set revision to 0.
@@ -77,6 +77,7 @@ tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                schoen_strass.c polyeval.c median.c ecm_ntt.c \
 	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c auxarith.c
 tune_CPPFLAGS = -DTUNE $(MULREDCINCPATH)
+tune_CFLAGS = -lpthread
 tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
 ecmfactor_CFLAGS = $(OPENMP_CFLAGS) -lpthread
