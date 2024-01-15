@@ -152,7 +152,7 @@ ecm-params:	bench_mulredc$(EXEEXT) tune$(EXEEXT)
 
 check_PROGRAMS = ecm$(EXEEXT)
 
-dist_check_SCRIPTS = test.pp1 test.pm1 test.ecm
+dist_check_SCRIPTS = test.pp1 test.pm1 test.ecm test.ecmfactor
 if WANT_GPU
 dist_check_SCRIPTS += test.gpuecm
 endif
