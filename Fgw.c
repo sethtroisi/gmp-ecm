@@ -454,6 +454,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   double tmp_bitsize;
   mpz_t gw_x, gw_z, gw_A, tmp;
   int youpi;
+  char gwnum_msg[8][24];
 
   /* P->y must never be zero when calling ecm_mul */
   if( P->y->_mp_size == 0 )
@@ -556,19 +557,31 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
 /* #define ES1_MEMORY            3 *//* Out of memory */
 /* #define ES1_INTERRUPT         4 *//* Execution interrupted */
 /* #define ES1_CANNOT_DO_QUICKLY 5 *//* Requires 3-multiply reduction */
-/* #define ES1_HARDWARE_ERROR    6 *//* An error was detected, most */
+/* #define ES1_HARDWARE_ERROR    6 *//* An error was detected, most likely a hardware error. */
+
+  strcpy( gwnum_msg[0], "ES1_SUCCESS");
+  strcpy( gwnum_msg[1], "ES1_FACTOR_FOUND");
+  strcpy( gwnum_msg[2], "ES1_CANNOT_DO_IT");
+  strcpy( gwnum_msg[3], "ES1_MEMORY");
+  strcpy( gwnum_msg[4], "ES1_INTERRUPT");
+  strcpy( gwnum_msg[5], "ES1_CANNOT_DO_QUICKLY");
+  strcpy( gwnum_msg[6], "ES1_HARDWARE_ERROR");
+
   if (youpi == ES1_CANNOT_DO_IT || youpi == ES1_CANNOT_DO_QUICKLY)
   {
     outputf (OUTPUT_VERBOSE, 
            "Notice: Did not use gwnum_ecmStage1(%.0f, %d, %d, %d, %.0f, %ld)\n",
            gw_k, gw_b, gw_n, gw_c, B1, gw_B1done);
+    outputf (OUTPUT_VERBOSE, "Reason message: %s\n", gwnum_msg[youpi]);
     youpi = ECM_NO_FACTOR_FOUND;
     goto end_of_gwecm;
   }
 
   if (youpi > 1)
     {
-      outputf (OUTPUT_ERROR, "GW stage 1 returned code %d\n", youpi);
+      outputf (OUTPUT_ERROR, "GW stage 1 returned error code %d\n", youpi);
+      outputf (OUTPUT_VERBOSE, "GW stage 1 returned error code %d\n", youpi);
+      outputf (OUTPUT_VERBOSE, "Reason message: %s\n", gwnum_msg[youpi]);
       youpi = ECM_ERROR;
       goto end_of_gwecm;
     }
