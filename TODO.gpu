@@ -7,6 +7,9 @@ Quality of Life
 3. Copy over `s_bit` to the GPU in chucks of 2^20 to reduce gpu memory alloc
 4. Improve Peak memory reporting during GPU runs
    See https://stackoverflow.com/questions/11631191/why-does-the-cuda-runtime-reserve-80-gib-virtual
+5. Print a note when P-1 batch isn't close to full.
+6. Print a note when smaller P-1 could be used.
+
 
 Big improvements
 
@@ -25,10 +28,6 @@ Big improvements
   `set_p_2p`, `findfactor`, and `process_results` seem easy to change
   `np0` would have to become an array.
   `n_log2` becomes `max_n_log2`.
-
-* For P-1 (and small ECM) it's nicer to do 1792 numbers at the same time instead of 1792 curves.
-  Initial P-1 testing 20-40x latency, but 40-60x throughput. Two attempts made to structure code
-  elegantly have failed.
 
 Testing
 
