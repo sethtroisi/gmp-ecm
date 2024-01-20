@@ -225,7 +225,7 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   unsigned long prev_pwr_indx = 0, last_pwr_indx = 0,
                 mul_indx = 0, sign_indx = 0;
   int total = 0, power_count = 0, mul_count = 0, sign_count = 0;
-  char strk[11];
+  char strk[20];
   char strb[11];
   char strn[11];
   char strc[11];
@@ -233,6 +233,8 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   char strn2[11];
   char sign=0;
   mpz_t tmp;
+  uint64_t test1, test2;
+  unsigned long klen;
 
   /* make sure we have a place to put our results */
   if (k == NULL || b == NULL || n == NULL || c == NULL || z == NULL)
@@ -291,11 +293,23 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
         continue;
 
       /* check to see if the input is k*b^n+c */
-      total = sscanf (z+i, "%10[0-9]*%10[0-9]^%10[0-9]%*[ +]%10[0-9]",
+      total = sscanf (z+i, "%17[0-9]*%10[0-9]^%10[0-9]%*[ +]%10[0-9]",
                       strk, strb, strn, strc);
       if (total == 4)
         {
-          *k = (double) strtoul (strk, NULL, 10);
+          klen = strlen(strk);
+          if( klen > 10 )
+          {
+            test2 = strtoul (strk+10, NULL, 10);
+            strk[10] = 0;
+            test1 = strtoul (strk, NULL, 10);
+            for( i = 0; i < (klen - 10); i++)
+              test1 *= 10;
+            *k = (double)(test1 + test2); 
+          }
+          else
+            *k = (double) strtoul (strk, NULL, 10);
+
           *b = strtoul (strb, NULL, 10);
           *n = strtoul (strn, NULL, 10);
           *c = strtol (strc, NULL, 10);
@@ -303,11 +317,23 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
         }
 
       /* check to see if the input is k*b^n-c */
-      total = sscanf (z+i, "%10[0-9]*%10[0-9]^%10[0-9]%*[ -]%10[0-9]",
+      total = sscanf (z+i, "%17[0-9]*%10[0-9]^%10[0-9]%*[ -]%10[0-9]",
                       strk, strb, strn, strc);
       if (total == 4)
         {
-          *k = (double) strtoul (strk, NULL, 10);
+          klen = strlen(strk);
+          if( klen > 10 )
+          {
+            test2 = strtoul (strk+10, NULL, 10);
+            strk[10] = 0;
+            test1 = strtoul (strk, NULL, 10);
+            for( i = 0; i < (klen - 10); i++)
+              test1 *= 10;
+            *k = (double)(test1 + test2); 
+          }
+          else
+            *k = (double) strtoul (strk, NULL, 10);
+
           *b = strtoul (strb, NULL, 10);
           *n = strtoul (strn, NULL, 10);
           *c = strtol (strc, NULL, 10);
@@ -362,10 +388,22 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
       }
       else
       {
-        total = sscanf (z+i, "%10[0-9]*%10[0-9]", strk, strb);
+        total = sscanf (z+i, "%17[0-9]*%10[0-9]", strk, strb);
         if( total == 2 )
         {
-          *k = (double) strtoul (strk, NULL, 10);
+          klen = strlen(strk);
+          if( klen > 10 )
+          {
+            test2 = strtoul (strk+10, NULL, 10);
+            strk[10] = 0;
+            test1 = strtoul (strk, NULL, 10);
+            for( i = 0; i < (klen - 10); i++)
+              test1 *= 10;
+            *k = (double)(test1 + test2); 
+          }
+          else
+            *k = (double) strtoul (strk, NULL, 10);
+
           *b = strtoul (strb, NULL, 10);
           break;
         }
