@@ -522,6 +522,9 @@ echo 493671084022010320922697718944221569774262937898523672663031469122444419595
 # Test APR primality test
 echo "10090030271*(10^400+69)" | $ECM -param 0 -sigma 3923937547 1e3 1e6; checkcode $? 14
 
+# Exercise APR test plus large-k kbnc_str() input when gwnum is used
+echo "(562949953421312*3^1000+1)/36045048768571" | $ECM -sigma 0:9547094287835811496 1e5; checkcode $? 14
+
 echo 31622776601683791911 | $ECM -sigma 0:249908706013996416 11000; checkcode $? 0
 
 # those tests with params=1, 2 or 3 don't work with -redc
