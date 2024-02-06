@@ -81,7 +81,7 @@ Instructions to install GMP-ECM:
        "(k*b^n+c)/(factors, if any)". The 'k*' term is not required if k = 1.
        The exponent 'n' may be entered as an integer or in the form (b2^n2),
        with 'n' or '(b2^n2)' < 10^10. Also, k must be a positive integer with
-       1 <= k <= 2^49, and c must be a non-zero integer with |c| < 2^23.
+       1 <= k < 2^49, and c must be a non-zero integer with |c| < 2^23.
        Finally, the input number to be factored must be > 2^350.
    (3) For integer-character-only input strings N, GMP-ECM may detect if
        N = k*b^n+c, and find k, b, n, and c, but if possible the form above
