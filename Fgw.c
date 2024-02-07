@@ -99,8 +99,11 @@ kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c, mpz_t z)
   mpz_init (base);
   mpz_init_set_ui (base_min, 2);
   mpz_init_set_ui (base_max, 10000);
-  /* this puts a bound on how large of a k value we want to find */
-  mpz_init_set_str (max_k, "562949953421312", 10);
+
+  /* this puts a bound on how large of a k value we want to find (2^49-1) */
+  mpz_init_set_ui (max_k, 2);
+  mpz_pow_ui (max_k, max_k, 49);
+  mpz_sub_ui (max_k, max_k, 1);
 
   /* when dividing: z/(base^exp) this will give us a possible k value */
   /* we want a quick test to see if this might be a viable k value */
@@ -551,7 +554,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   /* George Woltman says that the gwnum library can handle k values up to 49
      or 50 bits long, and the maximum c value is +/-8388607 */
   ASSERT_ALWAYS (gw_k == rint (gw_k)); /* check that k is an integer */
-  ASSERT_ALWAYS (1.0 <= gw_k && gw_k < 562949953421312.0);
+  ASSERT_ALWAYS (1.0 <= gw_k && gw_k < 0x1p49);
   ASSERT_ALWAYS (-8388607 <= gw_c && gw_c <= 8388607);
 #if GMP_NUMB_BITS <= 32
   youpi = gwnum_ecmStage1_u32 (gw_k, gw_b, gw_n, gw_c, 

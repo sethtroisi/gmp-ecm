@@ -522,10 +522,6 @@ echo 493671084022010320922697718944221569774262937898523672663031469122444419595
 # Test APR primality test
 echo "10090030271*(10^400+69)" | $ECM -param 0 -sigma 3923937547 1e3 1e6; checkcode $? 14
 
-# Exercise APR test plus large-k kbnc_str() input when gwnum is used
-# bad test; k is 1 too large for some older processors
-#echo "(562949953421312*3^1000+1)/36045048768571" | $ECM -sigma 0:9547094287835811496 1e5; checkcode $? 14
-
 # exercise k limit (2^49 - 1) when gwnum is used 
 echo "(562949953421311*10^500+1)/167" | $ECM -sigma 0:16743727456357860406 2e5; checkcode $? 6
 
