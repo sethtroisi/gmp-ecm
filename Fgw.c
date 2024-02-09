@@ -239,6 +239,14 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   uint64_t test1, test2;
   unsigned long klen;
 
+  /* make sure the input meets some sort of minimum size requirement.
+     The gwnum library reports ES1_CANNOT_DO_QUICKLY for number < 2^350 */
+  if (mpz_sizeinbase(z, 2) < 350)
+  {
+    *b = 0;
+    return 0;
+  }
+
   /* make sure we have a place to put our results */
   if (k == NULL || b == NULL || n == NULL || c == NULL || z == NULL)
     return 0;
