@@ -241,7 +241,7 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
 
   /* make sure the input meets some sort of minimum size requirement.
      The gwnum library reports ES1_CANNOT_DO_QUICKLY for number < 2^350 */
-  if (mpz_sizeinbase(z, 2) < 350)
+  if (mpz_sizeinbase(num, 2) < 350)
   {
     *b = 0;
     return 0;
