@@ -81,14 +81,6 @@ kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c, mpz_t z)
   if (k == NULL || b == NULL || n == NULL || c == NULL)
     return 0;
 
-  /* make sure the input meets some sort of minimum size requirement.
-     The gwnum library reports ES1_CANNOT_DO_QUICKLY for number < 2^350 */
-  if (mpz_sizeinbase(z, 2) < 350)
-  {
-    *b = 0;
-    return 0;
-  }
-
   mpz_init (diff);
   mpz_init (abs_diff);
   mpz_init (b_n);
@@ -242,14 +234,6 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   /* make sure we have a place to put our results */
   if (k == NULL || b == NULL || n == NULL || c == NULL || z == NULL)
     return 0;
-
-  /* make sure the input meets some sort of minimum size requirement.
-     The gwnum library reports ES1_CANNOT_DO_QUICKLY for number < 2^350 */
-  if (mpz_sizeinbase(num, 2) < 350)
-  {
-    *b = 0;
-    return 0;
-  }
 
   *b = 0;
 
@@ -499,7 +483,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
                unsigned long gw_b, unsigned long gw_n, signed long gw_c)
 {
   ecm_uint gw_B1done = *B1done;
-  unsigned long siz_x, siz_z, kbnc_size; /* Size of gw_x and gw_y as longs */
+  unsigned long siz_x, siz_z, kbnc_size, options; /* Size of gw_x and gw_y as longs */
   double tmp_bitsize;
   mpz_t gw_x, gw_z, gw_A, tmp;
   int youpi;
@@ -519,35 +503,52 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
       mpres_clear (b, modulus);
     }
   
-  outputf (OUTPUT_NORMAL, 
+  if(gw_b)
+  {
+    outputf (OUTPUT_NORMAL, 
            "Using gwnum_ecmStage1(%.0f, %d, %d, %d, %.0f, %ld)\n",
            gw_k, gw_b, gw_n, gw_c, B1, gw_B1done);
 
-  /* make sure tmp has adequate allocation */
-  tmp_bitsize = log2(gw_k) + ((double)gw_n)*log2((double)gw_b) + 64.0;
-  tmp_bitsize = 64.0*ceil(tmp_bitsize/64.0); /* set to first multiple of 64 >= tmp_bitsize */
-  mpz_init2 (tmp, (unsigned long)tmp_bitsize);
+    /* make sure tmp has adequate allocation */
+    tmp_bitsize = log2(gw_k) + ((double)gw_n)*log2((double)gw_b) + 64.0;
+    tmp_bitsize = 64.0*ceil(tmp_bitsize/64.0); /* set to first multiple of 64 >= tmp_bitsize */
+    mpz_init2 (tmp, (unsigned long)tmp_bitsize);
   
-  /* construct k*b^n+c to get true size */
-  mpz_set_ui (tmp, gw_b);
-  mpz_pow_ui (tmp, tmp, gw_n);
-  mpz_mul_ui (tmp, tmp, (unsigned long)gw_k);
-  if (gw_c >= 0)
-    mpz_add_ui (tmp, tmp, gw_c);
-  else
-    mpz_sub_ui (tmp, tmp, (gw_c * -1));
+    /* construct k*b^n+c to get true size */
+    mpz_set_ui (tmp, gw_b);
+    mpz_pow_ui (tmp, tmp, gw_n);
+    mpz_mul_ui (tmp, tmp, (unsigned long)gw_k);
+    if (gw_c >= 0)
+      mpz_add_ui (tmp, tmp, gw_c);
+    else
+      mpz_sub_ui (tmp, tmp, (gw_c * -1));
 
-  /* kbnc_size = bits per word * # of whole words required to hold k*b^n+c */
-  kbnc_size = 8*sizeof(mp_size_t)*(tmp->_mp_size); 
-  ASSERT_ALWAYS ( (unsigned long)tmp_bitsize >= kbnc_size );
-  mpz_clear (tmp);
+    /* kbnc_size = bits per word * # of whole words required to hold k*b^n+c */
+    kbnc_size = 8*sizeof(mp_size_t)*(tmp->_mp_size); 
+    ASSERT_ALWAYS ( (unsigned long)tmp_bitsize >= kbnc_size );
+    mpz_clear (tmp);
 
-  /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
-  /* ecmstag1.c in gwnum says it needs 60 bits more than the gwnum modulus size,
-     so we add 64 bits here to maintain whole-word allocations for gw_x and gw_z */
-  mpz_init2 (gw_x, kbnc_size + 64);
-  mpz_init2 (gw_z, kbnc_size + 64);
-  mpres_init (gw_A, modulus);
+    /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
+    /* ecmstag1.c in gwnum says it needs 60 bits more than the gwnum modulus size,
+       so we add 64 bits here to maintain whole-word allocations for gw_x and gw_z */
+    mpz_init2 (gw_x, kbnc_size + 96);
+    mpz_init2 (gw_z, kbnc_size + 96);
+    mpres_init (gw_A, modulus);
+    options = 0;
+  }
+  else /* set for gwnum generic mod */
+  {
+    outputf (OUTPUT_NORMAL, 
+           "Using gwnum_ecmStage1_generic(%.0f, %ld)\n", B1, gw_B1done);
+
+     kbnc_size = 8*sizeof(mp_size_t)*ABSIZ(modulus->orig_modulus); /* extra pad requirement for MMGW FFT's (?) */
+     /* allocations too small invite the dreaded re-allocation/free() "invalid pointer" bug crash */
+     mpz_init2 (gw_x, 2*kbnc_size); /* 2x allocations; probably more than necessary but seems to always work */
+     mpz_init2 (gw_z, 2*kbnc_size);
+     mpres_init (gw_A, modulus);
+     gw_k = 1.0; gw_n = 1; gw_c = 1;
+     options = 1; /* force gwnum to do "slow" jobs; George W. has improved generic reduction (MMGW algorithm) */
+  }
 
   /* mpres_get_z always produces non-negative integers */
   mpres_get_z (gw_x, P->x, modulus);
@@ -568,12 +569,12 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   youpi = gwnum_ecmStage1_u32 (gw_k, gw_b, gw_n, gw_c, 
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus), 
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A), 
-      PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, 0);
+      PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, options);
 #else /* contributed by David Cleaver */
   youpi = gwnum_ecmStage1_u64 (gw_k, gw_b, gw_n, gw_c,
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus),
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A),
-      PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, 0);
+      PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, options);
 #endif
 
   /* Test that not more was written to gw_x and gw_z than we had space for */
@@ -640,6 +641,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
       /* How did that happen? Since we passed z, GWNUM should not do
          an extgcd and so not find factors... but if it did anyways, 
          we deal with it. Who's going to turn down a factor? */
+      /* Note (PBM): gwnum will report a factor if gcd(gw_A, orig_modulus) > 1 */
       outputf (OUTPUT_DEVVERBOSE, 
                "gw_ecm_stage1: Strange, gwnum_ecmStage1 reports a factor\n");
       mpres_get_z (f, P->x, modulus);

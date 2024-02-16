@@ -679,6 +679,19 @@ unsigned long get_random_ul (void);
 #ifdef HAVE_GWNUM
 int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t,
                     double, unsigned long, unsigned long, signed long);
+
+/* We will use gwnum if either
+
+     (1) the input number is of the form k*b^n+c (or is a factor of this number)
+         and either
+         (a) k*b^n+c != 2^n+/-1 and k*b^n+c > 2^gw_knbc_threshold, or
+         (b) k*b^n+c == 2^n+/-1 and n >= gw_spec_div_threshold
+
+  or (2) the input number N is not of the form k*b^n+c, but N > 2^gw_generic_threshold
+*/
+#define GWNUM_KBNC_THRESHOLD 1130 /* bits */
+#define GWNUM_SPEC_DIV_THRESHOLD 1215 /* bits */
+#define GWNUM_GENERIC_THRESHOLD 2100 /* bits */
 #endif
 
 /* batch.c */

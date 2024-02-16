@@ -83,6 +83,7 @@ ecm_init (ecm_params q)
   q->gw_b = 0;
   q->gw_n = 0;
   q->gw_c = 0;
+  q->gw_cl_flag = -1; /* default to -no-gwnum */
 }
 
 /* function to be called between two calls of ecm_factor, it the same
@@ -157,7 +158,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
                        p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem,
                        p->stage1time, p->rng, p->stop_asap, p->batch_s,
                        &(p->batch_last_B1_used), p->gw_k, p->gw_b, p->gw_n,
-                       p->gw_c);
+                       p->gw_c, p->gw_cl_flag);
 #ifdef WITH_GPU
         }
       else

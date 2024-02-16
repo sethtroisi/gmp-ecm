@@ -143,6 +143,10 @@ usage (void)
     printf ("  -gpucurves n Compute on n curves in parallel on the GPU (by "
                                                   "default, CUDA chooses)\n");
 #endif /* WITH_GPU */
+#ifdef HAVE_GWNUM
+    printf ("  -gwnum       Use gwnum routines for ECM stage 1 (if possible).\n");
+    printf ("  -no-gwnum    Do not use gwnum routines for ECM stage 1.\n");
+#endif /* HAVE_GWNUM */
     printf ("  -h, --help   Prints this help and exit.\n");
 }
 
@@ -400,6 +404,7 @@ main (int argc, char *argv[])
   unsigned long gw_b = 0;  /* set default values for gwnum poly k*b^n+c */
   unsigned long gw_n = 0;  /* set default values for gwnum poly k*b^n+c */
   signed long gw_c = 0;    /* set default values for gwnum poly k*b^n+c */
+  signed long gw_cl_flag = 0;
 #endif
   int use_gpu = 0; /* Do we use the GPU for stage 1 (by default no) */
   int gpudevice = -1; /* Which device do we use for GPU code (by default CUDA */
@@ -505,6 +510,23 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
 	}
+#ifdef HAVE_GWNUM
+      /* switches to facilitate finding crossovers or force faster method  */
+      else if (strcmp (argv[1], "-gwnum") == 0)
+	{
+	  gw_cl_flag = 1.0; /* always use gwnum if input number > 2^350 */
+	  argv++;
+	  argc--;
+	}
+      else if (strcmp (argv[1], "-no-gwnum") == 0)
+	{
+	  gw_cl_flag = -1.0; /* Do not use gwnum */
+	  argv++;
+	  argc--;
+	}
+      /* note that gw_cl_flag == 0.0 will indicate that neither choice above
+         was specified and the estimated crossovers in ecm-impl.h will be used */
+#endif /* HAVE_GWNUM */
       else if (strcmp (argv[1], "-primetest") == 0)
         {
           primetest = 1;
@@ -1454,6 +1476,18 @@ main (int argc, char *argv[])
         params->use_ntt = use_ntt;
 
 #ifdef HAVE_GWNUM
+      params->gw_cl_flag = gw_cl_flag; /* save */
+
+      /* check if the input number is too small (2^350) for gwnum */
+      if (mpz_sizeinbase(n.n, 2) < 350)
+      {
+        params->gw_b = 0;
+        params->gw_k = 0.0; /* indicate that input is too small for gwnum */
+        if (verbose > OUTPUT_NORMAL)
+          printf ("Input number is too small for gwnum\n");
+      }
+      else
+      {
       /* check if the input number can be represented as k*b^n+c */
       if (kbnc_str (&gw_k, &gw_b, &gw_n, &gw_c, n.cpExpr, n.n))
         {
@@ -1477,9 +1511,9 @@ main (int argc, char *argv[])
         }
       else
         {
-          if (verbose > OUTPUT_NORMAL)
-            printf ("Did not find a gwnum poly for the input number.\n");
+          params->gw_b = 0;
         }
+      }
 #endif
 
       if (timestamp)

@@ -1818,7 +1818,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
      *TreeFilename, double maxmem, double stage1time, gmp_randstate_t rng, int
      (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used,
      ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
-     ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
+     ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c,
+     ATTRIBUTE_UNUSED signed long gw_cl_flag)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -1833,6 +1834,12 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
 #endif
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
   unsigned long dF;
+#ifdef HAVE_GWNUM  
+  unsigned long kbnc_bitsize;
+  unsigned long gw_knbc_threshold;
+  unsigned long gw_spec_div_threshold;
+  unsigned long gw_generic_threshold;
+#endif  
   root_params_t root_params;
 
   /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
@@ -2146,10 +2153,81 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   st = cputime ();
 
 #ifdef HAVE_GWNUM
-  /* We will only use GWNUM for numbers of the form k*b^n+c */
+  /* gwnum only used when param == 0 and command line did not include -no-gwnum */
+  if ((param == ECM_PARAM_SUYAMA) && (gw_cl_flag >= 0))
+  {
+    /* set thresholds */
+    if (gw_cl_flag > 0) /* -gwnum specified in command line */
+    {
+      /* set all thresholds to minimum */
+      gw_knbc_threshold = 350;
+      gw_spec_div_threshold = 350;
+      gw_generic_threshold = 350;
+    }
+    else /* use default thresholds */
+    {
+      gw_knbc_threshold = GWNUM_KBNC_THRESHOLD;
+      gw_spec_div_threshold = GWNUM_SPEC_DIV_THRESHOLD;
+      gw_generic_threshold = GWNUM_GENERIC_THRESHOLD;
+    }
 
-  if (gw_b != 0 && B1 >= *B1done && param == ECM_PARAM_SUYAMA)
+    /* We will use GWNUM for numbers N which have a kbnc form (b != 0)
+       when N > 2^gw_knbc_threshold */
+    /* we will check if N = (2^m +/- 1)/divisors (special division). In that case
+       gwnum will be used only if m >= gw_spec_div_threshold */
+    /* We will use GWNUM for numbers N of any other form (b == 0) when N > 2^gw_generic_threshold */
+
+    /* check for special division case */
+    if (modulus->repr == ECM_MOD_BASE2)
+    {
+      if ( abs (modulus->bits) >= (unsigned long) gw_spec_div_threshold )
+      {
+        /* use gwnum; kbnc params may not be set */
+        gw_k = 1.0;
+        gw_b = 2;
+        gw_n = abs (modulus->bits);
+        if ( modulus->bits < 0 ) gw_c = -1;
+        else gw_c = 1;
+      }
+      else 
+      {
+        /* don't use gwnum */
+        gw_b = 0;
+        gw_k = 0.0;
+      }
+    }
+    else if ( gw_b != 0 )
+    {
+      kbnc_bitsize = (unsigned long) ( (log(gw_k) + (double)gw_n * log((double)gw_b) )/log(2.0) );
+      if (kbnc_bitsize < (unsigned long) gw_knbc_threshold)
+      {
+        /* don't use gwnum */
+        gw_b = 0;
+        gw_k = 0.0;
+      }
+    }
+    else /* gw_b == 0 */
+    {
+      /* gwnum generic is not faster until input number is much larger -
+         roughly 600 decimal digits (TBD) */
+      if (mpz_sizeinbase(modulus->orig_modulus, 2) >= gw_generic_threshold)
+      {
+        gw_k = 1.0; /* indicate that input is large enough for gwnum generic */
+        if (verbose > OUTPUT_NORMAL)
+          printf ("Did not find a gwnum poly; will use gwnum generic.\n");
+      }
+      else
+      {
+        gw_k = 0.0; /* indicate that input is too small for gwnum generic */
+        if (verbose > OUTPUT_NORMAL)
+          printf ("Did not find a gwnum poly; input number is too small for gwnum generic.\n");
+      }
+    }
+
+    if ((gw_b != 0 || (gw_b == 0 && gw_k >= 1.0) ) && B1 >= *B1done)
       youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go, gw_k, gw_b, gw_n, gw_c);
+  }
+  /* end if ((param == ECM_PARAM_SUYAMA) && (gw_cl_flag >= 0)) */
 
   /* At this point B1 == *B1done unless interrupted, or no GWNUM ecm_stage1
      is available */
