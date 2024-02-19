@@ -285,7 +285,7 @@ int
 ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
                   double *B1done, int batch, mpz_t s)
 {
-  mp_limb_t d_1;
+  mp_limb_t d_1 = 0;
   mpz_t d_2;
 
   mpres_t x1, z1, x2, z2;
