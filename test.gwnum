@@ -1,0 +1,142 @@
+#!/bin/bash
+
+# test file for ECM linked with GWNUM
+#
+# Copyright 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2011, 2012, 2016, 2024
+# Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann, Cyril Bouvier,
+# David Cleaver, Philip McLaughlin.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; see the file COPYING.  If not, see
+# http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+
+ECM="${1:-./ecm}"
+
+GMPECM_DATADIR=${GMPECM_DATADIR:-.}
+
+THIS_FILE="${0}"
+
+
+# Exit statuses returned by GMP-ECM:
+# 0      Normal program termination, no factor found
+# 1      Error
+# 2      Composite factor found, cofactor is composite
+# 6      (Probable) prime factor found, cofactor is composite
+# 8      Input number found
+# 10     Composite factor found, cofactor is a (probable) prime
+# 14     (Probable) prime factor found, cofactor is a (probable) prime
+
+
+# Call with "checkcode $? n" to check that return code is n
+checkcode () {
+  if [ $1 -eq $2 ]
+  then
+    return
+  fi
+
+  if [ -z ${BASH_LINENO} ]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+  else
+    FROM="${BASH_LINENO[0]}"
+    printf "\n"
+    printf "################### ERROR ####################\n"
+    printf "Expected return code $2 but got $1 on line $FROM\n"
+    printf -- "----------- SOURCE LINES %-2d and %-2d ----------\n" $((FROM-1)) $FROM
+    LINE_AND_BEFORE=$(sed -n "$((FROM-1))p;$((FROM))p" "${THIS_FILE}")
+    echo "$LINE_AND_BEFORE"
+    printf "##############################################\n"
+  fi
+  exit 1
+}
+
+case "$ECM"
+in
+*redc*) MUL="redc"
+  ;;
+*mpzmod*) MUL="mpzmod"
+  ;;
+*) MUL="modmuln"
+esac
+
+case "$ECM"
+in
+*valgrind*) VALGRIND=1
+  ;;
+*) VALGRIND=0
+esac
+
+$ECM -printconfig | grep "GMP_NUMB_BITS = 64"
+if [ $? -eq 0 ]; then
+   GMP_NUMB_BITS=64
+else
+   GMP_NUMB_BITS=32
+fi
+
+# create a small Lchain_codes.dat file if no file exists
+if [ -f Lchain_codes.dat ]
+ then
+   echo "Lchain_codes.dat file already exists"
+   echo ""
+ else
+   echo "Creating file Lchain_codes.dat to 1e4 for make check"
+   echo ""
+  ./LucasChainGen -B1 1e4 -nT 1 > LCG.log
+fi
+
+# Exit statuses returned by GMP-ECM:
+# 0      Normal program termination, no factor found
+# 1      Error
+# 2      Composite factor found, cofactor is composite
+# 6      (Probable) prime factor found, cofactor is composite
+# 8      Input number found
+# 10     Composite factor found, cofactor is a (probable) prime
+# 14     (Probable) prime factor found, cofactor is a (probable) prime
+
+# find factor of 2,4882M using kbnc form
+echo "(2^4882+1)/(5*(2^2441-2^1221+1))" | $ECM -sigma 0:8796261600422429213 -go 11685787 12e5 33e6; checkcode $? 6
+
+# find factor of 2,4882M using generic form
+echo "(2^2441+2^1221+1)/5" | $ECM -sigma 0:8796261600422429213 -go 11685787 12e5 33e6; checkcode $? 6
+
+# generic form; complete factorization of a generalized Cunningham number (?)
+echo "(13^607-10^607)/(3)" | $ECM -sigma 0:11454268356581996175 1e5; checkcode $? 10
+
+# generic form
+echo "(10^701+7^701)/17" | $ECM -sigma 0:15801536605883325182 1e5 4e9; checkcode $? 6
+
+# generic form; complete factorization
+echo "(5^991-4^991)" | $ECM -sigma 0:18114611140860751050 1e6 3e8; checkcode $? 6
+echo "(5^991-4^991)/(32968384602165289611041909)" | $ECM -sigma 0:12769541372088035605 6e5 16e6; checkcode $? 14
+
+# kbnc form vs generic form
+echo "(2^5398+1)/(5*(2^2699+2^1350+1)*25669713977)" | $ECM -sigma 0:13429501383701428433 -go 123446485573 5e5; checkcode $? 6
+echo "(2^2699-2^1350+1)/(5*25669713977)" | $ECM -sigma 0:13429501383701428433 -go 123446485573 5e5; checkcode $? 6
+
+# timing comparison; test -no-gwnum flag
+echo "(6^(2^11)+1)/(96479889653761)" | $ECM -sigma 0:1252169957525507235 -go 7807291 5e5 15e5; checkcode $? 6
+echo "(6^(2^11)+1)/(96479889653761)" | $ECM -no-gwnum -sigma 0:1252169957525507235 -go 7807291 5e5 15e5; checkcode $? 6
+
+# timing comparison; test -gwnum flag
+echo "(2^839-1)/(26849*138561000316919*377801626929390823)" | $ECM -sigma 0:18041162131602966941 6e6; checkcode $? 14
+echo "(2^839-1)/(26849*138561000316919*377801626929390823)" | $ECM -gwnum -sigma 0:18041162131602966941 6e6; checkcode $? 14
+
+# exercise -h
+$ECM -h
+
+$ECM -printconfig | grep Tuning
+
+echo "All ECM gwnum tests are ok."
+echo "All ECM tests are ok."
