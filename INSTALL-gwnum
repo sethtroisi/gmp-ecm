@@ -23,26 +23,22 @@ Users should familiarize themselves with the instructions in
    
    Important note for those using higher-end processors, such as
    ones with "Alder Lake" or better chip architecture. Before
-   building gwnum.a, navigate to the GMP build directory and type:
+   building gwnum.a, edit the relevant make file for your machine/OS
+   and append the following to the CFLAGS line:
+   
+      -mtune=native -march=native
 
-   $ egrep -w '(CC|CFLAGS)' config.log
+   Save the file, then execute the build command. This should ensure
+   that George's FFT code will use the fastest instructions available
+   on your processor.
    
-   Copy the flags particular to your processor and return to the gwnum
-   folder. Edit the make file for your machine (such as "make64" for
-   linux), and append the copied flags to the "CFLAGS" line which will
-   be used in the gwnum.a build. Save the file, then execute the build
-   command. This should ensure that George's FFT code will use the fastest
-   instructions available on your processor.
+   As an example, for the file gwnum/make64, the CFLAGS line changes from
    
-   As an example, using an Intel Core i9-13900K on Ubuntu 22.04, the GMP
-   processor-specific CFLAGS are "-m64 -mtune=alderlake -march=alderlake".
-   When appended in gwnum/make64, the CFLAGS line changes from
-   
-   CFLAGS = -I.. -I../sqlite- <...> -O2
+      CFLAGS = -I.. -I../sqlite- <...> -O2
    
    to
    
-   CFLAGS = -I.. -I../sqlite- <...> -O2 -m64 -mtune=alderlake -march=alderlake
+      CFLAGS = -I.. -I../sqlite- <...> -O2 -mtune=native -march=native
    
 2) Configure and build with the gwnum.a library. Navigate back to the ECM build
    directory. If you have previously configured and built ECM, execute the
@@ -76,9 +72,10 @@ Users should familiarize themselves with the instructions in
 
    $ make check
 
-   This will run several tests for P+1, P-1, ECM. These tests take a few
-   minutes. It should normally end with "All ECM tests are ok."
-
+   This will run several tests for P+1, P-1, ECM, & ECM with gwnum. These
+   tests take a few minutes. It should normally end with the "TOTAL" count
+   equal to the "PASS" count, with the remaining counts all zero.
+   
 5) Usage. ECM with gwnum now has full capability to help find factors for integers
    of any form. Prior to this release gwnum was limited to processing input
    integers of the form "(k*b^n+c)/(factors, if any)". This is still the
@@ -135,7 +132,7 @@ Step 2 took 525ms
        used. The message "Using gwnum_ecmStage1(k, b, n, c, B1, gw_B1done)"
        or the message "Using gwnum_ecmStage1_generic(B1, gw_B1done)" (with
        parameters replaced by actual values) will be output at the start
-       of stage 1 whenever the gwnum routines are used. If one of these
+       of stage 1 whenever one of the gwnum routines is used. If one of these
        messages is expected but doesn't appear, repeat the test with "-v"
        (verbose) in the command line to discover the reason.
 
@@ -154,8 +151,8 @@ Step 2 took 525ms
    line invocations which the user may use to control gwnum usage for any
    particular test:
    
-     "-gwnum" will force gwnum routines to be used as long as the input
-     number is greater than 2^350.
+     "-gwnum" will override the thresholds in ecm-impl.h and force gwnum
+     routines to be used as long as the input number is greater than 2^350.
      
      "-no-gwnum" requires no explanation.
      
@@ -194,9 +191,9 @@ In case of a problem, report it to us, with:
 
 - the output of the config.log file
 
-- the versions of GMP-ECM and GMP used (first output line), for example:
+- the versions of GMP-ECM, GMP, and GWNUM used (first output line), for example:
   
-  GMP-ECM x.y.z [configured with GMP u.v.w, --enable-asm-redc] [P+1]
+  GMP-ECM x.y.z [configured with GMP u.v.w, GWNUM r.s, --enable-asm-redc] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 

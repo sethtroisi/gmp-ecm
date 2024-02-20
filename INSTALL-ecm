@@ -80,7 +80,8 @@ Instructions to install GMP-ECM:
    $ make check
 
    This will run several tests for P+1, P-1, ECM. These tests take a few
-   minutes. It should normally end with "All ECM tests are ok."
+   minutes. It should normally end with the "TOTAL" count equal to the
+   "PASS" count, with the remaining counts all zero.
 
 4) (optional) to tune GMP-ECM, simply type:
 
