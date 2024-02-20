@@ -1,0 +1,209 @@
+Instructions to link with George Woltman's gwnum.a library.
+
+Note that gwnum is only used for Stage 1 of ECM. Stage 2
+is not affected.
+
+Users should familiarize themselves with the instructions in
+"INSTALL-ecm" before attempting the procedures here.
+
+0) Download Prime 95 source files. As of Feb. 2024, the current .zip file is:
+
+   https://mersenne.org/download/software/v30/30.19/p95v3019b10.source.zip
+ 
+   Note: due to critical bug fixes in the gwnum/ecmstag1.c and FFT
+   assembly files used by GMP-ECM, versions of P95 before v3019b10
+   will not work here (make check will fail) and should not be used.
+   
+   Unzip/extract the P95 file to any convenient location.
+
+1) Build gwnum.a. Navigate to the folder /p95v3019b10.source/gwnum.
+   Follow the instructions for your machine/OS in the readme.txt file.
+   For example, on 64-bit linux systems the command to execute is
+   "$ make -f make64".
+   
+   Important note for those using higher-end processors, such as
+   ones with "Alder Lake" or better chip architecture. Before
+   building gwnum.a, navigate to the GMP build directory and type:
+
+   $ egrep -w '(CC|CFLAGS)' config.log
+   
+   Copy the flags particular to your processor and return to the gwnum
+   folder. Edit the make file for your machine (such as "make64" for
+   linux), and append the copied flags to the "CFLAGS" line which will
+   be used in the gwnum.a build. Save the file, then execute the build
+   command. This should ensure that George's FFT code will use the fastest
+   instructions available on your processor.
+   
+   As an example, using an Intel Core i9-13900K on Ubuntu 22.04, the GMP
+   processor-specific CFLAGS are "-m64 -mtune=alderlake -march=alderlake".
+   When appended in gwnum/make64, the CFLAGS line changes from
+   
+   CFLAGS = -I.. -I../sqlite- <...> -O2
+   
+   to
+   
+   CFLAGS = -I.. -I../sqlite- <...> -O2 -m64 -mtune=alderlake -march=alderlake
+   
+2) Configure and build with the gwnum.a library. Navigate back to the ECM build
+   directory. If you have previously configured and built ECM, execute the
+   command
+
+   $ make clean
+
+   Now execute the command
+
+   $ ./configure --with-gwnum=<gwnum directory>
+
+   The directory must include the gwnum.a file as well as gwnum.h and
+   related header files.
+
+   For example, if the ECM and p95 folders are both in the same home folder,
+   the command might look like
+
+   $ ./configure --with-gwnum=../p95v3019b10.source/gwnum
+   
+   Note that you may also need to specify "--with-gmp=<gmpdir>" if
+   "configure" has trouble finding GMP.
+
+   The line "configure: Linking with George Woltman's GWNUM" should appear
+   near the end of the configure output.
+
+3) compile the program with:
+   
+   $ make
+
+4) To check that the program works correctly, type:
+
+   $ make check
+
+   This will run several tests for P+1, P-1, ECM. These tests take a few
+   minutes. It should normally end with "All ECM tests are ok."
+
+5) Usage. ECM with gwnum now has full capability to help find factors for integers
+   of any form. Prior to this release gwnum was limited to processing input
+   integers of the form "(k*b^n+c)/(factors, if any)". This is still the
+   preferred form, if possible, since gwnum is optimized for such input.
+   
+   Note that to use gwnum, input numbers must be greater than 2^350,
+   regardless of form.
+
+   (1) When the "k*b^n+c" form is used, the 'k*' term is not required if k = 1.
+       The exponent 'n' may be entered as an integer or in the form (b2^n2),
+       with 'n' or '(b2^n2)' < 10^10. Also, k must be a positive integer with
+       1 <= k < 2^49, and c must be a non-zero integer with |c| < 2^23.
+   (2) For integer-character-only input strings N, GMP-ECM may detect if
+       N = k*b^n+c, and find k, b, n, and c, but if possible the "k*b^n+c"
+       form should be used.
+   (3) Special note: the kbnc form should be used even if we are only interested
+       in a part of it. For example, suppose we wish to attempt to factor
+       the Cunningham number 2,4882M = 2^2441+2^1221+1, which has 5 as a factor.
+       We could enter it as "(2^2441+2^1221+1)/5" on the command line, and the
+       gwnum generic code would be used. But stage 1 will actually be faster
+       if we enter it as "(2^4882+1)/(5*(2^2441-2^1221+1))", since gwnum will
+       use the kbnc form 2^4882+1. Here is some sample output to illustrate:
+       
+$ echo "(2^2441+2^1221+1)/5" | ./ecm -sigma 0:8796261600422429213 -go 11685787 12e5 33e6
+GMP-ECM 7.0.6-dev [configured with GMP 6.3.0, GWNUM 30.19, --enable-asm-redc, --enable-assert] [ECM]
+Due to incompatible licenses, this binary file must not be distributed.
+Input number is (2^2441+2^1221+1)/5 (735 digits)
+Using B1=1200000, B2=33000000, polynomial x^2, sigma=0:8796261600422429213
+Using gwnum_ecmStage1_generic(1200000, 1)
+Step 1 took 16734ms
+Step 2 took 515ms
+********** Factor found in step 2: 28560168011064685473913587072588901
+Found prime factor of 35 digits: 28560168011064685473913587072588901
+Composite cofactor ((2^2441+2^1221+1)/5)/28560168011064685473913587072588901 has 700 digits
+
+$ echo "(2^4882+1)/(5*(2^2441-2^1221+1))" | ./ecm -sigma 0:8796261600422429213 -go 11685787 12e5 33e6
+...Input number is (2^4882+1)/(5*(2^2441-2^1221+1)) (735 digits)
+...Using gwnum_ecmStage1(1, 2, 4882, 1, 1200000, 1)
+Step 1 took 7871ms
+Step 2 took 519ms
+********** Factor found in step 2: 28560168011064685473913587072588901
+
+       In contrast, the same input but with "-no-gwnum" in the command line had
+       the following timings:
+
+Using Lucas chain codes
+Step 1 took 22331ms
+Step 2 took 525ms
+
+   (4) Since the gwnum routines use classical Montgomery curves of the form
+       By^2 = x^3 + Ax^2 + x, "-param 0" or "-sigma 0:<val>" should always be
+       specified on the command line. Note that -param may default to 1 if
+       "-param" is unspecified, in which case the gwnum routines will not be
+       used. The message "Using gwnum_ecmStage1(k, b, n, c, B1, gw_B1done)"
+       or the message "Using gwnum_ecmStage1_generic(B1, gw_B1done)" (with
+       parameters replaced by actual values) will be output at the start
+       of stage 1 whenever the gwnum routines are used. If one of these
+       messages is expected but doesn't appear, repeat the test with "-v"
+       (verbose) in the command line to discover the reason.
+
+6) Thresholds. The file "ecm-impl.h" now includes estimates of the input
+   bit sizes above which gwnum will be used:
+   
+   #define GWNUM_KBNC_THRESHOLD 1130 /* bits */
+   #define GWNUM_SPEC_DIV_THRESHOLD 1215 /* bits */
+   #define GWNUM_GENERIC_THRESHOLD 2100 /* bits */
+
+   The "SPEC_DIV" threshold is specific to inputs of the form 2^n+/-1,
+   for which ECM uses "special division" for reduction.
+   
+   Since we currently have no tuning capability for these, and the thresholds
+   may vary considerably from machine to machine, we now have two new command
+   line invocations which the user may use to control gwnum usage for any
+   particular test:
+   
+     "-gwnum" will force gwnum routines to be used as long as the input
+     number is greater than 2^350.
+     
+     "-no-gwnum" requires no explanation.
+     
+   Use of these switches allows any user to estimate thresholds on
+   their machine, edit "ecm-impl.h" accordingly, and rebuild.
+
+7) Speedups. Depending on input number size relative to the thresholds,
+   stage 1 timing comparisons with & without gwnum can range from a few
+   percent near the threshold to factors of 10 and beyond for larger
+   inputs. Here are two runs, the first without gwnum, and the next with gwnum,
+   for the generalized Fermat number 6^2048+1:
+
+$ echo "(6^(2^11)+1)/(96479889653761)" | ./ecm -no-gwnum -sigma 0:6685190033435505716 21e6 9e9
+...Input number is (6^(2^11)+1)/(96479889653761) (1580 digits)
+Using B1=21000000, B2=9000000000, polynomial Dickson(6), sigma=0:6685190033435505716
+Using Lucas chain codes
+Step 1 took 1299300ms
+Step 2 took 42448ms
+********** Factor found in step 2: 27235071532927521153002936160735956993
+Found prime factor of 38 digits: 27235071532927521153002936160735956993
+Composite cofactor ((6^(2^11)+1)/(96479889653761))/27235071532927521153002936160735956993 has 1543 digits
+
+$ echo "(6^(2^11)+1)/(96479889653761)" | ./ecm -sigma 0:6685190033435505716 21e6 9e9
+...Using gwnum_ecmStage1(1, 6, 2048, 1, 21000000, 1)
+Step 1 took 145443ms
+Step 2 took 42417ms
+********** Factor found in step 2: 27235071532927521153002936160735956993
+Found prime factor of 38 digits: 27235071532927521153002936160735956993
+Composite cofactor ((6^(2^11)+1)/(96479889653761))/27235071532927521153002936160735956993 has 1543 digits
+
+   As is easily seen, (no gwnum satge 1 time)/(gwnum stage 1 time) = 8.93 (!)
+
+============================================================================
+
+In case of a problem, report it to us, with:
+
+- the output of the config.log file
+
+- the versions of GMP-ECM and GMP used (first output line), for example:
+  
+  GMP-ECM x.y.z [configured with GMP u.v.w, --enable-asm-redc] [P+1]
+
+- the detailed input enabling us to reproduce the problem, for example:
+
+  $ echo 328006342451 | ./ecm -pp1 -x0 5 120 7043
+
+- the output you get.
+
+Then send your bug report at <ecm-discuss@inria.fr>.
+This is a public list, with archives available at
+<https://sympa.inria.fr/sympa/arc/ecm-discuss/>.

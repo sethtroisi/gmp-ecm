@@ -63,41 +63,9 @@ Instructions to install GMP-ECM:
    builds, regardless of these parameters.
 
    Note 3: If you want to use George Woltman's GWNUM library for speeding up
-   factoring numbers of the form k*b^n +/- c, obtain the source file from
-   <https://www.mersenne.org/download/software> (as of November 2023 the latest
-   source is v30/30.8/p95v308b15.source.zip), build the gwnum library for
-   your operating system (for example under 64-bit Linux go to the gwnum
-   directory and type "make -f make64"), then use:
-
-   $ ./configure --with-gwnum=<gwnum directory>
-
-   The directory must include the gwnum.a file as well as gwnum.h and
-   related header files.
-
-   Also note:
-   (1) Prime 95 versions older than p95v298b7 may not work properly
-       and should be avoided.
-   (2) Input integers should generally be entered in the form
-       "(k*b^n+c)/(factors, if any)". The 'k*' term is not required if k = 1.
-       The exponent 'n' may be entered as an integer or in the form (b2^n2),
-       with 'n' or '(b2^n2)' < 10^10. Also, k must be a positive integer with
-       1 <= k < 2^49, and c must be a non-zero integer with |c| < 2^23.
-       Finally, the input number to be factored must be > 2^350.
-   (3) For integer-character-only input strings N, GMP-ECM may detect if
-       N = k*b^n+c, and find k, b, n, and c, but if possible the form above
-       should be used.
-   (4) Since the gwnum routines use classical Montgomery curves of the form
-       By^2 = x^3 + Ax^2 + x, "-param 0" or "-sigma 0:<val>" should always be
-       specified on the command line. Note that -param may default to 1 if
-       "-param" is unspecified, in which case the gwnum routines will not be
-       used. The message "Using gwnum_ecmStage1(k, b, n, c, B1, gw_B1done)"
-       (with parameters replaced by actual values) will be output at the start
-       of stage 1 whenever the gwnum routines are used. If this message
-       is expected but doesn't appear, repeat the test with "-v" (verbose)
-       in the command line to discover the reason.
-   (5) The current Prime 95 release may not include support for the newest
-       processor types, and if not may default to older, slower FFT code.
-
+   factoring, detailed instructions for building and linking to the gwnum.a
+   library may be found in the INSTALL-gwnum file.
+   
 2) compile the program with:
 
    $ make
