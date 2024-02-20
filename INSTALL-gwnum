@@ -186,7 +186,7 @@ Step 2 took 42417ms
 Found prime factor of 38 digits: 27235071532927521153002936160735956993
 Composite cofactor ((6^(2^11)+1)/(96479889653761))/27235071532927521153002936160735956993 has 1543 digits
 
-   As is easily seen, (no gwnum satge 1 time)/(gwnum stage 1 time) = 8.93 (!)
+   As is easily seen, (no gwnum stage 1 time)/(gwnum stage 1 time) = 8.93 (!)
 
 ============================================================================
 
