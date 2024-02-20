@@ -139,4 +139,4 @@ $ECM -h
 $ECM -printconfig | grep Tuning
 
 echo "All ECM gwnum tests are ok."
-echo "All ECM tests are ok."
+echo ""
