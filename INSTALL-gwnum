@@ -153,7 +153,7 @@ Step 2 took 525ms
    
      "-gwnum" will override the thresholds in ecm-impl.h and force gwnum
      routines to be always used (for input numbers greater than 2^350,
-     which is the gwnum own threshold).
+     which is the gwnum.a library threshold).
      
      "-no-gwnum" requires no explanation.
      
