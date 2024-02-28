@@ -531,10 +531,10 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
     /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
     /* ecmstag1.c in gwnum says it needs 60 bits more than the gwnum modulus size,
        so we add 64 bits here to maintain whole-word allocations for gw_x and gw_z */
-    mpz_init2 (gw_x, kbnc_size + 96);
-    mpz_init2 (gw_z, kbnc_size + 96);
+    mpz_init2 (gw_x, 2*kbnc_size);
+    mpz_init2 (gw_z, 2*kbnc_size);
     mpres_init (gw_A, modulus);
-    options = 0;
+    options = 1;
   }
   else /* set for gwnum generic mod */
   {
@@ -560,10 +560,12 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   siz_x = SIZ(gw_x);
   siz_z = SIZ(gw_z);
 
-  /* George Woltman says that the gwnum library can handle k values up to 49
-     or 50 bits long, and the maximum c value is +/-8388607 */
+  /* Per p95v3019b11.source/gwnum/gwnum.c, line 2181:
+  "if (k > 9007199254740991.0) return (GWERROR_K_TOO_LARGE);"
+  The stated value is 2^53-1, so we must require k <= 2^53-1.
+  The maximum c value is +/-8388607 (2^23-1) */
   ASSERT_ALWAYS (gw_k == rint (gw_k)); /* check that k is an integer */
-  ASSERT_ALWAYS (1.0 <= gw_k && gw_k < 0x1p49);
+  ASSERT_ALWAYS (1.0 <= gw_k && gw_k < 0x1p53);
   ASSERT_ALWAYS (-8388607 <= gw_c && gw_c <= 8388607);
 #if GMP_NUMB_BITS <= 32
   youpi = gwnum_ecmStage1_u32 (gw_k, gw_b, gw_n, gw_c, 
