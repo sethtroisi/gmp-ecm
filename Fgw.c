@@ -531,20 +531,20 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
     /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
     /* ecmstag1.c in gwnum says it needs 60 bits more than the gwnum modulus size,
        so we add 64 bits here to maintain whole-word allocations for gw_x and gw_z */
-    mpz_init2 (gw_x, 2*kbnc_size);
-    mpz_init2 (gw_z, 2*kbnc_size);
+    mpz_init2 (gw_x, kbnc_size+64);
+    mpz_init2 (gw_z, kbnc_size+64);
     mpres_init (gw_A, modulus);
-    options = 1;
+    options = 1; /* force gwnum to do "slow" jobs; users can now test using the -gwnum and -no-gwnum
+                    command line flags which way is actually faster for a given input */
   }
   else /* set for gwnum generic mod */
   {
     outputf (OUTPUT_NORMAL, 
            "Using gwnum_ecmStage1_generic(%.0f, %ld)\n", B1, gw_B1done);
 
-     kbnc_size = 8*sizeof(mp_size_t)*ABSIZ(modulus->orig_modulus); /* extra pad requirement for MMGW FFT's (?) */
-     /* allocations too small invite the dreaded re-allocation/free() "invalid pointer" bug crash */
-     mpz_init2 (gw_x, 2*kbnc_size); /* 2x allocations; probably more than necessary but seems to always work */
-     mpz_init2 (gw_z, 2*kbnc_size);
+     kbnc_size = 8*sizeof(mp_size_t)*ABSIZ(modulus->orig_modulus) + 64; /* One extra 64-bit word per G. Woltman */
+     mpz_init2 (gw_x, kbnc_size);
+     mpz_init2 (gw_z, kbnc_size);
      mpres_init (gw_A, modulus);
      gw_k = 1.0; gw_n = 1; gw_c = 1;
      options = 1; /* force gwnum to do "slow" jobs; George W. has improved generic reduction (MMGW algorithm) */

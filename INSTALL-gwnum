@@ -6,42 +6,21 @@ is not affected.
 Users should familiarize themselves with the instructions in
 "INSTALL-ecm" before attempting the procedures here.
 
-0) Download Prime 95 source files. As of Feb. 2024, the current .zip file is:
+0) Download Prime 95 source files. As of March 2024, the current .zip file is:
 
-   https://mersenne.org/download/software/v30/30.19/p95v3019b11.source.zip
+   https://mersenne.org/download/software/v30/30.19/p95v3019b12.source.zip
  
    Note: due to critical bug fixes in the gwnum/ecmstag1.c and FFT
-   assembly files used by GMP-ECM, versions of P95 before v3019b11
+   assembly files used by GMP-ECM, versions of P95 before v3019b12
    will not work here (make check will fail) and should not be used.
    
    Unzip/extract the P95 file to any convenient location.
 
-1) Build gwnum.a. Navigate to the folder /p95v3019b11.source/gwnum.
+1) Build gwnum.a. Navigate to the directory <P95 parent folder>/gwnum.
    Follow the instructions for your machine/OS in the readme.txt file.
    For example, on 64-bit linux systems the command to execute is
    "$ make -f make64".
    
-   Important note for those using higher-end processors, such as
-   ones with "Alder Lake" or better chip architecture. Before
-   building gwnum.a, edit the relevant make file for your machine/OS
-   and append the following to the CFLAGS line:
-   
-      -mtune=native -march=native
-
-   Save the file, then execute the build command.
-
-   As an example, for the file gwnum/make64, the CFLAGS line changes from
-   
-      CFLAGS = -I.. -I../sqlite- <...> -O2
-   
-   to
-   
-      CFLAGS = -I.. -I../sqlite- <...> -O2 -mtune=native -march=native
-   
-   Note that we have seen very large increases in run times on an
-   Intel® Core™ i9-13900K when gwnum.a is built without the "native"
-   CFLAGS. The cause is unknown at present.
-
 2) Configure and build with the gwnum.a library. Navigate back to the ECM build
    directory. If you have previously configured and built ECM, execute the
    command
@@ -58,7 +37,7 @@ Users should familiarize themselves with the instructions in
    For example, if the ECM and p95 folders are both in the same home folder,
    the command might look like
 
-   $ ./configure --with-gwnum=../p95v3019b11.source/gwnum
+   $ ./configure --with-gwnum=../p95v3019b12.source/gwnum
    
    Note that you may also need to specify "--with-gmp=<gmpdir>" if
    "configure" has trouble finding GMP.
@@ -91,7 +70,7 @@ Users should familiarize themselves with the instructions in
        with 'n' or '(b2^n2)' < 10^10. Also, k must be a positive integer with
        1 <= k < 2^53, and c must be a non-zero integer with |c| < 2^23.
        Note that the k upper limit of 2^53-1 is taken from the file
-       p95v3019b11.source/gwnum/gwnum.c, line 2181:
+       p95v3019b12.source/gwnum/gwnum.c, line 2181:
        "if (k > 9007199254740991.0) return (GWERROR_K_TOO_LARGE);"
        and is subject to change by Woltman.
    (2) For integer-character-only input strings N, GMP-ECM may detect if
