@@ -22,6 +22,9 @@ MA 02110-1301, USA. */
 #include <stdio.h> /* for stderr */
 #include <stdlib.h>
 #include <string.h> /* for memset */
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "ecm-impl.h"
 #include "sp.h"
 
@@ -324,15 +327,34 @@ ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l,
 }
 #endif
 
+/* Convert m to CRT representation modulo sp_num moduli */
+static inline void
+mpzspv_from_mpzv_one(mpzspv_t x, const spv_size_t offset, mpz_t m, mpzspm_t mpzspm)
+{
+  unsigned int j;
+  if (mpz_sgn (m) == 0)
+    {
+      const unsigned int sp_num = mpzspm->sp_num;
+      for (j = 0; j < sp_num; j++)
+        x[j][offset] = 0;
+    }
+  else
+    {
+      ASSERT(mpz_sgn (m) > 0); /* We can't handle negative values */
+      if (mpzspm->T == NULL)
+        mpzspv_from_mpzv_slow (x, offset, m, mpzspm);
+      else
+        mpzspv_from_mpzv_fast (x, offset, m, mpzspm);
+    }
+}
+
 /* convert an array of len mpz_t numbers to CRT representation modulo
    sp_num moduli */
 void
 mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
     const spv_size_t len, mpzspm_t mpzspm)
 {
-  const unsigned int sp_num = mpzspm->sp_num;
   long i;
-
   ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
   ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
 
@@ -342,27 +364,29 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 #endif
 
 #if defined(_OPENMP)
-#pragma omp parallel private(i) if (len > 16384)
-  {
+  /* If we are called from a parallel region, avoid creating a nested parallel
+     region.
+     We need to use omp_get_level() here, and not omp_get_active_level() or
+     the convenience function omp_in_parallel() (which delegates to
+     omp_get_active_level()), or running the code with only 1 thread will
+     make the enclosing parallel region "inactive" and omp_get_active_level()
+     returns 0. Unfortunately, even with only 1 thread nested parallel regions
+     incur large overhead with (possibly useless?) futex syscalls. */
+  if (omp_get_level() == 0) {
     /* Multi-threading with dynamic scheduling slows things down */
+#pragma omp parallel private(i) if (len > 16384)
 #pragma omp for schedule(static)
-#endif
     for (i = 0; i < (long) len; i++)
     {
-      unsigned int j;
-      if (mpz_sgn (mpzv[i]) == 0)
-	{
-	  for (j = 0; j < sp_num; j++)
-	    x[j][i + offset] = 0;
-	}
-      else
-        {
-	  ASSERT(mpz_sgn (mpzv[i]) > 0); /* We can't handle negative values */
-          if (mpzspm->T == NULL)
-            mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm);
-          else
-            mpzspv_from_mpzv_fast (x, i + offset, mpzv[i], mpzspm);
-	}
+      mpzspv_from_mpzv_one(x, i + offset, mpzv[i], mpzspm);
+    }
+  } else {
+#endif
+
+    /* Code path without OpenMP */
+    for (i = 0; i < (long) len; i++)
+    {
+      mpzspv_from_mpzv_one(x, i + offset, mpzv[i], mpzspm);
     }
 #if defined(_OPENMP)
   }
