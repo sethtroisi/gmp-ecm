@@ -11,4 +11,4 @@ autoreconf -i
 ./configure --with-gwnum=/tmp/P95/gwnum
 make
 make check
-
+make longcheck
