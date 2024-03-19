@@ -534,8 +534,9 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
     mpz_init2 (gw_x, kbnc_size+64);
     mpz_init2 (gw_z, kbnc_size+64);
     mpres_init (gw_A, modulus);
-    options = 1; /* force gwnum to do "slow" jobs; users can now test using the -gwnum and -no-gwnum
-                    command line flags which way is actually faster for a given input */
+    options = 1; /* set flag for gwnum to do "slow" jobs; users can now test using the
+                     -force-gwnum and -force-no-gwnum command line flags which way
+                      is actually faster for a given input */
   }
   else /* set for gwnum generic mod */
   {
@@ -547,7 +548,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
      mpz_init2 (gw_z, kbnc_size);
      mpres_init (gw_A, modulus);
      gw_k = 1.0; gw_n = 1; gw_c = 1;
-     options = 1; /* force gwnum to do "slow" jobs; George W. has improved generic reduction (MMGW algorithm) */
+     options = 1; /* set flag for gwnum to do "slow" jobs; George W. has improved generic reduction (MMGW algorithm) */
   }
 
   /* mpres_get_z always produces non-negative integers */

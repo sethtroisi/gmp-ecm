@@ -2153,11 +2153,11 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
   st = cputime ();
 
 #ifdef HAVE_GWNUM
-  /* gwnum only used when param == 0 and command line did not include -no-gwnum */
+  /* gwnum only used when param == 0 and command line did not include -force-no-gwnum */
   if ((param == ECM_PARAM_SUYAMA) && (gw_cl_flag >= 0))
   {
     /* set thresholds */
-    if (gw_cl_flag > 0) /* -gwnum specified in command line */
+    if (gw_cl_flag > 0) /* -force-gwnum specified in command line */
     {
       /* set all thresholds to minimum */
       gw_knbc_threshold = 350;

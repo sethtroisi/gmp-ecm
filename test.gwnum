@@ -125,13 +125,13 @@ echo "(5^991-4^991)/(32968384602165289611041909)" | $ECM -sigma 0:12769541372088
 echo "(2^5398+1)/(5*(2^2699+2^1350+1)*25669713977)" | $ECM -sigma 0:13429501383701428433 -go 123446485573 5e5; checkcode $? 6
 echo "(2^2699-2^1350+1)/(5*25669713977)" | $ECM -sigma 0:13429501383701428433 -go 123446485573 5e5; checkcode $? 6
 
-# timing comparison; test -no-gwnum flag
+# timing comparison; test -force-no-gwnum flag
 echo "(6^(2^11)+1)/(96479889653761)" | $ECM -sigma 0:1252169957525507235 -go 7807291 5e5 15e5; checkcode $? 6
-echo "(6^(2^11)+1)/(96479889653761)" | $ECM -no-gwnum -sigma 0:1252169957525507235 -go 7807291 5e5 15e5; checkcode $? 6
+echo "(6^(2^11)+1)/(96479889653761)" | $ECM -force-no-gwnum -sigma 0:1252169957525507235 -go 7807291 5e5 15e5; checkcode $? 6
 
-# timing comparison; test -gwnum flag
+# timing comparison; test -force-gwnum flag
 echo "(2^839-1)/(26849*138561000316919*377801626929390823)" | $ECM -sigma 0:18041162131602966941 6e6; checkcode $? 14
-echo "(2^839-1)/(26849*138561000316919*377801626929390823)" | $ECM -gwnum -sigma 0:18041162131602966941 6e6; checkcode $? 14
+echo "(2^839-1)/(26849*138561000316919*377801626929390823)" | $ECM -force-gwnum -sigma 0:18041162131602966941 6e6; checkcode $? 14
 
 # Exercise APR test plus large-k kbnc_str() input
 echo "(562949953421312*3^1000+1)/36045048768571" | $ECM -sigma 0:9547094287835811496 1e5; checkcode $? 14

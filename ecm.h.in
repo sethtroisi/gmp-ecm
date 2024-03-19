@@ -122,7 +122,7 @@ typedef struct
   unsigned long gw_b;  /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_n;  /* use for gwnum stage 1 if input has form k*b^n+c */
   signed long gw_c;    /* use for gwnum stage 1 if input has form k*b^n+c */
-  signed long gw_cl_flag; /* command line flag: -1 = -no-gwnum, 1 = -gwnum,
+  signed long gw_cl_flag; /* command line flag: -1 = -force-no-gwnum, 1 = -force-gwnum,
                           0 = no command, use default thresholds */
 } __ecm_param_struct;
 typedef __ecm_param_struct ecm_params[1];

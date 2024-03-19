@@ -83,7 +83,7 @@ ecm_init (ecm_params q)
   q->gw_b = 0;
   q->gw_n = 0;
   q->gw_c = 0;
-  q->gw_cl_flag = -1; /* default to -no-gwnum */
+  q->gw_cl_flag = -1; /* default to -force-no-gwnum */
 }
 
 /* function to be called between two calls of ecm_factor, it the same

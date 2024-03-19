@@ -144,8 +144,8 @@ usage (void)
                                                   "default, CUDA chooses)\n");
 #endif /* WITH_GPU */
 #ifdef HAVE_GWNUM
-    printf ("  -gwnum       Use gwnum routines for ECM stage 1 (if possible).\n");
-    printf ("  -no-gwnum    Do not use gwnum routines for ECM stage 1.\n");
+    printf ("  -force-gwnum       Use gwnum routines for ECM stage 1 (if possible).\n");
+    printf ("  -force-no-gwnum    Do not use gwnum routines for ECM stage 1.\n");
 #endif /* HAVE_GWNUM */
     printf ("  -h, --help   Prints this help and exit.\n");
 }
@@ -512,13 +512,13 @@ main (int argc, char *argv[])
 	}
 #ifdef HAVE_GWNUM
       /* switches to facilitate finding crossovers or force faster method  */
-      else if (strcmp (argv[1], "-gwnum") == 0)
+      else if (strcmp (argv[1], "-force-gwnum") == 0)
 	{
 	  gw_cl_flag = 1.0; /* always use gwnum if input number > 2^350 */
 	  argv++;
 	  argc--;
 	}
-      else if (strcmp (argv[1], "-no-gwnum") == 0)
+      else if (strcmp (argv[1], "-force-no-gwnum") == 0)
 	{
 	  gw_cl_flag = -1.0; /* Do not use gwnum */
 	  argv++;
