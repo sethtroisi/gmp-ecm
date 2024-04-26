@@ -769,7 +769,7 @@ uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element
 				k = 1;
 				while( dif < Lchain[ chain_length-k ].value )
 					k++;
-				ASSERT( dif == Lchain[ chain_length-k ].value );
+				ASSERT( (dif == Lchain[ chain_length-k ].value) && (k < 15) );
 
 				Lchain[ chain_length+1 ].dif_offset = k;
 				chain_length++;
@@ -917,7 +917,7 @@ uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element
 					k = 1;
 					while( dif < Lchain[ chain_length-k ].value )
 						k++;
-					ASSERT( dif == Lchain[ chain_length-k ].value );
+					ASSERT( (dif == Lchain[ chain_length-k ].value) && (k < 15) );
 
 					Lchain[ chain_length+1 ].dif_offset = k;
 					chain_length++;
@@ -931,7 +931,7 @@ uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element
 					k = 1;
 					while( dif < Lchain[ chain_length-k ].value )
 						k++;
-					ASSERT( dif == Lchain[ chain_length-k ].value );
+					ASSERT( (dif == Lchain[ chain_length-k ].value) && (k < 15) );
 
 					Lchain[ chain_length+1 ].dif_offset = k;
 					chain_length++;
@@ -945,7 +945,7 @@ uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element
 					k = 1;
 					while( dif < Lchain[ chain_length-k ].value )
 						k++;
-					ASSERT( dif == Lchain[ chain_length-k ].value );
+					ASSERT( (dif == Lchain[ chain_length-k ].value) && (k < 15) );
 
 					Lchain[ chain_length+1 ].dif_offset = k;
 					chain_length++;
@@ -959,7 +959,7 @@ uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element
 					k = 1;
 					while( dif < Lchain[ chain_length-k ].value )
 						k++;
-					ASSERT( dif == Lchain[ chain_length-k ].value );
+					ASSERT( (dif == Lchain[ chain_length-k ].value) && (k < 15) );
 
 					Lchain[ chain_length+1 ].dif_offset = k;
 					chain_length++;
@@ -983,7 +983,7 @@ uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element
 				k = 1;
 				while( dif < Lchain[ chain_length-k ].value )
 					k++;
-				ASSERT( dif == Lchain[ chain_length-k ].value );
+				ASSERT( (dif == Lchain[ chain_length-k ].value) && (k < 15) );
 
 				Lchain[ chain_length+1 ].dif_offset = k;
 				chain_length++;
@@ -1001,7 +1001,7 @@ uint8_t generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element
 				k = 2;
 				while( dif < Lchain[ chain_length-k ].value )
 					k++;
-				ASSERT( dif == Lchain[ chain_length-k ].value );
+				ASSERT( (dif == Lchain[ chain_length-k ].value) && (k < 15) );
 
 				Lchain[ chain_length+1 ].dif_offset = k;
 				chain_length++;
@@ -1036,7 +1036,7 @@ void max_continuation( chain_element *Lchain, uint8_t *chain_length, uint8_t i )
 	k = 2;
 	while( dif < Lchain[ *chain_length-k ].value )
 		k++;
-	ASSERT( dif == Lchain[ *chain_length-k ].value );
+	ASSERT( (dif == Lchain[ *chain_length-k ].value) && (k < 15) );
 
 	Lchain[ *chain_length+1 ].dif_offset = k;
 	(*chain_length)++;
