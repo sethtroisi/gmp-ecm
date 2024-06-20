@@ -414,7 +414,7 @@ print_timings (double (*f0)(size_t), double (*f1)(size_t),
 #endif
 
 static void
-tune_list_mul_n ()
+tune_list_mul_n (void)
 {
   size_t n;
   unsigned int __i, __k = 1, best[TUNE_LIST_MUL_N_MAX_SIZE];

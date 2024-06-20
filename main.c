@@ -79,7 +79,7 @@ signal_handler (int sig)
 }
 
 int
-stop_asap_test ()
+stop_asap_test (void)
 {
   return exit_asap_value;
 }
@@ -151,7 +151,7 @@ usage (void)
 
 /* Print parameters that were used to build GMP-ECM */
 static void
-print_config ()
+print_config (void)
 {
   printf ("Compilation options:\n");
 #ifdef __MPIR_VERSION

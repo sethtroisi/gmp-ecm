@@ -159,8 +159,8 @@ const unsigned long phiPfactors[] = {2UL, 3UL, 5UL, 7UL, 11UL, 13UL,
 */
 
 #ifndef _OPENMP
-static int omp_get_num_threads () {return 1;}
-static int omp_get_thread_num () {return 0;}
+static int omp_get_num_threads (void) {return 1;}
+static int omp_get_thread_num (void) {return 0;}
 #endif
 
 static void 

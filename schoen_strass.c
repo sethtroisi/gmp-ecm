@@ -1498,7 +1498,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
 }
 
 void
-F_clear ()
+F_clear (void)
 {
 #if THREAD_SAFE_GT > 0
   mpz_t *gtptr = pthread_getspecific (gtkey);

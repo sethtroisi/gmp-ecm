@@ -569,11 +569,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   for (i = 0; i < k; i++)
     {
       /* needs dF+1 cells in T+dF */
-	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
-			      modulus);
+      youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
+                          modulus);
 
       if (test_verbose (OUTPUT_TRACE))
-	{
+      {
 	  unsigned long j;
 	  for (j = 0; j < dF; j++)
 	    outputf (OUTPUT_TRACE, "g_%lu = %Zd\n", j, G[j]);
@@ -586,14 +586,14 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
           goto clear_fd;
         }
 
-    if (stop_asap != NULL && (*stop_asap)())
-      goto clear_fd;
+      if (stop_asap != NULL && (*stop_asap)())
+        goto clear_fd;
 
-  /* -----------------------------------------------
-     |   F    |  invF  |   G    |         T        |
-     -----------------------------------------------
-     |  F(x)  | 1/F(x) | rootsG |      ???         |
-     ----------------------------------------------- */
+      /* -----------------------------------------------
+         |   F    |  invF  |   G    |         T        |
+         -----------------------------------------------
+         |  F(x)  | 1/F(x) | rootsG |      ???         |
+         ----------------------------------------------- */
 
       st = cputime ();
 
@@ -603,29 +603,29 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
         PolyFromRoots (G, G, dF, T + dF, n);
 
       if (test_verbose (OUTPUT_TRACE))
-	{
-	  unsigned long j;
-	  outputf (OUTPUT_TRACE, "G(x) = x^%lu ", dF);
-	  for (j = 0; j < dF; j++)
-	    outputf (OUTPUT_TRACE, "+ (%Zd * x^%lu)", G[j], j);
-	  outputf (OUTPUT_TRACE, "\n");
-	}
+      {
+        unsigned long j;
+        outputf (OUTPUT_TRACE, "G(x) = x^%lu ", dF);
+        for (j = 0; j < dF; j++)
+          outputf (OUTPUT_TRACE, "+ (%Zd * x^%lu)", G[j], j);
+        outputf (OUTPUT_TRACE, "\n");
+      }
 
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
       outputf (OUTPUT_VERBOSE, "Building G from its roots took %ldms\n", 
                elltime (st, cputime ()));
 
-    if (stop_asap != NULL && (*stop_asap)())
-      goto clear_fd;
+      if (stop_asap != NULL && (*stop_asap)())
+        goto clear_fd;
 
-  /* -----------------------------------------------
-     |   F    |  invF  |   G    |         T        |
-     -----------------------------------------------
-     |  F(x)  | 1/F(x) |  G(x)  |      ???         |
-     ----------------------------------------------- */
+      /* -----------------------------------------------
+         |   F    |  invF  |   G    |         T        |
+         -----------------------------------------------
+         |  F(x)  | 1/F(x) |  G(x)  |      ???         |
+         ----------------------------------------------- */
 
       if (i == 0)
-        {
+      {
           list_sub (H, G, F, dF); /* coefficients 1 of degree cancel,
                                      thus T is of degree < dF */
           list_mod (H, H, dF, n);

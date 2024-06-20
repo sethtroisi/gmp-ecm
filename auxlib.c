@@ -132,7 +132,7 @@ cputime ()
 #endif
 
 long
-cputime ()
+cputime (void)
 {
   struct rusage rus;
 
@@ -145,7 +145,7 @@ cputime ()
 /* Resort to clock (), which on some systems may return calendar time. */
 
 long
-cputime ()
+cputime (void)
 {
   /* Return time in milliseconds */
   return (long) (clock () * (1000. / (double) CLOCKS_PER_SEC));
@@ -162,7 +162,7 @@ elltime (long st0, long st1)
 
 /* Get real (wall-clock) time in milliseconds */
 long
-realtime ()
+realtime (void)
 {
 #ifdef HAVE_GETTIMEOFDAY
   struct timeval tv;

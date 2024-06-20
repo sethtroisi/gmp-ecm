@@ -108,8 +108,8 @@ void set_verbose (int);
 #define ECM_PRIME_FAC_PRIME_COFAC (2+4+8)
 
 /* getprime.c */
-double getprime ();
-void getprime_clear ();
+double getprime (void);
+void getprime_clear (void);
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 #define FREE_PRIME_TABLE -1.0
 

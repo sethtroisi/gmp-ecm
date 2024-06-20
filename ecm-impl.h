@@ -278,9 +278,9 @@ extern "C" {
 
 /* getprime.c */
 #define getprime __ECM(getprime)
-double   getprime       ();
+double   getprime       (void);
 #define getprime_clear __ECM(getprime_clear)
-void     getprime_clear ();
+void     getprime_clear (void);
 #define getprime_seek __ECM(getprime_seek)
 void getprime_seek (double);
 
@@ -606,7 +606,7 @@ unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, int,
 unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int,
                           unsigned int, unsigned int, mpz_t *);
 #define F_clear __ECM(F_clear)
-void F_clear ();
+void F_clear (void);
 
 /* rho.c */
 #define rhoinit __ECM(rhoinit)

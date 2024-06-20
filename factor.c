@@ -27,7 +27,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 
 const char *
-ecm_version ()
+ecm_version (void)
 {
   static const char *version = ECM_VERSION;
   return version;

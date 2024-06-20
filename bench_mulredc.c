@@ -69,7 +69,7 @@ cputime ()
 #endif
 
 long
-cputime ()
+cputime (void)
 {
   struct rusage rus;
 
@@ -82,7 +82,7 @@ cputime ()
 /* Resort to clock (), which on some systems may return calendar time. */
 
 long
-cputime ()
+cputime (void)
 {
   /* Return time in milliseconds */
   return (long) (clock () * (1000. / (double) CLOCKS_PER_SEC));

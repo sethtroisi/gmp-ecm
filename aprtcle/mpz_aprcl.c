@@ -214,7 +214,7 @@ mpz_t TestNbr;
 
 /* ============================================================================================== */
 
-void allocate_vars()
+void allocate_vars (void)
 {
   int i = 0;
   aiJS = malloc(PWmax * sizeof(mpz_t));
