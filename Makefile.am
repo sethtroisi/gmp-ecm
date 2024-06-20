@@ -139,7 +139,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              LucasChainGenerator/src/LucasChainGen.h \
              LucasChainGenerator/src/LCG_macros.h
 
-DIST_SUBDIRS = x86_64 powerpc64 aprtcle build.vc12
+DIST_SUBDIRS = x86_64 powerpc64 aprtcle
 
 DISTCLEANFILES = config.m4
 
