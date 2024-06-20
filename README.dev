@@ -56,8 +56,7 @@ target which is processed by "make" or "make all".
 
 To make a new release:
 
-  0) Check all tests pass (test.ecm, test.pm1, test.pp1,
-                           testlong.ecm, testlong.pm1, testlong.pp1),
+  0) Check all tests pass (make check and make longcheck),
      with or without NTT (./test.ecm "./ecm -no-ntt"),
      with or without --enable-openmp,
      check the issues in TODO, and for issues on gitlab.inria.fr/zimmerma/ecm.
@@ -72,9 +71,7 @@ To make a new release:
   1) Check the version (configure.ac and build.vs*/gen_ecm_h.bat).
      Switch assertions to off by default in configure.ac.
   2) Update the NEWS file, and check the INSTALL-ecm file is up-to-date.
-  3) Update the ChangeLog file, e.g. git log > /tmp/ChangeLog and edit
-     ChangeLog to insert /tmp/ChangeLog at the beginning and remove
-     the duplicated lines.
+  3) no need to update ChangeLog anymore, it points to "git log"
   4) Check the required sizes of P-1, P+1, ECM champions in champions.h.
   5) Generate the release version with "make dist".
   6) Test the release version with "make distcheck" (in particular, check

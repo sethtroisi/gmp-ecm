@@ -144,6 +144,13 @@ Known problems:
 
 ============================================================================
 
+For OPAM users:
+
+there is an OPAM package for GMP-ECM which is tested on MacOS (including Apple
+silicon), many Linux variants and Windows (MinGW with cygwin build host).
+See https://github.com/ocaml/opam-repository/pull/20105 (contributed by
+Michael Soegtrop).
+
 For Windows users:
 
 Windows users have two options for building GMP-ECM: (a) the use of a
