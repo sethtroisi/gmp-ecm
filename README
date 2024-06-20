@@ -408,6 +408,7 @@ are taken. It can take 4 values (s is the 'sigma' parameter):
     1: (only for 64-bit processors)
                                 A = 4*s^2/2^64-2,
                                   x0 = 2.
+       It requires that s^2 fits in a 64-bit limb, thus s < 2^32.
     2: use an elliptic parametrization to compute d(s) such that the curve has 
        a 6-torsion point.
                                 A = 4*d(s)-2,

@@ -88,7 +88,7 @@ Users should familiarize themselves with the instructions in
        use the kbnc form 2^4882+1. Here is some sample output to illustrate:
        
 $ echo "(2^2441+2^1221+1)/5" | ./ecm -sigma 0:8796261600422429213 -go 11685787 12e5 33e6
-GMP-ECM 7.0.6-dev [configured with GMP 6.3.0, GWNUM 30.19, --enable-asm-redc, --enable-assert] [ECM]
+GMP-ECM 7.0.6 [configured with GMP 6.3.0, GWNUM 30.19, --enable-asm-redc, --enable-assert] [ECM]
 Due to incompatible licenses, this binary file must not be distributed.
 Input number is (2^2441+2^1221+1)/5 (735 digits)
 Using B1=1200000, B2=33000000, polynomial x^2, sigma=0:8796261600422429213

@@ -135,7 +135,9 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              getprime_r.h cgbn_stage1.cu \
              test.gpuecm README.gpu c155 \
              test_dummy.save test_prime95.save M877.save \
-	     M997.save test_Z2102.n
+	     M997.save test_Z2102.n LucasChainGenerator/README \
+             LucasChainGenerator/src/LucasChainGen.h \
+             LucasChainGenerator/src/LCG_macros.h
 
 DIST_SUBDIRS = x86_64 powerpc64 aprtcle build.vc12
 
