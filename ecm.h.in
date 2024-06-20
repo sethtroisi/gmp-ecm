@@ -161,10 +161,11 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 #define ECM_PP1 2
 
 /* return value of ecm, pm1, pp1 */
+#define ECM_USER_ERROR -2 /* should be non-zero */
+#define ECM_ERROR -1 /* should be non-zero */
+#define ECM_NO_FACTOR_FOUND 0 /* should be zero */
 #define ECM_FACTOR_FOUND_STEP1 1 /* should be positive */
 #define ECM_FACTOR_FOUND_STEP2 2 /* should be positive */
-#define ECM_NO_FACTOR_FOUND 0 /* should be zero */
-#define ECM_ERROR -1 /* should be non-zero */
 #define ECM_FACTOR_FOUND_P(x) ((x) > 0)
 #define ECM_ERROR_P(x)        ((x) < 0)
 

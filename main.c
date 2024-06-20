@@ -1523,10 +1523,11 @@ main (int argc, char *argv[])
         /* if torsion was used, some factor may have been found... */
         result = ecm_factor (f, n.n, B1, params);
 
-      if (result == ECM_ERROR)
+      if (result == ECM_ERROR || result == ECM_USER_ERROR)
         {
-          fprintf (stderr, "Please report internal errors at <%s>.\n",
-                   PACKAGE_BUGREPORT);
+          if (result == ECM_ERROR) // internal error
+            fprintf (stderr, "Please report internal errors at <%s>.\n",
+                     PACKAGE_BUGREPORT);
           exit (EXIT_FAILURE);
         }
       

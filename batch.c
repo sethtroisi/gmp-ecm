@@ -317,7 +317,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         {
           mpres_get_z (u, A, n);
           outputf (OUTPUT_ERROR, "Error, with -param %d, sigma should be < 2^32\n", batch);
-          return ECM_ERROR;
+          return ECM_USER_ERROR;
         }
       d_1 = mpz_getlimbn (u, 0);
     }
