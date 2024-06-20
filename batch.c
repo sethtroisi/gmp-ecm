@@ -316,11 +316,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       if (mpz_size (u) > 1)
         {
           mpres_get_z (u, A, n);
-          outputf (OUTPUT_ERROR,
-               "Error, 2^%d*(A+2) should fit in a mp_limb_t, A=%Zd\n",
-                   GMP_NUMB_BITS - 2, u);
-          if (batch == ECM_PARAM_BATCH_SQUARE)
-            outputf (OUTPUT_ERROR, "   (i.e., with -sigma 1:s, s < 2^32)\n");
+          outputf (OUTPUT_ERROR, "Error, with -param %d, sigma should be < 2^32\n", batch);
           return ECM_ERROR;
         }
       d_1 = mpz_getlimbn (u, 0);
