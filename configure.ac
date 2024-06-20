@@ -689,7 +689,7 @@ CU_CHECK_CUDA
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
-AC_CONFIG_FILES([Makefile x86_64/Makefile powerpc64/Makefile aprtcle/Makefile build.vc12/Makefile build.vc12/assembler/Makefile build.vc12/ecm/Makefile build.vc12/ecm_gpu/Makefile build.vc12/libecm/Makefile build.vc12/libecm_gpu/Makefile build.vc12/tune/Makefile build.vc12/bench_mulredc/Makefile])
+AC_CONFIG_FILES([Makefile x86_64/Makefile powerpc64/Makefile aprtcle/Makefile])
 
 AC_SUBST([XSLDIR])
 AC_SUBST([ASMPATH])
