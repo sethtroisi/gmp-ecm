@@ -164,6 +164,7 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 {
   mpres_t t, u, v, b, z;
   mpz_t tmp;
+  int ret = ECM_NO_FACTOR_FOUND;
   
   mpres_init (t, n);
   mpres_init (u, n);
@@ -176,7 +177,10 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   /* TODO add -5 -3 -1 and +/- 5/3 */
   if (mpz_cmp_ui (tmp, 5) == 0 || mpz_cmp_ui (tmp, 3) == 0 || 
       mpz_cmp_ui (tmp, 1) == 0 || mpz_sgn (tmp) == 0)
-    return ECM_ERROR;
+  {
+    ret = ECM_ERROR;
+    goto clear_and_exit;
+  }
 
   mpres_set_z  (u, sigma, n);
   mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
@@ -208,9 +212,10 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
       mpres_clear (z, n);
       mpz_clear (tmp);
       if (mpz_cmp (f, n->orig_modulus) == 0)
-          return ECM_ERROR;
+        ret = ECM_ERROR;
       else
-          return ECM_FACTOR_FOUND_STEP1;
+        ret = ECM_FACTOR_FOUND_STEP1;
+      goto clear_and_exit;
     }
   
   mpres_mul (v, u, b, n);   /* v = z^(-1) (mod n) */
@@ -227,7 +232,8 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   mpres_clear (z, n);
   mpz_clear (tmp);
 
-  return ECM_NO_FACTOR_FOUND;
+ clear_and_exit:
+  return ret;
 }
 
 /* Parametrization ECM_PARAM_BATCH_SQUARE */
@@ -253,7 +259,10 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpz_mod (tmp, tmp, n->orig_modulus);
   /* TODO add d!=-1/8*/
   if (mpz_sgn (tmp) == 0 || mpz_cmp_ui (tmp, 1) == 0)
-      return ECM_ERROR;
+  {
+    mpz_clear (tmp);
+    return ECM_ERROR;
+  }
 
   mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
   mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
