@@ -2253,13 +2253,14 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int param, mpz_t sigma, mpz_t n, mpz_t go,
                                 stop_asap, chkfilename);
 #ifdef HAVE_ADDLAWS
 	    else{
-		ell_point_init(PE, E, modulus);
-		mpres_set(PE->x, P.x, modulus);
-		mpres_set(PE->y, P.y, modulus);
+		ell_point_init (PE, E, modulus);
+		mpres_set (PE->x, P.x, modulus);
+		mpres_set (PE->y, P.y, modulus);
 		youpi = ecm_stage1_W (f, E, PE, modulus, B1, B1done, batch_s,
 				      go, stop_asap, chkfilename);
-		mpres_set(P.x, PE->x, modulus);
-		mpres_set(P.y, PE->y, modulus);
+		mpres_set (P.x, PE->x, modulus);
+		mpres_set (P.y, PE->y, modulus);
+                ell_point_clear (PE, E, modulus);
 	    }
 #endif
 	}

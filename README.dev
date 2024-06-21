@@ -63,8 +63,9 @@ To make a new release:
      Check no compiler warnings remain (with and without assertions),
         if possible with different compilers (gcc, clang, llvm-gcc, ...)
      Check "make longcheck" works with --enable-valgrind-tests.
-     Check that configure works outside the source directory.
-     Check the default tuning files */params.h (and */*/params.h, see the main
+     Check that configure works outside the source directory
+        (from the tarball).
+     Check the default tuning files */params.h (see the main
      file ecm-params.h) on different platforms with "make ecm-params"
      Compare the efficiency wrt the previous release with "./ecm 1e6 < c270"
      and "./ecmbench ./ecm".
