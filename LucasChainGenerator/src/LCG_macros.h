@@ -836,7 +836,8 @@ bypass:\
 	uint8_t i, j, len, index1, index2;\
 	uint8_t step_type[MAX_WORKING_CHAIN_LENGTH];\
 	uint8_t step_index2[MAX_WORKING_CHAIN_LENGTH];\
-	uint8_t type_count, type_index, increment, lower_limit;\
+	uint8_t type_count, type_index, increment, lower_limit=99;\
+	/* lower_limit initialized to 99 to fix clang warning */\
 \
 	if( init == 0 )\
 	{\
