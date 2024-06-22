@@ -671,6 +671,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
     mpz_clear(cte);
     ell_point_clear(P, E, n);
     ell_point_clear(Q, E, n);
+    ell_curve_clear (E, n);
     mpz_clear(f);
     mpz_clear(d);
     mpz_clear(c);
