@@ -225,6 +225,7 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   mpres_mul (t, A, v, n);
   mpres_sub_ui (A, t, 2, n);
   
+ clear_and_exit:
   mpres_clear (t, n);
   mpres_clear (u, n);
   mpres_clear (v, n);
@@ -232,7 +233,6 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   mpres_clear (z, n);
   mpz_clear (tmp);
 
- clear_and_exit:
   return ret;
 }
 
