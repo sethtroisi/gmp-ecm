@@ -165,7 +165,7 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   mpres_t t, u, v, b, z;
   mpz_t tmp;
   int ret = ECM_NO_FACTOR_FOUND;
-  
+
   mpres_init (t, n);
   mpres_init (u, n);
   mpres_init (v, n);
@@ -205,12 +205,6 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   if (!mpres_invert (u, v, n)) /* u = (b*z)^(-1) (mod n) */
     {
       mpres_gcd (f, v, n);
-      mpres_clear (t, n);
-      mpres_clear (u, n);
-      mpres_clear (v, n);
-      mpres_clear (b, n);
-      mpres_clear (z, n);
-      mpz_clear (tmp);
       if (mpz_cmp (f, n->orig_modulus) == 0)
         ret = ECM_ERROR;
       else
