@@ -1230,6 +1230,7 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
     mpz_clear(sk);
     mpz_clear(tk);
     mpres_clear(tmp, n);
+    ell_curve_clear (E, n);
     return ret;
 }
 
