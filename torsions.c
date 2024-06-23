@@ -1058,9 +1058,9 @@ build_curves_with_torsion_Z2xZ8(mpz_t fac, mpmod_t n,
     mpz_clear(d);
     mpz_clear(alpha);
     mpz_clear(beta);
-    mpz_init(kx0);
-    mpz_init(ky0);
-    mpz_init(wx0);
+    mpz_clear(kx0);
+    mpz_clear(ky0);
+    mpz_clear(wx0);
     mpres_clear(tmp2, n);
     return ret;
 }
