@@ -1413,9 +1413,9 @@ build_curves_with_torsion2(mpz_t f, mpz_t n, ell_curve_t E,
 	mpz_set(E->a6, tE[0]->a6);
 	mpz_set(x, tP[0]->x);
 	mpz_set(y, tP[0]->y);
-	ell_point_clear(tP[0], tE[0], modulus);
-	ell_curve_clear(tE[0], modulus);
     }
-    mpmod_clear(modulus);
+    ell_point_clear (tP[0], tE[0], modulus);
+    ell_curve_clear (tE[0], modulus);
+    mpmod_clear (modulus);
     return ret;
 }
