@@ -858,7 +858,7 @@ echo 2432902008176640001 | $ECM -torsion Z3xZ3 -sigma 3 1e5; checkcode $? 14
 echo 2432902008176640001 | $ECM -torsion Z3xZ3 -sigma -3 1e5; checkcode $? 14
 ## found factor in Z3xZ3 (D)
 echo 171523 | $ECM -torsion Z3xZ3 -sigma 11 1e5; checkcode $? 6
-## D^3=1 => singluar curve
+## D^3=1 => singular curve
 echo 217 | $ECM -torsion Z3xZ3 -sigma 11 1e5; checkcode $? 1
 ##### Z3xZ6
 ## found factor in Step 1

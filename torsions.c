@@ -258,6 +258,8 @@ build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
     mpz_init(y0);
     mpz_init(c);
     mpz_init(tmp);
+    ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
+    ell_point_init(tP[nc], tE[nc], n);
     for(s = smin; s < smax; s++){
 	mpz_set_si(x0, s);
 	/* c:=1/2*x0*(4*x0+1)/(3*x0+1); */
@@ -290,10 +292,8 @@ build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
 	    ret = ECM_ERROR;
 	    break;
 	}
-	ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE,n);
 	mpz_set(tE[nc]->a4, A);
 	mpz_set(tE[nc]->a6, B);
-	ell_point_init(tP[nc], tE[nc], n);
 	mpz_set(tP[nc]->x, X);
 	mpz_set(tP[nc]->y, Y);
 	nc++;
@@ -450,6 +450,8 @@ build_curves_with_torsion_Z7(mpz_t fac, mpmod_t n,
     mpz_init(kx0);
     mpz_init(ky0);
     ell_point_init(Q, E, n);
+    ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
+    ell_point_init(tP[nc], tE[nc], n);
     mpz_set_si(d, umin-1);
     if(ell_point_mul(fac, Q, d, P, E, n) == 0){
 	printf("found factor during init of Q in Z7\n");
@@ -505,10 +507,8 @@ build_curves_with_torsion_Z7(mpz_t fac, mpmod_t n,
 	    ret = ECM_ERROR;
             break;
 	}
-	ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE,n);
         mpz_set(tE[nc]->a4, A);
         mpz_set(tE[nc]->a6, B);
-	ell_point_init(tP[nc], tE[nc], n);
 	mpz_set(tP[nc]->x, X);
 	mpz_set(tP[nc]->y, Y);
 #if DEBUG_TORSION >= 2
@@ -583,6 +583,8 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
     mpz_init(kx0);
     mpz_init(ky0);
     ell_point_init(Q, E, n);
+    ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
+    ell_point_init(tP[nc], tE[nc], n);
     mpz_set_si(d, umin-1);
     if(ell_point_mul(fac, Q, d, P, E, n) == 0){
 	printf("found factor during init of Q in Z9\n");
@@ -650,10 +652,8 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
             ret = ECM_ERROR;
             break;
         }
-	ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
 	mpz_set(tE[nc]->a4, A);
         mpz_set(tE[nc]->a6, B);
-	ell_point_init(tP[nc], tE[nc], n);
         mpz_set(tP[nc]->x, X);
         mpz_set(tP[nc]->y, Y);
 	nc++;
@@ -718,6 +718,8 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
     mpz_init(kx0);
     mpz_init(ky0);
     ell_point_init(Q, E, n);
+    ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
+    ell_point_init(tP[nc], tE[nc], n);
     for(u = umin; u < umax; u++){
 	if(forbidden("Z10", u))
 	    continue;
@@ -791,10 +793,8 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
             ret = ECM_ERROR;
             break;
         }
-	ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
 	mpz_set(tE[nc]->a4, A);
         mpz_set(tE[nc]->a6, B);
-	ell_point_init(tP[nc], tE[nc], n);
         mpz_set(tP[nc]->x, X);
         mpz_set(tP[nc]->y, Y);
 	nc++;
@@ -854,6 +854,10 @@ build_curves_with_torsion_Z2xZ8(mpz_t fac, mpmod_t n,
     mpz_init(ky0);
     mpz_init(wx0);
     mpz_init(mb);
+
+    /* to Montgomery form */
+    ell_curve_init(tE[nc], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS,n);
+    ell_point_init(tP[nc], tE[nc], n);
 
     /* Eaux = [-8, -32] */
     /* Paux = [12, 40, 1] */
@@ -1012,9 +1016,6 @@ build_curves_with_torsion_Z2xZ8(mpz_t fac, mpmod_t n,
 	mpz_mul(tmp, d, d);
 	mpz_mul_si(tmp, tmp, 4);
 #endif
-	/* to Montgomery form */
-	ell_curve_init(tE[nc], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS,n);
-	ell_point_init(tP[nc], tE[nc], n);
 	/* this cannot yield a factor, since d is invertible at that point */
 	mod_from_rat2(tE[nc]->a2, fac, tmp, n->orig_modulus);
 	/* not really needed, but useful for debug */
@@ -1082,6 +1083,8 @@ build_curves_with_torsion_Z3xZ3(mpz_t f, mpmod_t n,
     mpz_init(den);
     mpz_init(D);
     mpz_init_set_si(v0, umin-1); /* to prevent u0 = v0 */
+    ell_curve_init_set(tE[nc],ECM_EC_TYPE_HESSIAN,ECM_LAW_HOMOGENEOUS,D,n);
+    ell_point_init(tP[nc], tE[nc], n);
     for(u = umin; u < umax; u++){
 	if(forbidden("Z3xZ3", u))
 	    continue;
@@ -1111,12 +1114,10 @@ build_curves_with_torsion_Z3xZ3(mpz_t f, mpmod_t n,
 	mpz_mul(num, num, D);
 	mpz_mod(num, num, n->orig_modulus);
 	if(mpz_cmp_ui(num, 1) == 0){
-	    printf("D^3=1 => singluar curve\n");
+	    printf("D^3=1 => singular curve\n");
 	    ret = ECM_ERROR;
 	    break;
 	}
-	ell_curve_init_set(tE[nc],ECM_EC_TYPE_HESSIAN,ECM_LAW_HOMOGENEOUS,D,n);
-	ell_point_init(tP[nc], tE[nc], n);
 	mpz_set(tP[nc]->x, u0);
 	mpz_set(tP[nc]->y, v0);
 	mpz_set_ui(tP[nc]->z, 1);
@@ -1155,6 +1156,8 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
     mpres_set_ui(tmp, 0, n);
     ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, tmp, n);
     ell_point_init(P, E, n);
+    ell_curve_init(tE[nc], ECM_EC_TYPE_HESSIAN, ECM_LAW_HOMOGENEOUS, n);
+    ell_point_init(tP[nc], tE[nc], n);
     mpz_set_str(f, "2", 10);
     mpres_set_z(P->x, f, n);
     mpz_set_str(f, "2", 10);
@@ -1201,8 +1204,6 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
 	mpz_mod(num, num, n->orig_modulus);
 	mpz_mul_si(den, den, 3);
 	mpz_mod(den, den, n->orig_modulus);
-	ell_curve_init(tE[nc], ECM_EC_TYPE_HESSIAN, ECM_LAW_HOMOGENEOUS, n);
-	ell_point_init(tP[nc], tE[nc], n);
 	if(mod_from_rat2(tE[nc]->a4, num, den, n->orig_modulus) == 0){
 	    /* only if t = 0, which seems hard */
             printf("found factor in Z3xZ6 (D)\n");
@@ -1262,6 +1263,9 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ell_curve_t *tE,
     mpz_init(tmp);
     mpz_init(b);
     mpz_init(x0);
+    /* to Montgomery form */
+    ell_curve_init(tE[nc], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS, n);
+    ell_point_init(tP[nc], tE[nc], n);
     for(nu = smin; nu < smax; nu++){
 	mpz_set_si(nu2, nu*nu);
 	/* tau:=(nu^2+3)/2/nu; */
@@ -1303,9 +1307,6 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ell_curve_t *tE,
 	mpz_add_si(tmp, x0, 2);
 	mpz_mul_si(tmp, tmp, -2);
 	mpz_mod(tmp, tmp, n->orig_modulus);
-        /* to Montgomery form */
-        ell_curve_init(tE[nc], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS, n);
-        ell_point_init(tP[nc], tE[nc], n);
 	mod_from_rat2(tE[nc]->a4, tmp, x0, n->orig_modulus);
 	/* now compute real x0 */
 	/* x0:=3*(3*nu^12+34*nu^10+117*nu^8+316*nu^6+1053*nu^4+2754*nu^2+2187); */
@@ -1381,7 +1382,7 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
 	return build_curves_with_torsion_Z4xZ4(f, n, tE, tP, smin, smax, nE);
     else{
 	printf("Unknown torsion group: %s\n", torsion);
-	ret = ECM_ERROR;
+	ret = ECM_USER_ERROR;
     }
     return ret;
 }
@@ -1414,8 +1415,11 @@ build_curves_with_torsion2(mpz_t f, mpz_t n, ell_curve_t E,
 	mpz_set(x, tP[0]->x);
 	mpz_set(y, tP[0]->y);
     }
-    ell_point_clear (tP[0], tE[0], modulus);
-    ell_curve_clear (tE[0], modulus);
+    if (ret != ECM_USER_ERROR) // torsion group is known
+    {
+      ell_point_clear (tP[0], tE[0], modulus);
+      ell_curve_clear (tE[0], modulus);
+    }
     mpmod_clear (modulus);
     return ret;
 }
