@@ -1,0 +1,21 @@
+# This is a suppression file for valgrind
+
+# In order to generate it, re-run valgrind as follows:
+# valgrind --leak-check=full --gen-suppressions=all --log-file=ecm.supp ./my_program arg1 # arg2 ...
+
+# The "..." joker matches several possible lines in the call trace.
+
+
+{
+   copyi_false_positive
+   Memcheck:Addr8
+   fun:__gmpn_copyi
+   obj:/usr/lib/x86_64-linux-gnu/libgmp.so.10.5.0
+   fun:__gmpn_mul_fft
+   fun:__ecm_mpres_mul_z_to_z
+   fun:pm1_sequence_g
+   fun:__ecm_pm1fs2_ntt
+   fun:pm1
+   fun:ecm_factor
+   fun:main
+}

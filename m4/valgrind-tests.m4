@@ -11,7 +11,7 @@ AC_DEFUN([gl_VALGRIND_TESTS],
   if test "$opt_valgrind_tests" = "yes" && test "$cross_compiling" = no; then
     AC_CHECK_PROGS(VALGRIND, valgrind)
   fi
-  OPTS="-q --error-exitcode=1 --leak-check=full"
+  OPTS="-q --error-exitcode=1 --leak-check=full --suppressions=ecm.supp"
   if test -n "$VALGRIND" \
      && $VALGRIND $OPTS $SHELL -c 'exit 0' > /dev/null 2>&1; then
     opt_valgrind_tests=yes
