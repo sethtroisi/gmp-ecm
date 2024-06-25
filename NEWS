@@ -1,6 +1,8 @@
 Changes between GMP-ECM 7.0.5 and 7.0.6:
 * added a generator for optimal Lucas chains for param=0
   (see README and LucasChainGenerator/README)
+* added thread-safety to schoen_strass.c (contributed by Mark Geisert)
+   (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21863)
 * the option -I has been removed
   (https://gitlab.inria.fr/zimmerma/ecm/-/issues/21867)
 * fixed a bug when using -resume with param=0 and B1 > B1 in resume file
