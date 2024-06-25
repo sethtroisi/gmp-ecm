@@ -31,6 +31,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define ASSERT(expr)   do {} while (0)
 #endif
 
+#include <stdint.h>
 #include "ecm.h"
 
 /* Structure for candidate usage.  This is much more powerful than using a
@@ -121,8 +122,9 @@ int  read_resumefile_line (int *, mpz_t, mpz_t, mpcandi_t *,
 int write_resumefile (char *, int, ecm_params params,
 		      mpcandi_t *, const mpz_t, const mpz_t, const mpz_t,
 		      const char *);
-int write_s_in_file (char *, mpz_t);
-int read_s_from_file (mpz_t, char *, double); 
+int write_s_in_file (const char *, mpz_t, int, uint64_t);
+int read_s_from_file (mpz_t, const char *, int, double); 
+void free_s_data(int, mpz_t);
 
 /* main.c */
 int kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c,

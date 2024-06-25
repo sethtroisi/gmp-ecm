@@ -135,6 +135,10 @@ usage (void)
 
     printf ("  -bsaves file With -param 1-3, save stage 1 exponent in file.\n");
     printf ("  -bloads file With -param 1-3, load stage 1 exponent from file.\n");
+#ifdef HAVE_MMAP
+    printf ("  -bsavems file With -param 1-3, save stage 1 exponent in file (file format for -bloadms).\n");
+    printf ("  -bloadms file With -param 1-3, mmap stage 1 exponent from file.\n");
+#endif
 #ifdef WITH_GPU
     printf ("  -gpu         Use CGBN for computations stage 1.\n");
     printf ("  -gpudevice n Use device n to execute GPU code (by default, "
@@ -398,6 +402,8 @@ main (int argc, char *argv[])
   int param = ECM_PARAM_DEFAULT; /* automatic choice */
   char *savefile_s = NULL;
   char *loadfile_s = NULL;
+  int save_s_mmap = 0,     /* Do we write s in mmap file format? */
+      load_s_mmap = 0;     /* Do we mmap s data from the file? */
 #ifdef HAVE_GWNUM
   double gw_k = 0.0;       /* set default values for gwnum poly k*b^n+c */
   unsigned long gw_b = 0;  /* set default values for gwnum poly k*b^n+c */
@@ -540,16 +546,50 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-bsaves") == 0))
         {
+          if (savefile_s != NULL) {
+              fprintf (stderr, "Multiple -bsaves or -bsavems options were given\n");
+              exit (EXIT_FAILURE);
+          }
           savefile_s = argv[2];
+          save_s_mmap = 0;
           argv += 2;
           argc -= 2;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-bloads") == 0))
         {
+          if (loadfile_s != NULL) {
+              fprintf (stderr, "Multiple -bloads or -bloadms options were given\n");
+              exit (EXIT_FAILURE);
+          }
           loadfile_s = argv[2];
+          load_s_mmap = 0;
           argv += 2;
           argc -= 2;
         }
+#ifdef HAVE_MMAP
+      else if ((argc > 2) && (strcmp (argv[1], "-bsavems") == 0))
+        {
+          if (savefile_s != NULL) {
+              fprintf (stderr, "Multiple -bsaves or -bsavems options were given\n");
+              exit (EXIT_FAILURE);
+          }
+          savefile_s = argv[2];
+          save_s_mmap = 1;
+          argv += 2;
+          argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-bloadms") == 0))
+        {
+          if (loadfile_s != NULL) {
+              fprintf (stderr, "Multiple -bloads or -bloadms options were given\n");
+              exit (EXIT_FAILURE);
+          }
+          loadfile_s = argv[2];
+          load_s_mmap = 1;
+          argv += 2;
+          argc -= 2;
+        }
+#endif
       else if (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0)
         {
           usage ();
@@ -1389,7 +1429,7 @@ main (int argc, char *argv[])
               exit (EXIT_FAILURE);
             }
           params->batch_last_B1_used = B1;
-          if (read_s_from_file (params->batch_s, loadfile_s, B1))
+          if (read_s_from_file (params->batch_s, loadfile_s, load_s_mmap, B1))
             {
               fprintf (stderr, "Error while reading s from file\n");
               exit (EXIT_FAILURE);
@@ -1595,7 +1635,12 @@ main (int argc, char *argv[])
       /* Save the batch exponent s if requested */
       if (savefile_s != NULL)
         {
-          int ret = write_s_in_file (savefile_s, params->batch_s);
+          int ret = write_s_in_file (savefile_s, params->batch_s, save_s_mmap,
+                                     (uint64_t) B1);
+          if (ret == 0) {
+              fprintf(stderr, "Error writing s to file %s\n", savefile_s);
+              exit(EXIT_FAILURE);
+          }
           if (verbose >= OUTPUT_VERBOSE && ret > 0)
               printf ("Saved batch product (of %u bytes) in %s\n", ret, 
                       savefile_s);
@@ -1634,6 +1679,8 @@ main (int argc, char *argv[])
   mpz_clear (sigma);
 
   mpgocandi_t_free (&go);
+  if (loadfile_s != NULL)
+    free_s_data (load_s_mmap, params->batch_s);
   ecm_clear (params);
 
   /* exit 0 if a factor was found for the last input, except if we exit due

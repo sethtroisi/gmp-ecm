@@ -23,11 +23,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
 #include <string.h>
+#include <endian.h>
+#include <inttypes.h>
+#ifdef HAVE_MMAP
+#include <sys/mman.h>
+#endif
 #if !defined (_MSC_VER)
 #include <unistd.h>
 #endif
@@ -46,6 +53,11 @@ SOFTWARE.
 /* Reads a string of characters from fd while they match the string s.
    Returns the number of matching characters that were read. 
 */
+
+#define S_FILE_MAGIC 0xe2ad5e97UL
+/* This is a prime p with 2 a generator of (Z/pZ)* */
+#define S_FILE_CHECKSUM_MODULUS 4294967291UL
+
 
 static int 
 facceptstr (FILE *fd, char *s)
@@ -654,12 +666,74 @@ write_resumefile (char *fn, int method, ecm_params params,
   return 0;
 }
 
+typedef struct {
+  uint32_t magic;
+  unsigned char version,
+                mmapped, /* mmapped data uses host endianness */
+                is_le,   /* Is this machine little_endian? */
+                dummy;   /* Always 0 for word alignment */
+  uint32_t checksum;     /* s % S_FILE_CHECKSUM_MODULUS */
+  uint64_t B1;
+} s_file_header_t;
+
+/* Wrapper around fread(). Prints error message on error. If close_on_error
+ * is non-zero, also closes the stream.
+ * Returns 0 on success and 1 on error.
+ */
+int
+fread_perror(void * restrict data,
+             size_t size, size_t nmemb,
+             FILE *restrict stream,
+             const char *restrict fn,
+             const char *restrict data_description,
+             int close_on_error)
+{
+  size_t members_read = fread(data, size, nmemb, stream);
+  if (members_read != nmemb) {
+      fprintf(stderr, "Could not read %s from file %s\n", data_description, fn);
+      perror("");
+      if (close_on_error)
+        fclose(stream);
+      return 1;
+  }
+  return 0;
+}
+
+
+/* Wrapper around fwrite(). Prints error message on error. If close_on_error
+ * is non-zero, also closes the stream.
+ * Returns 0 on success and 1 on error.
+ */
+int
+fwrite_perror(const void * restrict data,
+              size_t size, size_t nmemb,
+              FILE *restrict stream,
+              const char *restrict fn,
+              const char *restrict data_description,
+              int close_on_error)
+{
+  size_t members_written = fwrite(data, size, nmemb, stream);
+  if (members_written != nmemb) {
+      fprintf(stderr, "Could not write %s to file %s\n", data_description, fn);
+      perror("");
+      if (close_on_error)
+        fclose(stream);
+      return 1;
+  }
+  return 0;
+}
+
+size_t
+compute_filesize(const size_t nr_limbs)
+{
+  return sizeof(s_file_header_t) + sizeof(int) + nr_limbs * sizeof(mp_limb_t);
+}
 
 /* For the batch mode */
 /* Write the batch exponent s in a file */
 /* Return the number of bytes written */
 int
-write_s_in_file (char *fn, mpz_t s)
+write_s_in_file (const char *fn, mpz_t s, int want_mmap, uint64_t B1)
 {
   FILE *file;
   int ret = 0;
@@ -671,6 +745,20 @@ write_s_in_file (char *fn, mpz_t s)
       exit (EXIT_FAILURE);
     }
 #endif
+#ifndef HAVE_MMAP
+  if (want_mmap != 0) {
+    fprintf(stderr, "Refusing to write batch s data to file %s in mmap() "
+            "format because mmap() is not supported on this system. Please "
+            "check the the configure log.", fn);
+    return 0;
+  }
+#endif
+
+  if (mpz_sgn(s) <= 0) {
+    fprintf(stderr, "Error, s is %s. This should never happen.",
+            mpz_sgn(s) == 0 ? "zero" : "negative");
+    return 0;
+  }
   
   file = fopen (fn, "wb");
   if (file == NULL)
@@ -679,8 +767,26 @@ write_s_in_file (char *fn, mpz_t s)
       return 0;
     }
   
-  ret = mpz_out_raw (file, s);
+  const uint32_t magic = htole32(S_FILE_MAGIC);
+  const unsigned char mmapped = want_mmap ? 1 : 0;
+  const unsigned char is_le = htole32(1) == 1 ? 1 : 0;
+  const uint32_t checksum =  mpz_fdiv_ui(s, S_FILE_CHECKSUM_MODULUS);
+  const uint32_t B1le = htole64(B1);
+  const s_file_header_t header = {magic, 1, mmapped, is_le, 0, checksum, B1le};
+  if (fwrite_perror(&header, sizeof(s_file_header_t), 1, file, fn, "header", 1))
+      return 0;
   
+  if (want_mmap) {
+    if (fwrite_perror(&s->_mp_size, sizeof(int), 1, file, fn, "size", 1))
+      return 0;
+    if (fwrite_perror(s->_mp_d, sizeof(mp_limb_t), s->_mp_size, file, fn, "limbs", 1))
+      return 0;
+    ret = compute_filesize(s->_mp_size);
+  } else {
+    ret = mpz_out_raw (file, s);
+  }
+  /* gmp_printf("Wrote %Zx to %s\n", s, fn); */
+
   fclose (file);
   return ret;
 }
@@ -688,7 +794,7 @@ write_s_in_file (char *fn, mpz_t s)
 /* For the batch mode */
 /* read the batch exponent s from a file */
 int
-read_s_from_file (mpz_t s, char *fn, double B1) 
+read_s_from_file (mpz_t s, const char *fn, int want_mmap, double B1)
 {
   FILE *file;
   mpz_t tmp, tmp2;
@@ -703,22 +809,117 @@ read_s_from_file (mpz_t s, char *fn, double B1)
     }
 #endif
   
+#ifndef HAVE_MMAP
+  if (want_mmap != 0) {
+    fprintf(stderr, "Cannot mmap() batch s data from file %s because mmap() "
+            "is not supported on this system. Please check the the configure "
+            "log.", fn);
+  }
+#endif
+
   file = fopen (fn, "rb");
   if (file == NULL)
     {
       fprintf (stderr, "Could not open file %s for reading\n", fn);
       return 1;
     }
- 
-  ret = mpz_inp_raw (s, file);
-  if (ret == 0)
-    {
-      fprintf (stderr, "read_s_from_file: 0 bytes read from %s\n", fn);
+
+  const unsigned char host_is_le = htole32(1) == 1 ? 1 : 0;
+  s_file_header_t header;
+  if (fread_perror(&header, sizeof(s_file_header_t), 1, file, fn, "header", 1))
       return 1;
+  header.magic = le32toh(header.magic);
+  header.B1 = le64toh(header.B1);
+  if (header.magic != S_FILE_MAGIC) {
+      fprintf(stderr, "Wrong magic number in file %s; is this a batch "
+              "product save file? Note that the file format changed after "
+              "version 7.0; if this is an old file, please re-create it.\n",
+              fn);
+      fclose(file);
+      return 1;
+  }
+  if (header.mmapped != want_mmap) {
+      fprintf(stderr, "File %s uses %smmapped data but we want to read "
+              "%smmaped data.\n",
+              fn, header.mmapped ? "" : "non-", want_mmap ? "" : "non-");
+      fclose(file);
+      return 1;
+  }
+  if (header.B1 != (unsigned long) B1) {
+      fprintf(stderr, "Wrong B1 value in file %s; it has stored data for B1 = %"
+              PRIu64 " but this run uses B1 = %" PRIu64 "\n",
+              fn, header.B1, (uint64_t) B1);
+      fclose(file);
+      return 1;
+  }
+
+#ifdef HAVE_MMAP
+  if (want_mmap != 0) {
+    /* printf("Using mmap() for s data\n"); */
+
+    if (header.is_le != host_is_le) {
+        fprintf(stderr, "Cannot mmap because file %s has wrong endianness for"
+                "this system. File uses %s, but host is %s\n",
+                fn, header.is_le ? "little-endian" : "big-endian",
+                host_is_le ? "little-endian" : "big-endian");
+        fclose(file);
+        return 1;
     }
 
+    int fd = fileno(file);
+    if (fd == -1) {
+        fprintf (stderr, "Could not get file descriptor for file %s\n", fn);
+        fclose(file);
+        return 1;
+    }
+    
+    int nr_limbs;
+    if (fread_perror(&nr_limbs, sizeof(int), 1, file, fn, "size", 1))
+        return 1;
+    if (nr_limbs < 0) {
+        fprintf(stderr, "Error, nr_limbs in file %s is negative (%d). "
+                "This should never happen.", fn, nr_limbs);
+    }
+
+    size_t filesize = compute_filesize(nr_limbs);
+    const int prot = PROT_READ;
+    const int flags = MAP_SHARED;
+    const off_t offset = 0;
+    char *s_data = mmap(NULL, filesize, prot, flags, fd, offset);
+    if (s_data == MAP_FAILED) {
+        fprintf (stderr, "mmap(NULL, length=%zu, prot=%d, flags=%d, fd=%d, offset=%zu) failed for file %s\n", 
+                (size_t) filesize, prot, flags, fd, (size_t) offset, fn);
+        perror("");
+        fclose(file);
+        return 1;
+    }
+    mpz_clear (s);
+    s->_mp_size = nr_limbs;
+    s->_mp_alloc = s->_mp_size;
+    s->_mp_d = (mp_limb_t *) (s_data + sizeof(s_file_header_t) + sizeof(int));
+  }
+#endif
+
+  if (want_mmap == 0) {
+    ret = mpz_inp_raw (s, file);
+    if (ret == 0)
+      {
+        fprintf (stderr, "read_s_from_file: 0 bytes read from %s\n", fn);
+        fclose(file);
+        return 1;
+      }
+  }
   fclose (file);
-          
+
+  /* gmp_printf("Read %Zx from %s\n", s, fn); */
+  const uint32_t checksum =  mpz_fdiv_ui(s, S_FILE_CHECKSUM_MODULUS);
+  if (checksum != header.checksum) {
+     fprintf(stderr, "Checksum in file %s is wrong. File header has %" PRIu32
+       " but checksum over file data is %" PRIu32 "\n",
+       fn, header.checksum, checksum);
+    return 1;
+  }
+
   /* Some elementaty check that it correspond to the actual B1 */
   mpz_init (tmp);
   mpz_init (tmp2);
@@ -760,3 +961,17 @@ read_s_from_file (mpz_t s, char *fn, double B1)
   return 0;
 }
 
+void
+free_s_data(int want_mmap, mpz_t s)
+{
+#ifdef HAVE_MMAP
+  const int nr_limbs = s->_mp_size;
+  const size_t filesize = sizeof(s_file_header_t) +
+                          sizeof(int) +
+                          (size_t)nr_limbs * sizeof(mp_limb_t);
+  if (want_mmap) {
+    munmap(s->_mp_d, filesize);
+    mpz_init(s);
+  }
+#endif
+}

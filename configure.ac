@@ -90,6 +90,9 @@ if test "x$enable_mulredc_svoboda" = xyes; then
   GMP_DEFINE([MULREDC_SVOBODA], 1)
 fi
 
+AC_ARG_ENABLE([mmap],
+[AS_HELP_STRING([--enable-mmap], [use mmap() to load batch s files (EXPERIMENTAL. Expect bugs. Please report them.)])])
+
 AC_ARG_ENABLE([valgrind-client],
 [AS_HELP_STRING([--enable-valgrind-client], [enable Valgrind client check requests [[default=no]]])],[],[])
 if test "x$enable_valgrind" = xyes; then
@@ -379,13 +382,18 @@ AC_FUNC_ALLOCA
 m4_version_prereq([2.70],[AC_CHECK_INCLUDES_DEFAULT],[AC_HEADER_STDC])
 AC_PROG_EGREP
 
-AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h signal.h fcntl.h])
+AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h stdint.h inttypes.h endian.h sys/time.h unistd.h io.h signal.h fcntl.h])
 AC_CHECK_HEADERS([windows.h psapi.h], [], [],
    [[#ifdef HAVE_WINDOWS_H
      # include <windows.h>
      #endif
      ]])
 AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h aio.h])
+
+if test "x$enable_mmap" = xyes; then
+  AC_CHECK_HEADERS([sys/mman.h])
+fi
+
 
 dnl Checks for library functions that are not in GMP
 AC_FUNC_STRTOD
@@ -404,6 +412,10 @@ AC_CHECK_FUNCS([access unlink], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([isspace isdigit isxdigit], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([time ctime], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([gethostname gettimeofday getrusage memmove signal fcntl fileno setvbuf fallocate aio_read aio_init])
+
+if test "x$enable_mmap" = xyes; then
+  AC_CHECK_FUNCS([mmap])
+fi
 
 dnl Test for some Windows-specific functions that are available under MinGW
 dnl FIXME: which win32 library contains these functions?
