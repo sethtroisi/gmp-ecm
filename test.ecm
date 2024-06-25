@@ -318,7 +318,7 @@ if [ $GMP_NUMB_BITS -eq 64 ]; then
   # exercise "read_s_from_file: 0 bytes read from <file>" error message
   printf "\r\n\r\n# this is a comment line and should be ignored\r\n" > test_dummy2.save
   $ECM -param 1 -bloads test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
-  $ECM -param 1 -bloads test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155 2>&1 | grep "0 bytes read from test_dummy2.save"; checkcode $? 0
+  $ECM -param 1 -bloads test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155 2>&1 | grep "Wrong magic number in file test_dummy2.save"; checkcode $? 0
   /bin/rm -f test_dummy2.save
 fi
 
