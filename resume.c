@@ -49,6 +49,7 @@ SOFTWARE.
 /* needed to declare GetComputerName() for write_resumefile_line() */
 #include <windows.h>
 #endif
+#include "basicdefs.h"
 
 /* Reads a string of characters from fd while they match the string s.
    Returns the number of matching characters that were read. 
@@ -824,7 +825,6 @@ read_s_from_file (mpz_t s, const char *fn, int want_mmap, double B1)
       return 1;
     }
 
-  const unsigned char host_is_le = htole32(1) == 1 ? 1 : 0;
   s_file_header_t header;
   if (fread_perror(&header, sizeof(s_file_header_t), 1, file, fn, "header", 1))
       return 1;
@@ -855,6 +855,7 @@ read_s_from_file (mpz_t s, const char *fn, int want_mmap, double B1)
 
 #ifdef HAVE_MMAP
   if (want_mmap != 0) {
+    const unsigned char host_is_le = htole32(1) == 1 ? 1 : 0;
     /* printf("Using mmap() for s data\n"); */
 
     if (header.is_le != host_is_le) {
@@ -962,7 +963,7 @@ read_s_from_file (mpz_t s, const char *fn, int want_mmap, double B1)
 }
 
 void
-free_s_data(int want_mmap, mpz_t s)
+free_s_data(ATTRIBUTE_UNUSED int want_mmap, ATTRIBUTE_UNUSED mpz_t s)
 {
 #ifdef HAVE_MMAP
   const int nr_limbs = s->_mp_size;
