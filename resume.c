@@ -670,10 +670,10 @@ write_resumefile (char *fn, int method, ecm_params params,
 typedef struct {
   uint32_t magic;
   unsigned char version,
-                mmapped, /* mmapped data uses host endianness */
-                is_le,   /* Is this machine little_endian? */
-                dummy;   /* Always 0 for word alignment */
-  uint32_t checksum;     /* s % S_FILE_CHECKSUM_MODULUS */
+                mmapped,   /* mmapped data uses host endianness */
+                is_le,     /* Is this machine little_endian? */
+                limb_size; /* Number of bytes in mp_limb_t */
+  uint32_t checksum;       /* s % S_FILE_CHECKSUM_MODULUS */
   uint64_t B1;
 } s_file_header_t;
 
@@ -771,9 +771,11 @@ write_s_in_file (const char *fn, mpz_t s, int want_mmap, uint64_t B1)
   const uint32_t magic = htole32(S_FILE_MAGIC);
   const unsigned char mmapped = want_mmap ? 1 : 0;
   const unsigned char is_le = htole32(1) == 1 ? 1 : 0;
+  const unsigned char limb_size = sizeof(mp_limb_t);
   const uint32_t checksum =  mpz_fdiv_ui(s, S_FILE_CHECKSUM_MODULUS);
   const uint32_t B1le = htole64(B1);
-  const s_file_header_t header = {magic, 1, mmapped, is_le, 0, checksum, B1le};
+  const s_file_header_t header = {magic, 1, mmapped, is_le, limb_size,
+    checksum, B1le};
   if (fwrite_perror(&header, sizeof(s_file_header_t), 1, file, fn, "header", 1))
       return 0;
   
@@ -863,6 +865,14 @@ read_s_from_file (mpz_t s, const char *fn, int want_mmap, double B1)
                 "this system. File uses %s, but host is %s\n",
                 fn, header.is_le ? "little-endian" : "big-endian",
                 host_is_le ? "little-endian" : "big-endian");
+        fclose(file);
+        return 1;
+    }
+
+    if (header.limb_size != sizeof(mp_limb_t)) {
+        fprintf(stderr, "File %s uses %hhu-byte GMP limbs but this machine uses %zu-byte limbs. "
+                "Data cannot be mmapped.\n",
+                fn, header.limb_size, sizeof(mp_limb_t));
         fclose(file);
         return 1;
     }
