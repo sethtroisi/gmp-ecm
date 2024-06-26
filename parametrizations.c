@@ -243,8 +243,8 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
       
   /* A=4*d-2 with d = sigma^2/2^64 */
   /* Compute d = sigma^2/2^64 */
-  mpz_ui_pow_ui(tmp, 2, 64);
-  mpz_invert(tmp, tmp, n->orig_modulus);
+  mpz_ui_pow_ui (tmp, 2, 64);
+  mpz_invert (tmp, tmp, n->orig_modulus);
 
   /* tmp = sigma^2/2^64 */
   mpz_mul (tmp, tmp, sigma);
@@ -264,7 +264,7 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpres_set_z (A, tmp, n);
   mpres_set_ui (x0, 2, n);
 
-  mpz_clear(tmp);
+  mpz_clear (tmp);
   return ECM_NO_FACTOR_FOUND;
 }
 
@@ -433,30 +433,27 @@ get_curve_from_random_parameter (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma,
      to avoid an infinite loop in corner cases (for example with -param 1,
      there is no valid sigma for n=3, see
      https://gitlab.inria.fr/zimmerma/ecm/-/issues/21876) */
+  unsigned long bitsize = (param == ECM_PARAM_BATCH_SQUARE ||
+                           param == ECM_PARAM_BATCH_32BITS_D) ? 32 : 64;
+  mpz_urandomb (sigma, rng, bitsize);
   for (int i = 0; ret == ECM_ERROR && i < 10; i++)
     {
       if (param == ECM_PARAM_SUYAMA)
-        {
-          mpz_urandomb (sigma, rng, 64);
-          ret = get_curve_from_param0 (f, A, x, sigma, modulus);
-        }
+        ret = get_curve_from_param0 (f, A, x, sigma, modulus);
       else if (param == ECM_PARAM_BATCH_SQUARE)
-        {
-          mpz_urandomb (sigma, rng, 32);
-          ret = get_curve_from_param1 (A, x, sigma, modulus);
-        }
+        ret = get_curve_from_param1 (A, x, sigma, modulus);
       else if (param == ECM_PARAM_BATCH_2)
-        {
-          mpz_urandomb (sigma, rng, 64);
-          ret = get_curve_from_param2 (f, A, x, sigma, modulus);
-        }
+        ret = get_curve_from_param2 (f, A, x, sigma, modulus);
       else if (param == ECM_PARAM_BATCH_32BITS_D)
-        {
-          mpz_urandomb (sigma, rng, 32);
-          ret = get_curve_from_param3 (A, x, sigma, modulus);
-        }
+        ret = get_curve_from_param3 (A, x, sigma, modulus);
       else
         return ECM_ERROR;
+      if (ret == ECM_ERROR) // try next sigma value
+      {
+        mpz_add_ui (sigma, sigma, 1);
+        if (mpz_sizeinbase (sigma, 2) > bitsize)
+          mpz_set_ui (sigma, 2);
+      }
     }
 
   return ret;
