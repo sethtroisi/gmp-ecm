@@ -534,6 +534,9 @@ checkcode $? 0
 echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 11000
 checkcode $? 8
 
+# non-regression test for https://gitlab.inria.fr/zimmerma/ecm/-/issues/21876
+echo 3 | $ECM -param 1 1000 1000; checkcode $? 1
+
 # test -bsaves/-bloads
 TEST=test.ecm.s$$
 echo 18446744073709551557 | $ECM -param 1 -A 1 -bsaves $TEST 11000

@@ -425,11 +425,15 @@ int
 get_curve_from_random_parameter (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, 
                                  int param, mpmod_t modulus, gmp_randstate_t rng)
 {
-  int ret;
+  int ret = ECM_ERROR;
 
   /* initialize the random number generator if not already done */
   init_randstate (rng);
-  do
+  /* we perform only a fixed number of tries to find a suitable curve,
+     to avoid an infinite loop in corner cases (for example with -param 1,
+     there is no valid sigma for n=3, see
+     https://gitlab.inria.fr/zimmerma/ecm/-/issues/21876) */
+  for (int i = 0; ret == ECM_ERROR && i < 10; i++)
     {
       if (param == ECM_PARAM_SUYAMA)
         {
@@ -453,7 +457,7 @@ get_curve_from_random_parameter (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma,
         }
       else
         return ECM_ERROR;
-    } while (ret == ECM_ERROR);
+    }
 
   return ret;
 }
