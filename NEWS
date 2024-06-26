@@ -1,3 +1,7 @@
+Changes between GMP-ECM 7.0.? and 7.1:
+* With --enable-mmap, allow mmap-ing batch s data with -bsavems and -bloadms
+  to reduce memory use when multiple processes do ECM with the same B1
+
 Changes between GMP-ECM 7.0.5 and 7.0.6:
 * added a generator for optimal Lucas chains for param=0
   (see README and LucasChainGenerator/README)
