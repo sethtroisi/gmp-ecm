@@ -324,7 +324,7 @@ fi
 
 # exercise batch error messages...
 TEST=test.ecm.s$$
-$ECM -bsaves $TEST 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 0
+$ECM -bsaves $TEST 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 $ECM -bloads $TEST 1000 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 $ECM -bloads $TEST 10900 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 /bin/rm -f $TEST
@@ -543,6 +543,18 @@ echo 18446744073709551557 | $ECM -param 1 -A 1 -bsaves $TEST 11000
 echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads $TEST 11000; checkcode $? 8
 # The following test (with -v and -bloads) would crash on Windows prior to svn 2968.
 echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads $TEST -v 11000; checkcode $? 8
+/bin/rm -f $TEST
+
+# same with -param 2
+TEST=test.ecm.s$$
+echo 18446744073709551557 | $ECM -param 2 -A 1 -bsaves $TEST 11000
+echo 18446744073709551557 | $ECM -param 2 -A 312656731337392125 -bloads $TEST 11000; checkcode $? 8
+/bin/rm -f $TEST
+
+# same with -param 3
+TEST=test.ecm.s$$
+echo 18446744073709551557 | $ECM -param 3 -A 1 -bsaves $TEST 11000
+echo 18446744073709551557 | $ECM -param 3 -A 312656731337392125 -bloads $TEST 11000; checkcode $? 8
 /bin/rm -f $TEST
 
 # non-regression test for bug fixed by changeset r1819 on 32-bit
