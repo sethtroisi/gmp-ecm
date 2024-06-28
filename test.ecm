@@ -324,7 +324,7 @@ fi
 
 # exercise batch error messages...
 TEST=test.ecm.s$$
-$ECM -bsaves $TEST 11e3 < ${GMPECM_DATADIR}/c155
+$ECM -bsaves $TEST 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 0
 $ECM -bloads $TEST 1000 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 $ECM -bloads $TEST 10900 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 /bin/rm -f $TEST
