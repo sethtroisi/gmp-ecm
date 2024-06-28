@@ -69,7 +69,7 @@ To make a new release:
      file ecm-params.h) on different platforms with "make ecm-params"
      Compare the efficiency wrt the previous release with "./ecm 1e6 < c270"
      and "./ecmbench ./ecm".
-  1) Check the version (configure.ac and build.vs*/gen_ecm_h.bat).
+  1) Check the version (configure.ac and build.vs/gen_ecm_h.bat).
      Switch assertions to off by default in configure.ac.
   2) Update the NEWS file, and check the INSTALL-ecm file is up-to-date.
   3) no need to update ChangeLog anymore, it points to "git log"
@@ -80,7 +80,7 @@ To make a new release:
      LD_LIBRARY_PATH so that the system libgmp is used.
   7) Check the man page (ecm.1) is up to date.
      Update version-info in Makefile.am if needed.
-  8) Check factors are really found using the checkprob and check.sage
+  8) Check factors are really found using the checkprob and tools/check.sage
      programs, for example to estimate the average number of curves to find
      a 20-digit prime with B1=11000 and -param 1:
      $ ./checkprob "./ecm -param 1" 31622776601683800097 11000

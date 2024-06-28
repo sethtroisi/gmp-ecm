@@ -6,7 +6,7 @@ Instructions to install GMP-ECM:
    Remark: GNU MP is already installed in most Linux distributions.
    However it is often an old version, moreover without processor-specific
    optimizations. If you care about efficiency, be sure to install the
-   latest version of GNU MP (6.1.0 as of February 2016), and to compile it
+   latest version of GNU MP (6.3.0 as of June 2024), and to compile it
    for your particular processor.
    Warning: make sure you have only one version of GMP installed on your
    system at a given time. Frequently, after compiling GMP from source
@@ -117,30 +117,13 @@ Instructions to install GMP-ECM:
    prime less than or equal to min( B1, file limit), and revert to use
    'prac' if 'end-of-file' is reached.
 
-7) If you like GMP-ECM, please help us factoring Cunningham numbers. First
-   download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
-   perform one ecm test with B1=110e6 on each number of this file:
-
-   $ ./ecm 110e6 < cunningham.in > cunningham.out &
-
-   If you find any factor (grep found cunningham.out), please submit it
-   using the report form on <http://www.loria.fr/~zimmerma/ecmnet/>.
-
 ============================================================================
 
 To install GMP-ECM with support of NVIDIA Graphics Cards: see README.gpu
 
 ============================================================================
 
-Known problems:
-
-* [reported by Sam Rawlins] with MinGW under Windows XP (32-bit), the
-  compilation fails in spv.c. A fix seems to add -msse2 to CFLAGS.
-  See https://sympa.inria.fr/sympa/arc/ecm-discuss/2010-06/msg00000.html
-* GCC 4.4 might miscompile GMP-ECM on Sparc,
-  see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=45559 for more details.
-  The problem is due in fact to a bug in the Linux kernel. A fix is to use
-  -mcpu=v8 with GCC 4.4 if the bug occurs.
+Known problems: see https://gitlab.inria.fr/zimmerma/ecm/-/issues
 
 ============================================================================
 

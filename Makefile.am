@@ -140,7 +140,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
 
 DIST_SUBDIRS = x86_64 powerpc64 aprtcle
 
-DISTCLEANFILES = config.m4
+DISTCLEANFILES = config.m4 LCG.log Lchain_codes.dat
 
 if WANT_GPU
 .cu.lo: cgbn_stage1.h
