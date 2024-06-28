@@ -1366,7 +1366,9 @@ main (int argc, char *argv[])
         {
           if (!IS_BATCH_MODE(param))
             {
-              fprintf (stderr, "Error, -bsaves makes sense in batch mode only\n");
+              fprintf (stderr, "Error, -bsaves makes sense in batch mode only "
+                       "(-param in {%d,%d,%d})\n", ECM_PARAM_BATCH_SQUARE,
+                       ECM_PARAM_BATCH_2, ECM_PARAM_BATCH_32BITS_D);
               exit (EXIT_FAILURE);
             }
           /* if batch_s <> 1, it means it was already initialized,
@@ -1381,7 +1383,9 @@ main (int argc, char *argv[])
           int st = cputime ();
           if (!IS_BATCH_MODE(param))
             {
-              fprintf (stderr, "Error, -bloads makes sense in batch mode only\n");
+              fprintf (stderr, "Error, -bloads makes sense in batch mode only "
+                       "(-param in {%d,%d,%d})\n", ECM_PARAM_BATCH_SQUARE,
+                       ECM_PARAM_BATCH_2, ECM_PARAM_BATCH_32BITS_D);
               exit (EXIT_FAILURE);
             }
           params->batch_last_B1_used = B1;
