@@ -6,9 +6,9 @@ is not affected.
 Users should familiarize themselves with the instructions in
 "INSTALL-ecm" before attempting the procedures here.
 
-0) Download Prime 95 source files. As of March 2024, the current release is:
+0) Download Prime 95 source files. As of June 2024, the current release is:
 
-   https://www.mersenne.org/download/software/v30/30.19/p95v3019b13.source.zip
+   https://www.mersenne.org/download/software/v30/30.19/p95v3019b20.source.zip
    
    Check links appended to "https://www.mersenne.org/download/software/" for
    future Prime 95 releases.
@@ -40,7 +40,7 @@ Users should familiarize themselves with the instructions in
    For example, if the ECM and p95 folders are both in the same home folder,
    the command might look like
 
-   $ ./configure --with-gwnum=../p95v3019b13.source/gwnum
+   $ ./configure --with-gwnum=../p95v3019b20.source/gwnum
    
    Note that you may also need to specify "--with-gmp=<gmpdir>" if
    "configure" has trouble finding GMP.
@@ -73,7 +73,7 @@ Users should familiarize themselves with the instructions in
        with 'n' or '(b2^n2)' < 10^10. Also, k must be a positive integer with
        1 <= k < 2^53, and c must be a non-zero integer with |c| < 2^23.
        Note that the k upper limit of 2^53-1 is taken from the file
-       p95v3019b13.source/gwnum/gwnum.c, line 2181:
+       p95v3019b20.source/gwnum/gwnum.c, line 2181:
        "if (k > 9007199254740991.0) return (GWERROR_K_TOO_LARGE);"
        and is subject to change by Woltman.
    (2) For integer-character-only input strings N, GMP-ECM may detect if

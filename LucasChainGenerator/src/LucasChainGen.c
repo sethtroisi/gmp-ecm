@@ -24,7 +24,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#ifndef _MSC_VER
+#ifdef HAVE_SYS_RESOURCE_H
 #  include <sys/resource.h>
 #endif
 #include <time.h>
