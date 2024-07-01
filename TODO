@@ -82,6 +82,8 @@ Table of contents:
 - Torbj"orn Granlund suggested faster code for mpn_mod_1(), used extensively
   in NTT. See
     https://sympa.inria.fr/sympa/arc/ecm-discuss/2008-05/msg00000.html
+- try to implement the algorithms from https://eprint.iacr.org/2024/1044.pdf
+  (if applicable) to replace PRAC
 
 2) interface
 - from Mark Rodenkirch <rogue@wi.rr.com> 08 April 2011: print messages like
