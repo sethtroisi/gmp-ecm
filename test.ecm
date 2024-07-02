@@ -543,6 +543,24 @@ echo 18446744073709551557 | $ECM -param 1 -A 1 -bsaves $TEST 11000
 echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads $TEST 11000; checkcode $? 8
 # The following test (with -v and -bloads) would crash on Windows prior to svn 2968.
 echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads $TEST -v 11000; checkcode $? 8
+
+if $ECM -printconfig | grep "HAVE_MMAP = 1"
+then
+  # test -bsavems/-bloadms
+  TESTM="test.ecm.ms$$"
+  # Test a (hopefully) successful save/mmap
+  echo 18446744073709551557 | $ECM -param 1 -A 1 -bsavems $TESTM 11e3; checkcode $? 0
+  echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloadms $TESTM 11e3; checkcode $? 8
+  # Test mismatched B1 value
+  $ECM -param 1 -bloadms $TESTM 10900 < ${GMPECM_DATADIR}/c155 2>&1 | grep "Wrong B1 value"; checkcode $? 0
+  # Test reading wrong file type (mmaped vs not)
+  $ECM -param 1 -bloadms $TEST 11000 < ${GMPECM_DATADIR}/c155 2>&1 | grep "File $TEST uses non-mmapped"; checkcode $? 0
+  $ECM -param 1 -bloads $TESTM 11000 < ${GMPECM_DATADIR}/c155 2>&1 | grep "File $TESTM uses mmapped"; checkcode $? 0
+  # Test reading an old (version 7.0) bsave file
+  $ECM -param 1 -bloads ${GMPECM_DATADIR}/bsave.1000.v70 1000 < ${GMPECM_DATADIR}/c155 2>&1 | grep "Wrong magic number"; checkcode $? 0
+  rm -f "$TESTM"
+fi
+
 /bin/rm -f $TEST
 
 # same with -param 2
