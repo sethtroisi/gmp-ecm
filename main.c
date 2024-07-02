@@ -295,6 +295,11 @@ print_config (void)
   printf ("WITH_GPU undefined\n");
 #endif
 
+#ifdef HAVE_MMAP
+  printf ("HAVE_MMAP = %d\n", HAVE_MMAP);
+#else
+  printf ("HAVE_MMAP undefined\n");
+#endif
 }
 
 /* r <- q mod N. 
