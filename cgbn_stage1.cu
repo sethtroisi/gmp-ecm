@@ -134,7 +134,9 @@ class cgbn_params_t {
   static const uint32_t TPB=TPB_DEFAULT;           // Reasonable default
   static const uint32_t MAX_ROTATION=4;            // good default value
   static const uint32_t SHM_LIMIT=0;               // no shared mem available
+#ifndef _MSC_VER
   static const bool     CONSTANT_TIME=false;       // not implemented
+#endif
 
   // parameters used locally in the application
   static const uint32_t TPI=tpi;                   // threads per instance

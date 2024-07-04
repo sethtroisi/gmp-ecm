@@ -111,8 +111,9 @@ To make a new release:
      7.0.3	 r2963	     ee145f2
      7.0.4	 r2991	     fcc8509
      7.0.5                   0ab79ad
+     7.0.6                   
 
- 10) increase the version number in configure.ac and build.vc*/gen_ecm_h.bat,
+ 10) increase the version number in configure.ac and build.vs/gen_ecm_h.bat,
      and switch assertions to on by default in configure.ac.
 
 To see the differences between a given tag and the current version:

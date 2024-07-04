@@ -1,4 +1,4 @@
-m4_define([ECM_VERSION_AC], [7.0.6-rc2])
+m4_define([ECM_VERSION_AC], [7.0.6])
 
 AC_PREREQ([2.57])
 AC_INIT([ecm],[ECM_VERSION_AC],[ecm-discuss@inria.fr])
@@ -65,7 +65,7 @@ AC_ARG_ENABLE([assert],
 [AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=no]]])],[],[enable_assert=no])
 if test "x$enable_assert" = xyes; then
   AC_DEFINE([WANT_ASSERT],1,[Define to 1 if you want assertions enabled])
-  GMP_DEFINE([WANT_ASSERT], 0)
+  GMP_DEFINE([WANT_ASSERT], 1)
 fi
 
 AC_ARG_ENABLE([gmp-cflags],
