@@ -3,7 +3,7 @@ How to create a gitlab release from an existing tar.gz
 
 Assume the existing tar.gz is ecm-6.0.1.tar.gz.
 
-On gitlab, release page, click on "New release"
+On gitlab, in the Deploy/Releases page, click on "New release"
 
 Enter as tag name something like git-6.0.1. Indeed, git will automatically
 create a tarball from the given commit, the "git-" prefix is there to avoid
@@ -16,6 +16,9 @@ In the "Release notes" window, click on attach a file.
 In "Release asset", enter the url of the file
 
 https://gitlab.inria.fr/zimmerma/ecm/uploads/70afcfac2a7a6a762a08eda0c551fafd/ecm-6.0.1.tar.gz
+
+where "70afcfac2a7a6a762a08eda0c551fafd" is copied from the link you see
+after attaching the release file above.
 
 and as "Link title" enter "release tarball".
 
