@@ -49,22 +49,38 @@ main (int argc, char *argv[])
 {
   mpz_t n;
   double B1;
-  unsigned long nthreads = 1, i;
+  unsigned long nthreads = 1, ncurves = 1, i;
   tab_t *T;
   pthread_t *tid;
 
-  if (argc >= 3 && strcmp (argv[1], "-t") == 0)
+  while (argc > 1 && argv[1][0] == '-')
+  {
+    if (argc >= 3 && strcmp (argv[1], "-t") == 0)
     {
       nthreads = strtoul (argv[2], NULL, 10);
       argc -= 2;
       argv += 2;
     }
-
-  if (argc < 3)
+    else if (argc >= 3 && strcmp (argv[1], "-c") == 0)
     {
-      fprintf (stderr, "Usage: ecmfactor [-t nnn] <number> <B1>\n");
+      ncurves = strtoul (argv[2], NULL, 10);
+      argc -= 2;
+      argv += 2;
+    }
+    else
+    {
+      fprintf (stderr, "Unknown option: %s\n", argv[1]);
       exit (1);
     }
+  }
+
+  if (argc < 3)
+  {
+    fprintf (stderr, "Usage: ecmfactor [-t nnn] [-c nnn] <number> <B1>\n");
+    fprintf (stderr, "       -t nnn - use nnn threads\n");
+    fprintf (stderr, "       -c nnn - perform nnn curves\n");
+    exit (1);
+  }
 
   /* initialize tab_t for threads */
   T = malloc (nthreads * sizeof (tab_t));
@@ -81,7 +97,12 @@ main (int argc, char *argv[])
 
   B1 = atof (argv[2]);
 
-  for (i = 0; i < nthreads ; i++)
+  while (ncurves > 0)
+  {
+    if (ncurves < nthreads)
+      nthreads = ncurves;
+
+    for (i = 0; i < nthreads ; i++)
     {
       mpz_init_set (T[i]->n, n);
       T[i]->B1 = B1;
@@ -89,13 +110,13 @@ main (int argc, char *argv[])
       ecm_init (T[i]->q);
     }
 
-  printf ("Performing %lu curve(s) with B1=%1.0f\n", nthreads, B1);
-  for (i = 0; i < nthreads; i++)
-    pthread_create (&tid[i], NULL, one_thread, (void *) (T+i));
-  for (i = 0; i < nthreads; i++)
-    pthread_join (tid[i], NULL);
+    printf ("Performing %lu curve(s) with B1=%1.0f\n", nthreads, B1);
+    for (i = 0; i < nthreads; i++)
+      pthread_create (&tid[i], NULL, one_thread, (void *) (T+i));
+    for (i = 0; i < nthreads; i++)
+      pthread_join (tid[i], NULL);
 
-  for (i = 0; i < nthreads; i++)
+    for (i = 0; i < nthreads; i++)
     {
       gmp_printf ("thread %lu with sigma %d:%Zd ",
                   i, T[i]->q->param, T[i]->q->sigma);
@@ -109,6 +130,9 @@ main (int argc, char *argv[])
       mpz_clear (T[i]->f);
       ecm_clear (T[i]->q);
     }
+
+    ncurves -= nthreads;
+  }
 
   mpz_clear (n);
 
