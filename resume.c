@@ -773,7 +773,7 @@ write_s_in_file (const char *fn, mpz_t s, int want_mmap, uint64_t B1)
   const unsigned char is_le = htole32(1) == 1 ? 1 : 0;
   const unsigned char limb_size = sizeof(mp_limb_t);
   const uint32_t checksum =  mpz_fdiv_ui(s, S_FILE_CHECKSUM_MODULUS);
-  const uint32_t B1le = htole64(B1);
+  const uint64_t B1le = htole64(B1);
   const s_file_header_t header = {magic, 1, mmapped, is_le, limb_size,
     checksum, B1le};
   if (fwrite_perror(&header, sizeof(s_file_header_t), 1, file, fn, "header", 1))
@@ -847,7 +847,7 @@ read_s_from_file (mpz_t s, const char *fn, int want_mmap, double B1)
       fclose(file);
       return 1;
   }
-  if (header.B1 != (unsigned long) B1) {
+  if (header.B1 != (uint64_t) B1) {
       fprintf(stderr, "Wrong B1 value in file %s; it has stored data for B1 = %"
               PRIu64 " but this run uses B1 = %" PRIu64 "\n",
               fn, header.B1, (uint64_t) B1);
