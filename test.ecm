@@ -337,6 +337,8 @@ if [ $GMP_NUMB_BITS -eq 64 ]; then
 fi
 $ECM -bloads test.s -param 0 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
 /bin/rm -f test.s
+# exercise wrong file format version error message
+echo 17 | $ECM -bloads ${GMPECM_DATADIR}/bsave.B100.v99 -param 1 100 2>&1 | grep "File .* uses version 99 format of bsave files"; checkcode $? 0
 
 # exercise "Error, invalid parametrization." error message
 $ECM -param 5-3 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
