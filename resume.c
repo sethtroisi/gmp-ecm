@@ -58,6 +58,7 @@ SOFTWARE.
 #define S_FILE_MAGIC 0xe2ad5e97UL
 /* This is a prime p with 2 a generator of (Z/pZ)* */
 #define S_FILE_CHECKSUM_MODULUS 4294967291UL
+#define S_FILE_VERSION 1
 
 
 static int 
@@ -671,7 +672,7 @@ typedef struct {
   uint32_t magic;
   unsigned char version,
                 mmapped,   /* mmapped data uses host endianness */
-                is_le,     /* Is this machine little_endian? */
+                is_le,     /* Is the s data in this file little endian? */
                 limb_size; /* Number of bytes in mp_limb_t */
   uint32_t checksum;       /* s % S_FILE_CHECKSUM_MODULUS */
   uint64_t B1;
@@ -774,8 +775,8 @@ write_s_in_file (const char *fn, mpz_t s, int want_mmap, uint64_t B1)
   const unsigned char limb_size = sizeof(mp_limb_t);
   const uint32_t checksum =  mpz_fdiv_ui(s, S_FILE_CHECKSUM_MODULUS);
   const uint64_t B1le = htole64(B1);
-  const s_file_header_t header = {magic, 1, mmapped, is_le, limb_size,
-    checksum, B1le};
+  const s_file_header_t header = {magic, S_FILE_VERSION, mmapped, is_le,
+    limb_size, checksum, B1le};
   if (fwrite_perror(&header, sizeof(s_file_header_t), 1, file, fn, "header", 1))
       return 0;
   
@@ -817,6 +818,7 @@ read_s_from_file (mpz_t s, const char *fn, int want_mmap, double B1)
     fprintf(stderr, "Cannot mmap() batch s data from file %s because mmap() "
             "is not supported on this system. Please check the the configure "
             "log.", fn);
+    return 1;
   }
 #endif
 
@@ -839,6 +841,11 @@ read_s_from_file (mpz_t s, const char *fn, int want_mmap, double B1)
               fn);
       fclose(file);
       return 1;
+  }
+  if (header.version != S_FILE_VERSION) {
+    fprintf(stderr, "File %s uses version %hhu format of bsave files, but "
+      "this program uses version %d\n", fn, header.version, S_FILE_VERSION);
+    return 1;
   }
   if (header.mmapped != want_mmap) {
       fprintf(stderr, "File %s uses %smmapped data but we want to read "
