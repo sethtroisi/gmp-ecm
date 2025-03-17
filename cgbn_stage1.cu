@@ -736,7 +736,6 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   typedef cgbn_params_t<16, 6144> cgbn_params_6144;
   typedef cgbn_params_t<16, 8192> cgbn_params_8192;
   typedef cgbn_params_t<32, 12288> cgbn_params_12288;
-  typedef cgbn_params_t<32, 20480> cgbn_params_20480;
   available_kernels.push_back((uint32_t)cgbn_params_1536::BITS);
   available_kernels.push_back((uint32_t)cgbn_params_2048::BITS);
   available_kernels.push_back((uint32_t)cgbn_params_3072::BITS);
@@ -744,7 +743,6 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
   available_kernels.push_back((uint32_t)cgbn_params_6144::BITS);
   available_kernels.push_back((uint32_t)cgbn_params_8192::BITS);
   available_kernels.push_back((uint32_t)cgbn_params_12288::BITS);
-  available_kernels.push_back((uint32_t)cgbn_params_20480::BITS);
 #endif
 
   /* Pointer to CUDA kernel. */
@@ -788,9 +786,6 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
       } else if (BITS == cgbn_params_12288::BITS) {
         TPI = cgbn_params_12288::TPI;
         kernel = kernel_double_add<cgbn_params_12288>;
-      } else if (BITS == cgbn_params_20480::BITS) {
-        TPI = cgbn_params_20480::TPI;
-        kernel = kernel_double_add<cgbn_params_20480>;
 #endif
       } else {
         outputf (OUTPUT_ERROR, "CGBN kernel not found for %d bits\n", BITS);
