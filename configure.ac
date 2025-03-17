@@ -428,10 +428,6 @@ dnl If we use GCC and user has not specified his own CFLAGS,
 dnl add some warning flags, avoiding duplication
 if test "x$GCC" = xyes && test "x$user_redefine_cflags" != xyes; then
   case $CFLAGS in
-    "-pedantic "* | *" -pedantic "* | *" -pedantic") ;;
-    *) CFLAGS="-pedantic $CFLAGS"
-  esac
-  case $CFLAGS in
     "-Wundef "* | *" -Wundef "* | *" -Wundef") ;;
     *) CFLAGS="-Wundef $CFLAGS"
   esac
