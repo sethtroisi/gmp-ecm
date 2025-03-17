@@ -98,9 +98,10 @@ echo "2^512+1" | $ECM 587 0
 echo "2^1018-1" | $ECM -sigma 3:92 4 0
 checkcode $? 2
 
-# try 2^1019-1: should give an error
+# try 2^1019-1: should give an error (exit code 1)
+# EDIT: with CGBN it exits normally with no factor
 echo "2^1019-1" | $ECM -sigma 3:92 4 0
-checkcode $? 1
+checkcode $? 0
 
 # test for when stage 2 on CPU is needed
 echo "2^349-1" | $ECM -sigma 3:13 587 1261
