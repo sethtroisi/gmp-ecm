@@ -7,7 +7,7 @@ mkdir /tmp/P95
 wget -q -O /tmp/P95/P95_source.zip $P95_URL
 unzip -d /tmp/P95 /tmp/P95/P95_source.zip
 rm -f /tmp/P95/gwnum/ecmstag1.c
-cp ./P95_stage1_file/ecmstag1.c /tmp/P95/gwnum/ecmstag1.c
+cp ./P95_ecm_stage1_file/ecmstag1.c /tmp/P95/gwnum/ecmstag1.c
 (cd /tmp/P95/gwnum && make -f make64)
 autoreconf -i
 ./configure --with-gwnum=/tmp/P95/gwnum
