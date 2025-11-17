@@ -1,6 +1,6 @@
 /* ECM stage 1 using GWNUM -- for use by GMP-ECM
 
-  Copyright 1996-2024 Mersenne Research, Inc.
+  Copyright 1996-2025 Mersenne Research, Inc.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -20,7 +20,7 @@
 
 /**************************************************************
  *
- *	ecm.c
+ *	ecmstag1.c
  *
  *	ECM stage 1 factoring program
  *
@@ -99,13 +99,13 @@ void gwfree_xz (
 	gwfree (gwdata, arg->x); arg->x = NULL;
 }
 
-/* Macro to swap to xz structs */
+/* Macro to swap two xz structs */
 
 #define xzswap(a,b)	{ struct xz t; t = a; a = b; b = t; }
 
 /* This routine gwcopies an xz pair */
 
-__inline void gwcopy_xz (
+void gwcopy_xz (
     gwhandle *gwdata,
 	struct xz *src,
 	struct xz *dst)
@@ -127,19 +127,7 @@ struct xz B = {NULL, NULL};
 struct xz C = {NULL, NULL};
 struct xz T = {NULL, NULL};
 struct xz scr = {NULL, NULL};
-
-gwnum t1_es1 = NULL;
-gwnum t2_es1 = NULL;
-gwnum t3_es1 = NULL;
-
-gwnum	xA_es1 = NULL;
-gwnum	zA_es1 = NULL;
-gwnum	xB_es1 = NULL;
-gwnum	zB_es1 = NULL;
-gwnum	xC_es1 = NULL;
-gwnum	zC_es1 = NULL;
-gwnum	xt_es1 = NULL;
-gwnum	zt_es1 = NULL;
+struct xz scr2 = {NULL, NULL};
 
 /* Bit manipulation macros */
 
@@ -223,7 +211,7 @@ void fill_sieve (void)
 	si.bit_number = 0;
 }
 
-/* Start sieve by allocate a sieve info structure */
+/* Start sieve by allocating a sieve info structure */
 
 void start_sieve (
 	uint64_t start)
@@ -795,15 +783,8 @@ void gw_max_continuation( chain_element *Lchain, uint8_t *chain_length, uint8_t 
 }
 
 
-
-/* old ecmstag1.c routines */
-#if 0
-
-
-/* end of old routines */
-#endif
-
 /* updated routines copied from ecm.cpp */
+
 /* Computes 2P=(out.x:out.z) from P=(in.x:in.z), uses the global variable Ad4. */
 /* Input arguments may be in FFTed state.  Out argument can be same as input argument. */
 /* Scratch xz argument can equal in but cannot equal out. */
@@ -940,29 +921,6 @@ void ell_add_xz_scr (
 
 #define ell_add_xz(i1,i2,dif,o)	ell_add_xz_scr(i1,i2,dif,o,o);
 
-/* Like ell_add_xz_scr but in1, in2 and diff are assumed to not be used again.  Out argument never has its forward FFT begun. */
-
-void ell_add_xz_last (
-	struct xz *in1,
-	struct xz *in2,
-	struct xz *diff,
-	struct xz *out,
-	struct xz *scr)
-{				/* 12 FFTs, 6 adds */
-	gwnum	t1, t2;
-
-	ASSERTG (scr != in1 && scr != in2 && scr != diff);
-	t1 = scr->z;
-	t2 = scr->x;
-	gwmulmulsub5 (&gwdata, in1->x, in2->z, in1->z, in2->x, t1, GWMUL_FFT_S12 | GWMUL_STARTNEXTFFT);	/* t1 = x1z2 - z1x2 */
-	gwmulmulsub5 (&gwdata, in1->x, in2->x, in1->z, in2->z, t2, GWMUL_STARTNEXTFFT);			/* t2 = x1x2 - z1z2 */
-	gwsquare2 (&gwdata, t1, t1, GWMUL_STARTNEXTFFT);				/* t1 = t1^2 */
-	gwsquare2 (&gwdata, t2, t2, GWMUL_STARTNEXTFFT);				/* t2 = t2^2 */
-	gwmul3 (&gwdata, t2, diff->z, t2, 0);						/* t2 = t2 * zdiff (will become outx) */
-	gwmul3 (&gwdata, t1, diff->x, t1, 0);						/* t1 = t1 * xdiff (will become outz) */
-	if (out != scr) xzswap (*scr, *out);
-}
-
 
 /* Perform an elliptic multiply using an algorithm developed by Peter Montgomery.  Basically, we try to find a near optimal Lucas */
 /* chain of additions that generates the number we are multiplying by.  This minimizes the number of calls to ell_dbl and ell_add. */
@@ -972,18 +930,16 @@ void ell_add_xz_last (
 
 #define swap(a,b)	{uint64_t t=a;a=b;b=t;}
 
-int lucas_cost (
+unsigned long lucas_cost (
 	uint64_t n,
-	uint64_t d)
+	double	v)
 {
-	uint64_t e;//, dmod3, emod3;
+	uint64_t d, e, t, dmod3, emod3;
 	unsigned long c;
-
-	if (d >= n || d <= n/2) return (999999999);		/* Catch invalid costings */
 
 	c = 0;
 	while (n != 1) {
-	    e = n - d;
+	    d = (uint64_t) (n/v+0.5); e = n - d;
 	    d = d - e;
 
 	    c += 12;
@@ -992,21 +948,21 @@ int lucas_cost (
 		if (d < e) {
 			swap (d,e);
 		}
-//		if (d <= e + (e >> 2)) {
-//			if ((dmod3 = d%3) == 3 - (emod3 = e%3)) {
-//				t = d;
-//				d = (d+d-e)/3;
-//				e = (e+e-t)/3;
-//				c += 36;
-//				continue;
-//			}
-//			if (dmod3 == emod3 && (d&1) == (e&1)) {
-//				d = (d-e) >> 1;
-//				c += 22;
-//				continue;
-//			}
-//		}
-		if (100 * d <= 296 * e) {
+		if (d <= e + (e >> 2)) {
+			if ((dmod3 = d%3) == 3 - (emod3 = e%3)) {
+				t = d;
+				d = (d+d-e)/3;
+				e = (e+e-t)/3;
+				c += 36;
+				continue;
+			}
+			if (dmod3 == emod3 && (d&1) == (e&1)) {
+				d = (d-e) >> 1;
+				c += 22;
+				continue;
+			}
+		}
+		if (d <= (e << 2)) {
 			d = d-e;
 			c += 12;
 		} else if ((d&1) == (e&1)) {
@@ -1015,180 +971,161 @@ int lucas_cost (
 		} else if ((d&1) == 0) {
 			d = d >> 1;
 			c += 22;
-//		} else if ((dmod3 = d%3) == 0) {
-//			d = d/3-e;
-//			c += 46;
-//		} else if (dmod3 == 3 - (emod3 = e%3)) {
-//			d = (d-e-e)/3;
-//			c += 46;
-//		} else if (dmod3 == emod3) {
-//			d = (d-e)/3;
-//			c += 46;
+		} else if ((dmod3 = d%3) == 0) {
+			d = d/3-e;
+			c += 46;
+		} else if (dmod3 == 3 - (emod3 = e%3)) {
+			d = (d-e-e)/3;
+			c += 46;
+		} else if (dmod3 == emod3) {
+			d = (d-e)/3;
+			c += 46;
 		} else {
 			e = e >> 1;
 			c += 22;
 		}
 	    }
-	    c += 10;
-	    if (d == 1) break;
+	    c += 12;
 	    n = d;
-	    d = (uint64_t) ((double) n * 0.6180339887498948);
 	}
 
 	return (c);
 }
 
-int lucas_mul (
+void lucas_mul (
 	struct xz *A,
 	uint64_t n,
-	uint64_t d,
-	int	last_mul)	// TRUE if the last multiply should not use the GWMUL_STARTNEXTFFT option
+	double	v)
 {
-	uint64_t e;//, dmod3, emod3;
+	uint64_t d, e, t, dmod3, emod3;
 
 	while (n != 1) {
-	    ell_dbl_xz_scr (A, &B, &C);				/* B = 2*A, scratch reg = C */
-										/* C = A (but we delay setting that up) */
+		ell_dbl_xz_scr (A, &B, &C);				/* B = 2*A, scratch reg = C */
+		gwcopy_xz (&gwdata, A, &C);				/* C = A */
 
-	    e = n - d;
+	    d = (uint64_t) (n/v+0.5); e = n - d;
 	    d = d - e;
-
-	    // To save two gwcopies setting C=A, we handle the most common case for the first iteration of the following loop.
-	    // I've only seen three cases that end up doing the gwcopies, n=3, n=11 and n=17.  With change to 2.96 there are a couple more.
-	    if (e > d && 100 * e <= 296 * d) {
-		swap (d, e);
-		xzswap (*A, B);							/* swap A & B, thus diff C = B */
-		ell_add_xz (A, &B, &B, &C);				/* B = A+B */
-		xzswap (B, C);							/* C = B */
-		d = d-e;
-	    }
-	    else if (d > e && 100 * d <= 296 * e) {
-		ell_add_xz (A, &B, A, &C);				/* B = A+B */
-		xzswap (B, C);							/* C = B */
-		d = d-e;
-	    } else {
-		gwcopy (&gwdata, A->x, C.x);
-		gwcopy (&gwdata, A->z, C.z);				/* C = A */
-	    }
 
 	    while (d != e) {
 		if (d < e) {
 			swap (d, e);
-			xzswap (*A, B);
+			xzswap (*A, B);		/* B = A */
 		}
+		if (d <= e + (e >> 2)) {
+			if ((dmod3 = d%3) == 3 - (emod3 = e%3)) {
+				ell_add_xz (A, &B, &C, &scr);				/* S = A+B */
+				ell_add_xz (A, &scr, &B, &T);				/* T = A+S */
+				ell_add_xz_scr (&scr, &B, A, &B, &scr2);	/* B = B+S */
+				xzswap (T, *A);								/* A = T */
 
-		if (100 * d <= 296 * e) {					/* d <= 2.96 * e (Montgomery used 4.00) */
-			ell_add_xz_scr (A, &B, &C, &C, &T);		/* B = A+B, scratch reg = T */
-			xzswap (B, C);						/* C = B */
+				t = d;
+				d = (d+d-e)/3;
+				e = (e+e-t)/3;
+				continue;
+			}
+			if (dmod3 == emod3 && (d&1) == (e&1)) {
+				ell_add_xz_scr (A, &B, &C, &B, &scr2);	/* B = A+B */
+				ell_dbl_xz_scr (A, A, &scr2);			/* A = 2*A */
+
+				d = (d-e) >> 1;
+				continue;
+			}
+		}
+		if (d <= (e << 2)) {
+			ell_add_xz_scr (A, &B, &C, &C, &scr2);	/* B = A+B */
+			xzswap (B, C);							/* C = B */
+
 			d = d-e;
 		} else if ((d&1) == (e&1)) {
-			ell_add_xz_scr (A, &B, &C, &B, &T);		/* B = A+B, scratch reg = T */
-			ell_dbl_xz_scr (A, A, &T);			/* A = 2*A, scratch reg = T */
+			ell_add_xz_scr (A, &B, &C, &B, &scr2);	/* B = A+B */
+			ell_dbl_xz_scr (A, A, &scr2);			/* A = 2*A */
+
 			d = (d-e) >> 1;
 		} else if ((d&1) == 0) {
-			ell_add_xz_scr (A, &C, &B, &C, &T);		/* C = A+C, scratch reg = T */
-			ell_dbl_xz_scr (A, A, &T);			/* A = 2*A, scratch reg = T */
+			ell_add_xz_scr (A, &C, &B, &C, &scr2);	/* C = A+C */
+			ell_dbl_xz_scr (A, A, &scr2);			/* A = 2*A */
+
 			d = d >> 1;
-		}
-		else {
-			ell_add_xz_scr (&B, &C, A, &C, &T);		/* C = C-B, scratch reg = T */
-			ell_dbl_xz_scr (&B, &B, &T);			/* B = 2*B, scratch reg = T */
+		} else if ((dmod3 = d%3) == 0) {
+			ell_dbl_xz_scr (A, &scr, &scr2);			/* S = 2*A */
+			ell_add_xz (A, &B, &C, &T);					/* T = A+B */
+			ell_add_xz_scr (&scr, A, A, A, &scr2);		/* A = S+A */
+			ell_add_xz_scr (&scr, &T, &C, &C, &scr2);	/* B = S+T */
+			xzswap (B, C);								/* C = B */
+
+			d = d/3-e;
+		} else if (dmod3 == 3 - (emod3 = e%3)) {
+			ell_add_xz (A, &B, &C, &scr);				/* S = A+B */
+			ell_add_xz_scr (A, &scr, &B, &B, &scr2);	/* B = A+S */
+			ell_dbl_xz_scr (A, &scr, &scr2);			/* S = 2*A */
+			ell_add_xz_scr (&scr, A, A, A, &scr2);		/* A = S+A */
+
+			d = (d-e-e)/3;
+		} else if (dmod3 == emod3) {
+			ell_add_xz (A, &B, &C, &T);					/* T = A+B */
+			ell_add_xz_scr (A, &C, &B, &C, &scr2);		/* C = A+C */
+			xzswap (T, B);								/* B = T */
+			ell_dbl_xz_scr (A, &scr, &scr2);			/* S = 2*A */
+			ell_add_xz_scr (&scr, A, A, A, &scr2);		/* A = S+A */
+
+			d = (d-e)/3;
+		} else {
+			ell_add_xz_scr (&B, &C, A, &C, &scr2);	/* C = C + B */
+			ell_dbl_xz_scr (&B, &B, &scr2);	/* B = 2*B */
+
 			e = e >> 1;
 		}
 	    }
-
-	    if (d == 1 && last_mul) {
-		ell_add_xz_last (&B, A, &C, A, &T);			/* A = A+B, scratch reg = T */
-		break;
-	    } else {
-		ell_add_xz_scr (&B, A, &C, A, &T);			/* A = A+B, scratch reg = T */
-	    }
+		ell_add_xz_scr (&B, A, &C, A, &scr2);	/* A = A+B */
 
 	    n = d;
-	    d = (uint64_t) ((double) n * 0.6180339887498948);
 	}
-	return (0);
 }
+
 #undef swap
 
-/* Try a series of Lucas chains to find the cheapest. */
-/* First try v = (1+sqrt(5))/2, then (2+v)/(1+v), then (3+2*v)/(2+v), */
-/* then (5+3*v)/(3+2*v), etc.  Finally, execute the cheapest. */
-
-__inline int lucas_cost_several (uint64_t n, uint64_t *d) {
-	int	i, c, min;
-	uint64_t testd;
-	for (i = 0, testd = *d - PRAC_SEARCH / 2; i < PRAC_SEARCH; i++, testd++) {
-		c = lucas_cost (n, testd);
-		if (i == 0 || c < min) min = c, *d = testd;
-	}
-	return (min);
-}
-
-int ell_mul (
+void ell_mul (
 	struct xz *arg,
-	uint64_t n,
-	int	last_mul)	// TRUE if the this is the last mul in a series and we do not want to apply the GWMUL_STARTNEXTFFT option to the result
+	uint64_t n)
 {
-	unsigned long zeros;
-	int	stop_reason;
-
-	for (zeros = 0; (n & 1) == 0; zeros++) n >>= 1;
+	/* Note: factors of 2 are done elsewhere */
 
 	if (n > 1) {
-		int	c, min;
-		uint64_t d, mind;
+		unsigned long c, min;
+		double	minv;
 
-		mind = (uint64_t) ceil((double) 0.6180339887498948 * n);		/*v=(1+sqrt(5))/2*/
-		min = lucas_cost_several (n, &mind);
+		min = lucas_cost (n, minv = 1.61803398875);/*v=(1+sqrt(5))/2*/
 
-		d = (uint64_t) ceil ((double) 0.7236067977499790 * n);			/*(2+v)/(1+v)*/
-		c = lucas_cost_several (n, &d);
-		if (c < min) min = c, mind = d;
+		c = lucas_cost (n, 1.38196601125);	/*(2+v)/(1+v)*/
+		if (c < min) min = c, minv = 1.38196601125;
 
-		d = (uint64_t) ceil ((double) 0.5801787282954641 * n);			/*(3+2*v)/(2+v)*/
-		c = lucas_cost_several (n, &d);
-		if (c < min) min = c, mind = d;
+		c = lucas_cost (n, 1.72360679775);	/*(3+2*v)/(2+v)*/
+		if (c < min) min = c, minv = 1.72360679775;
 
-		d = (uint64_t) ceil ((double) 0.6328398060887063 * n);			/*(5+3*v)/(3+2*v)*/
-		c = lucas_cost_several (n, &d);
-		if (c < min) min = c, mind = d;
+		c = lucas_cost (n, 1.580178728295);	/*(5+3*v)/(3+2*v)*/
+		if (c < min) min = c, minv = 1.580178728295;
 
-		d = (uint64_t) ceil ((double) 0.6124299495094950 * n);			/*(8+5*v)/(5+3*v)*/
-		c = lucas_cost_several (n, &d);
-		if (c < min) min = c, mind = d;
+		c = lucas_cost (n, 1.632839806089);	/*(8+5*v)/(5+3*v)*/
+		if (c < min) min = c, minv = 1.632839806089;
 
-		d = (uint64_t) ceil ((double) 0.6201819808074158 * n);			/*(13+8*v)/(8+5*v)*/
-		c = lucas_cost_several (n, &d);
-		if (c < min) min = c, mind = d;
+		c = lucas_cost (n, 1.612429949509);	/*(13+8*v)/(8+5*v)*/
+		if (c < min) min = c, minv = 1.612429949509;
 
-		d = (uint64_t) ceil ((double) 0.6172146165344039 * n);			/*(21+13*v)/(13+8*v)*/
-		c = lucas_cost_several (n, &d);
-		if (c < min) min = c, mind = d;
+		c = lucas_cost (n, 1.620181980807);	/*(21+13*v)/(13+8*v)*/
+		if (c < min) min = c, minv = 1.620181980807;
 
-		d = (uint64_t) ceil ((double) 0.6183471196562281 * n);			/*(34+21*v)/(21+13*v)*/
-		c = lucas_cost_several (n, &d);
-		if (c < min) min = c, mind = d;
+		c = lucas_cost (n, 1.617214616534);	/*(34+21*v)/(21+13*v)*/
+		if (c < min) min = c, minv = 1.617214616534;
 
-		d = (uint64_t) ceil ((double) 0.6179144065288179 * n);			/*(55+34*v)/(34+21*v)*/
-		c = lucas_cost_several (n, &d);
-		if (c < min) min = c, mind = d;
+		c = lucas_cost (n, 1.618347119656);	/*(55+34*v)/(34+21*v)*/
+		if (c < min) min = c, minv = 1.618347119656;
 
-		d = (uint64_t) ceil ((double) 0.6180796684698958 * n);			/*(89+55*v)/(55+34*v)*/
-		c = lucas_cost_several (n, &d);
-		if (c < min) min = c, mind = d;
+		c = lucas_cost (n, 1.617914406529);	/*(89+55*v)/(55+34*v)*/
+		if (c < min) min = c, minv = 1.617914406529;
 
-		stop_reason = lucas_mul (arg, n, mind, zeros == 0 && last_mul);
-		if (stop_reason) return (stop_reason);
+		lucas_mul (arg, n, minv);
 	}
-	while (zeros--) {
-		if (zeros || !last_mul) ell_dbl_xz_scr (arg, arg, &scr);
-		else ell_dbl_xz_scr_last (arg, arg, &scr);
-	}
-	return (0);
 }
-
-
 
 /* end of updated routines */
 
@@ -1335,6 +1272,7 @@ int normalize (
 	if (!alloc_xz (&gwdata, &C)) goto no_mem;\
 	if (!alloc_xz (&gwdata, &T)) goto no_mem;\
 	if (!alloc_xz (&gwdata, &scr)) goto no_mem;\
+	if (!alloc_xz (&gwdata, &scr2)) goto no_mem;\
 \
 	Ad4 = gwalloc (&gwdata);\
 	if (Ad4 == NULL) goto no_mem;\
@@ -1357,7 +1295,7 @@ int normalize (
 		{\
 			using_code_file = 1;\
 			base_indx = 0;\
-			printf("Using Lucas chain codes in (updated) gwnum\n");\
+			printf("Using Lucas chain codes in gwnum; add & dbl functions from P95/ecm.cpp\n");\
 \
 			/* the first 3 chain elements are always value = 1, 2, and 3, respectively */\
 			Lchain[0].value = 1;\
@@ -1374,7 +1312,7 @@ int normalize (
 		}\
 		else\
 		{\
-			printf("Lchain_codes.dat file failed to open, using prac\n");\
+			printf("Using PRAC in gwnum; add & dbl functions from P95/ecm.cpp\n");\
 		}\
 	}\
 	chain_length = 0; /* not necessary but stops a compiler warning */
@@ -1426,20 +1364,13 @@ int normalize (
 						{\
 							s2_indx = (base_indx - Lchain[i].comp_offset_2) & 0xF;\
 							dif_indx = (base_indx - Lchain[i].dif_offset) & 0xF;\
-							if( (i < chain_length) || (!last_mul) )\
-                            {\
-	                        	ell_add_xz (&LCS[s1_indx], &LCS[s2_indx], &LCS[dif_indx], &LCS[next_indx]);\
-                            }\
-							else\
-                            {\
-								ell_add_xz_last (&LCS[s1_indx], &LCS[s2_indx], &LCS[dif_indx], &current_xz, &current_xz);\
-                            }\
+                        	ell_add_xz (&LCS[s1_indx], &LCS[s2_indx], &LCS[dif_indx], &LCS[next_indx]);\
 						}\
 						base_indx = next_indx;\
 					}\
 				}\
 				else /* use prac */\
-				    res = ell_mul (&current_xz, prime, last_mul);
+				    ell_mul (&current_xz, prime);
 
 
 #define FREE_GWNUMS \
@@ -1453,6 +1384,7 @@ int normalize (
 	gwfree (&gwdata, x);\
 	gwfree (&gwdata, Ad4);\
 \
+    gwfree_xz(&gwdata, &scr2);\
     gwfree_xz(&gwdata, &scr);\
     gwfree_xz(&gwdata, &T);\
     gwfree_xz(&gwdata, &C);\
@@ -1498,7 +1430,7 @@ int gwnum_ecmStage1_u32 (
 	gwnum	x, z;
     struct xz current_xz;
 	uint64_t mult;
-    int last_mul;
+    int twos_count;
 
 /* Lucas chain code file mods */
 	uint64_t chain_code;
@@ -1511,8 +1443,6 @@ int gwnum_ecmStage1_u32 (
 	/* Elliptic curve states as we follow the Lucas chain */
     struct xz LCS[16];
 
-//	gwnum LCS_x[16];
-//	gwnum LCS_z[16];
 	uint8_t base_indx, next_indx, s1_indx, s2_indx, dif_indx;
 /* end mods */
 
@@ -1613,12 +1543,24 @@ int gwnum_ecmStage1_u32 (
     gwfft (&gwdata, current_xz.x, current_xz.x);
     gwfft (&gwdata, current_xz.z, current_xz.z);
 
-    last_mul = 0;	
-
 	/* do 2's separately */
+
+	/* Note (PBMcL): to avoid using the "last_mul" logic from ecm.cpp, here we will
+	   simply save one duplication to be done as the final multiple of the start point
+	   after all primes < B1 have been processed.
+
+	/* count total number of factors of 2 */
+	twos_count = 0;
 	for (mult = 2; mult <= B1; mult *= 2)
-		if (mult > *B1_done)
-			ell_dbl_xz_scr (&current_xz, &current_xz, &scr);
+		if (mult > *B1_done) twos_count++;
+
+	/* save one factor of 2 for final "ell_dbl_xz_scr_last" operation */
+	/* note that if twos_count == 0 here we will have one extra factor of 2
+		in the final multiple of the starting point on the curve.
+		It is unlikely that this will pose any problems */
+
+	for (mult = 1; mult < twos_count; mult++)
+		ell_dbl_xz_scr (&current_xz, &current_xz, &scr);
 
     if (using_code_file)
         gwcopy_xz ( &gwdata, &current_xz, &LCS[base_indx]);
@@ -1636,9 +1578,6 @@ int gwnum_ecmStage1_u32 (
 
 		for (mult = prime; mult <= B1; mult *= prime)
 		{
-            if (next_prime > B1)
-                if( mult*prime > B1) last_mul = 1;
-
 			if (mult > *B1_done)
 			{
 				PROCESS_PRIME
@@ -1653,6 +1592,12 @@ int gwnum_ecmStage1_u32 (
 
 		if (stop_check_proc != NULL && (*stop_check_proc)(0)) {
 			*B1_done = prime;
+
+			if (using_code_file)
+				gwcopy_xz ( &gwdata, &LCS[base_indx], &current_xz);
+
+			/* include the final factor of 2, revert to gwnums */
+			ell_dbl_xz_scr_last (&current_xz, &current_xz, &scr);
 
 			if (z_array == NULL) {
 				StopCheckRoutine = NULL;
@@ -1681,6 +1626,12 @@ int gwnum_ecmStage1_u32 (
 	*B1_done = B1;
 
 /* Normalize the x value OR return the x,z pair */
+
+	if (using_code_file)
+		gwcopy_xz ( &gwdata, &LCS[base_indx], &current_xz);
+
+	/* include the final factor of 2, revert to gwnums */
+	ell_dbl_xz_scr_last (&current_xz, &current_xz, &scr);
 
 	if (z_array == NULL) {
 		StopCheckRoutine = NULL;
@@ -1769,7 +1720,7 @@ int gwnum_ecmStage1_u64 (
 	gwnum	x, z;
     struct xz current_xz;
 	uint64_t mult;
-    int last_mul;
+    int twos_count;
 
 	/* Lucas chain code file mods */
 	uint64_t chain_code;
@@ -1782,8 +1733,6 @@ int gwnum_ecmStage1_u64 (
 	/* Elliptic curve states as we follow the Lucas chain */
     struct xz LCS[16];
 
-//	gwnum LCS_x[16];
-//	gwnum LCS_z[16];
 	uint8_t base_indx, next_indx, s1_indx, s2_indx, dif_indx;
 	/* end mods */
 
@@ -1884,12 +1833,24 @@ int gwnum_ecmStage1_u64 (
     gwfft (&gwdata, current_xz.x, current_xz.x);
     gwfft (&gwdata, current_xz.z, current_xz.z);
 	
-    last_mul = 0;	
-
 	/* do 2's separately */
+
+	/* Note (PBMcL): to avoid using the "last_mul" logic from ecm.cpp, here we will
+	   simply save one duplication to be done as the final multiple of the start point
+	   after all primes < B1 have been processed.
+
+	/* count total number of factors of 2 */
+	twos_count = 0;
 	for (mult = 2; mult <= B1; mult *= 2)
-		if (mult > *B1_done)
-			ell_dbl_xz_scr (&current_xz, &current_xz, &scr);
+		if (mult > *B1_done) twos_count++;
+
+	/* save one factor of 2 for final ell_dbl_xz_scr_last operation */
+	/* note that if twos_count == 0 here we will have one extra factor of 2
+		in the final multiple of the starting point on the curve.
+		It is unlikely that this will pose any problems */
+
+	for (mult = 1; mult < twos_count; mult++)
+		ell_dbl_xz_scr (&current_xz, &current_xz, &scr);
 
     if (using_code_file)
         gwcopy_xz ( &gwdata, &current_xz, &LCS[base_indx]);
@@ -1907,9 +1868,6 @@ int gwnum_ecmStage1_u64 (
 
 		for (mult = prime; mult <= B1; mult *= prime)
 		{
-            if (next_prime > B1)
-                if( mult*prime > B1) last_mul = 1;
-
 			if (mult > *B1_done)
 			{
 				PROCESS_PRIME
@@ -1924,6 +1882,12 @@ int gwnum_ecmStage1_u64 (
 
 		if (stop_check_proc != NULL && (*stop_check_proc)(0)) {
 			*B1_done = prime;
+
+			if (using_code_file)
+				gwcopy_xz ( &gwdata, &LCS[base_indx], &current_xz);
+
+			/* include the final factor of 2, revert to gwnums */
+			ell_dbl_xz_scr_last (&current_xz, &current_xz, &scr);
 
 			if (z_array == NULL) {
 				StopCheckRoutine = NULL;
@@ -1950,6 +1914,12 @@ int gwnum_ecmStage1_u64 (
 		}
 	}
 	*B1_done = B1;
+
+    if (using_code_file)
+        gwcopy_xz ( &gwdata, &LCS[base_indx], &current_xz);
+
+	/* include the final factor of 2, revert to gwnums */
+	ell_dbl_xz_scr_last (&current_xz, &current_xz, &scr);
 
 /* Normalize the x value OR return the x,z pair */
 
