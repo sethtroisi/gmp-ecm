@@ -49,7 +49,7 @@ main (int argc, char *argv[])
 {
   mpz_t n;
   double B1;
-  unsigned long nthreads = 1, ncurves = 1, i;
+  unsigned long nthreads = 1, ncurves = 1, i, ncurves_set = 0;
   tab_t *T;
   pthread_t *tid;
 
@@ -64,6 +64,7 @@ main (int argc, char *argv[])
     else if (argc >= 3 && strcmp (argv[1], "-c") == 0)
     {
       ncurves = strtoul (argv[2], NULL, 10);
+      ncurves_set = 1;
       argc -= 2;
       argv += 2;
     }
@@ -81,6 +82,10 @@ main (int argc, char *argv[])
     fprintf (stderr, "       -c nnn - perform nnn curves\n");
     exit (1);
   }
+
+  /* if the -c option was not used, default curve count to thread count */
+  if (!ncurves_set)
+    ncurves = nthreads;
 
   /* initialize tab_t for threads */
   T = malloc (nthreads * sizeof (tab_t));
