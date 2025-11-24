@@ -1,22 +1,29 @@
-/* ECM stage 1 using GWNUM -- for use by GMP-ECM
+/* ECM stage 1 using George Woltman's GWNUM library functions
 
-  Copyright 1996-2025 Mersenne Research, Inc.
+Copyright 2025 Paul Zimmermann, Philip McLaughlin.
 
-  This program is free software; you can redistribute it and/or modify it
-  under the terms of the GNU General Public License as published by the
-  Free Software Foundation; either version 2 of the License, or (at your
-  option) any later version.
+This file is part of the ECM Library.
 
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-  more details.
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  You should have received a copy of the GNU General Public License along
-  with this program; see the file COPYING.  If not, write to the Free
-  Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-  02111-1307, USA.
-*/
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
+
+/* Note: this file was originally included in the GWNUM project, but G. Woltman
+transferred ownership to the GMP-ECM project per email to Paul Zimmermann
+on 20 Nov. 2025:
+
+"The file is all yours. I hereby grant you all rights." */
 
 /**************************************************************
  *
@@ -38,6 +45,7 @@
 #include "gwnum.h"
 #include "math.h"
 #include "memory.h"
+#include "gw_ecmstag1.h"
 
 /* PBMcL additions  for Lucas chain codes */
 
@@ -66,6 +74,7 @@ static void gw_max_continuation( chain_element *, uint8_t *, uint8_t );
 static uint8_t gw_generate_Lucas_chain( uint64_t, uint64_t, chain_element * );
 
 /* end PBMcL additions */
+
 
 gwhandle gwdata;
 
@@ -274,6 +283,7 @@ uint64_t sieve (void)
  *
  **************************************************************/
 
+static
 uint8_t gw_generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_element *Lchain )
 {
 	uint8_t code_fragment, chain_length, i, k;
@@ -319,7 +329,7 @@ uint8_t gw_generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_elem
 		}
 		else
 		{
-			printf("ERROR: generate_Lucas_chain entered with prime = %lu < 11 but != 2, 3, 5 or 7\n", prime);
+			printf("ERROR: gw_generate_Lucas_chain entered with prime = %lu < 11 but != 2, 3, 5 or 7\n", prime);
 			return 0;
 		}
 	}
@@ -752,7 +762,7 @@ uint8_t gw_generate_Lucas_chain( uint64_t prime, uint64_t chain_code, chain_elem
 }
 
 /* extend the chain with maximum elements for i steps */
-
+static
 void gw_max_continuation( chain_element *Lchain, uint8_t *chain_length, uint8_t i )
 {
 	uint8_t k;
@@ -781,7 +791,6 @@ void gw_max_continuation( chain_element *Lchain, uint8_t *chain_length, uint8_t 
 		}
 	}
 }
-
 
 /* updated routines copied from ecm.cpp */
 
@@ -1295,7 +1304,6 @@ int normalize (
 		{\
 			using_code_file = 1;\
 			base_indx = 0;\
-			printf("Using Lucas chain codes in gwnum; add & dbl functions from P95/ecm.cpp\n");\
 \
 			/* the first 3 chain elements are always value = 1, 2, and 3, respectively */\
 			Lchain[0].value = 1;\
@@ -1312,7 +1320,7 @@ int normalize (
 		}\
 		else\
 		{\
-			printf("Using PRAC in gwnum; add & dbl functions from P95/ecm.cpp\n");\
+			printf("Lchain_codes.dat file failed to open; using prac\n");\
 		}\
 	}\
 	chain_length = 0; /* not necessary but stops a compiler warning */
@@ -1403,7 +1411,7 @@ int normalize (
 /* Do ECM stage 1 for GMP-ECM using gwnum library.  See gwnum.h for */
 /* a detailed explanation of inputs and outputs. */
 
-int gwnum_ecmStage1_u32 (
+int gw_ecmStage1_u32 (
 	double	k,			/* K in K*B^N+C */
 	unsigned long b,		/* B in K*B^N+C */
 	unsigned long n,		/* N in K*B^N+C */
@@ -1430,7 +1438,7 @@ int gwnum_ecmStage1_u32 (
 	gwnum	x, z;
     struct xz current_xz;
 	uint64_t mult;
-    int twos_count;
+    uint64_t twos_count;
 
 /* Lucas chain code file mods */
 	uint64_t chain_code;
@@ -1470,15 +1478,15 @@ int gwnum_ecmStage1_u32 (
 		res = gwsetup_general_mod (&gwdata,
 					   (uint32_t *) num_being_factored_array,
 					   num_being_factored_array_len * 2);
-	if (res == GWERROR_MALLOC) return (ES1_MEMORY);
-	if (res) return (ES1_CANNOT_DO_IT);
+	if (res == GWERROR_MALLOC) return (S1_MEMORY);
+	if (res) return (S1_CANNOT_DO_IT);
 	StopCheckRoutine = stop_check_proc;
 
 /* If we cannot handle this very efficiently, let caller know it */
 
-	if (gwdata.GENERAL_MOD && ! (options & ES1_DO_SLOW_CASE)) {
+	if (gwdata.GENERAL_MOD && ! (options & S1_DO_SLOW_CASE)) {
 		ecm_cleanup ();
-		return (ES1_CANNOT_DO_QUICKLY);
+		return (S1_CANNOT_DO_QUICKLY);
 	}
 
 /* Allocate memory; open Lchain_codes.dat file (if it exists) */
@@ -1547,7 +1555,7 @@ int gwnum_ecmStage1_u32 (
 
 	/* Note (PBMcL): to avoid using the "last_mul" logic from ecm.cpp, here we will
 	   simply save one duplication to be done as the final multiple of the start point
-	   after all primes < B1 have been processed.
+	   after all primes < B1 have been processed. */
 
 	/* count total number of factors of 2 */
 	twos_count = 0;
@@ -1562,8 +1570,8 @@ int gwnum_ecmStage1_u32 (
 	for (mult = 1; mult < twos_count; mult++)
 		ell_dbl_xz_scr (&current_xz, &current_xz, &scr);
 
-    if (using_code_file)
-        gwcopy_xz ( &gwdata, &current_xz, &LCS[base_indx]);
+	if (using_code_file)
+		gwcopy_xz ( &gwdata, &current_xz, &LCS[base_indx]);
 
 	start_sieve (3);
 
@@ -1620,7 +1628,7 @@ int gwnum_ecmStage1_u32 (
 
 			FREE_GWNUMS
 			ecm_cleanup ();
-			return (ES1_INTERRUPT);
+			return (S1_INTERRUPT);
 		}
 	}
 	*B1_done = B1;
@@ -1654,7 +1662,7 @@ int gwnum_ecmStage1_u32 (
 
 	FREE_GWNUMS
 	ecm_cleanup ();
-	return (ES1_SUCCESS);
+	return (S1_SUCCESS);
 
 /* Print a message if we found a factor! */
 
@@ -1670,18 +1678,18 @@ bingo:	//printf ("ECM found a factor\n");
 	}
 	FREE_GWNUMS
 	ecm_cleanup ();
-	return (ES1_FACTOR_FOUND);
+	return (S1_FACTOR_FOUND);
 
 /* Return a hardware error occurred code */
 
 error:	FREE_GWNUMS
 	ecm_cleanup ();
-	return (ES1_HARDWARE_ERROR);
+	return (S1_HARDWARE_ERROR);
 
 /* Return out-of-memory error */
 
 no_mem:	ecm_cleanup ();
-	return (ES1_MEMORY);
+	return (S1_MEMORY);
 }
 
 /**************************************************************
@@ -1693,7 +1701,7 @@ no_mem:	ecm_cleanup ();
 /* Do ECM stage 1 for GMP-ECM using gwnum library.  See gwnum.h for */
 /* a detailed explanation of inputs and outputs. */
 
-int gwnum_ecmStage1_u64 (
+int gw_ecmStage1_u64 (
 	double	k,			/* K in K*B^N+C */
 	unsigned long b,		/* B in K*B^N+C */
 	unsigned long n,		/* N in K*B^N+C */
@@ -1720,7 +1728,7 @@ int gwnum_ecmStage1_u64 (
 	gwnum	x, z;
     struct xz current_xz;
 	uint64_t mult;
-    int twos_count;
+    uint64_t twos_count;
 
 	/* Lucas chain code file mods */
 	uint64_t chain_code;
@@ -1758,15 +1766,15 @@ int gwnum_ecmStage1_u64 (
 					      (uint64_t *) num_being_factored_array,
 					      num_being_factored_array_len);
 
-	if (res == GWERROR_MALLOC) return (ES1_MEMORY);
-	if (res) return (ES1_CANNOT_DO_IT);
+	if (res == GWERROR_MALLOC) return (S1_MEMORY);
+	if (res) return (S1_CANNOT_DO_IT);
 	StopCheckRoutine = stop_check_proc;
 
 /* If we cannot handle this very efficiently, let caller know it */
 
-	if (gwdata.GENERAL_MOD && ! (options & ES1_DO_SLOW_CASE)) {
+	if (gwdata.GENERAL_MOD && ! (options & S1_DO_SLOW_CASE)) {
 		ecm_cleanup ();
-		return (ES1_CANNOT_DO_QUICKLY);
+		return (S1_CANNOT_DO_QUICKLY);
 	}
 
 /* Allocate memory; open Lchain_codes.dat file (if it exists) */
@@ -1837,7 +1845,7 @@ int gwnum_ecmStage1_u64 (
 
 	/* Note (PBMcL): to avoid using the "last_mul" logic from ecm.cpp, here we will
 	   simply save one duplication to be done as the final multiple of the start point
-	   after all primes < B1 have been processed.
+	   after all primes < B1 have been processed. */
 
 	/* count total number of factors of 2 */
 	twos_count = 0;
@@ -1852,8 +1860,8 @@ int gwnum_ecmStage1_u64 (
 	for (mult = 1; mult < twos_count; mult++)
 		ell_dbl_xz_scr (&current_xz, &current_xz, &scr);
 
-    if (using_code_file)
-        gwcopy_xz ( &gwdata, &current_xz, &LCS[base_indx]);
+	if (using_code_file)
+		gwcopy_xz ( &gwdata, &current_xz, &LCS[base_indx]);
 
 	start_sieve (3);
 
@@ -1910,13 +1918,13 @@ int gwnum_ecmStage1_u64 (
 
 			FREE_GWNUMS
 			ecm_cleanup ();
-			return (ES1_INTERRUPT);
+			return (S1_INTERRUPT);
 		}
 	}
 	*B1_done = B1;
 
-    if (using_code_file)
-        gwcopy_xz ( &gwdata, &LCS[base_indx], &current_xz);
+	if (using_code_file)
+		gwcopy_xz ( &gwdata, &LCS[base_indx], &current_xz);
 
 	/* include the final factor of 2, revert to gwnums */
 	ell_dbl_xz_scr_last (&current_xz, &current_xz, &scr);
@@ -1944,7 +1952,7 @@ int gwnum_ecmStage1_u64 (
 
 	FREE_GWNUMS
 	ecm_cleanup ();
-	return (ES1_SUCCESS);
+	return (S1_SUCCESS);
 
 /* Print a message if we found a factor! */
 
@@ -1960,16 +1968,16 @@ bingo:	//printf ("ECM found a factor\n");
 	}
 	FREE_GWNUMS
 	ecm_cleanup ();
-	return (ES1_FACTOR_FOUND);
+	return (S1_FACTOR_FOUND);
 
 /* Return a hardware error occurred code */
 
 error:	FREE_GWNUMS
 	ecm_cleanup ();
-	return (ES1_HARDWARE_ERROR);
+	return (S1_HARDWARE_ERROR);
 
 /* Return out-of-memory error */
 
 no_mem:	ecm_cleanup ();
-	return (ES1_MEMORY);
+	return (S1_MEMORY);
 }

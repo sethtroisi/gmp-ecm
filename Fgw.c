@@ -1,7 +1,7 @@
 /* Interface code for George Woltman's gwnum library
   
-Copyright 2004, 2005, 2006, 2008, 2011, 2012 Paul Zimmermann, Alexander Kruppa,
-David Cleaver.
+Copyright 2004, 2005, 2006, 2008, 2011, 2012, 2025 Paul Zimmermann,
+Alexander Kruppa, David Cleaver, Philip McLaughlin.
   
 Contains code based on the GWNUM library, 
 copyright 2002-2005 George Woltman, Just For Fun Software, Inc.
@@ -30,10 +30,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-gmp.h"
 #include "ecm.h"
 #include "ecm-impl.h"
-#define ADD_UNDERSCORES
-#include "gwdbldbl.h"
-#include "gwnum.h"
-#include "cpuid.h"
+#include "gw_ecmstag1.h"
 
 void __gxx_personality_v0()
 {
@@ -505,9 +502,14 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   
   if(gw_b)
   {
-    outputf (OUTPUT_NORMAL, 
-           "Using gwnum_ecmStage1(%.0f, %d, %d, %d, %.0f, %ld)\n",
-           gw_k, gw_b, gw_n, gw_c, B1, gw_B1done);
+    if (gw_k > 1.5)
+      outputf (OUTPUT_NORMAL, 
+           "Using gwnum fft's, k*b^n+c form: %.0f*%d^%d + %d\n",
+           gw_k, gw_b, gw_n, gw_c);
+    else
+      outputf (OUTPUT_NORMAL, 
+           "Using gwnum fft's, k*b^n+c form: %d^%d + %d\n",
+           gw_b, gw_n, gw_c);
 
     /* make sure tmp has adequate allocation */
     tmp_bitsize = log2(gw_k) + ((double)gw_n)*log2((double)gw_b) + 64.0;
@@ -541,7 +543,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   else /* set for gwnum generic mod */
   {
     outputf (OUTPUT_NORMAL, 
-           "Using gwnum_ecmStage1_generic(%.0f, %ld)\n", B1, gw_B1done);
+           "Using gwnum fft's, generic (non-kbnc) form\n");
 
      kbnc_size = 8*sizeof(mp_size_t)*ABSIZ(modulus->orig_modulus) + 64; /* One extra 64-bit word per G. Woltman */
      mpz_init2 (gw_x, kbnc_size);
@@ -569,12 +571,12 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   ASSERT_ALWAYS (1.0 <= gw_k && gw_k < 0x1p53);
   ASSERT_ALWAYS (-8388607 <= gw_c && gw_c <= 8388607);
 #if GMP_NUMB_BITS <= 32
-  youpi = gwnum_ecmStage1_u32 (gw_k, gw_b, gw_n, gw_c, 
+  youpi = gw_ecmStage1_u32 (gw_k, gw_b, gw_n, gw_c, 
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus), 
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A), 
       PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, options);
 #else /* contributed by David Cleaver */
-  youpi = gwnum_ecmStage1_u64 (gw_k, gw_b, gw_n, gw_c,
+  youpi = gw_ecmStage1_u64 (gw_k, gw_b, gw_n, gw_c,
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus),
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A),
       PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, options);
@@ -604,23 +606,23 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
 /* Here is a list of gwnum return codes. */
 /* In the case of 2 or 5, we should continue on and let gmp-ecm */
 /* do stage 1, instead of throwing an error and quitting */
-/* #define ES1_SUCCESS           0 *//* Success, but no factor */
-/* #define ES1_FACTOR_FOUND      1 *//* Success, factor found */
-/* #define ES1_CANNOT_DO_IT      2 *//* This k,b,n,c cannot be handled */
-/* #define ES1_MEMORY            3 *//* Out of memory */
-/* #define ES1_INTERRUPT         4 *//* Execution interrupted */
-/* #define ES1_CANNOT_DO_QUICKLY 5 *//* Requires 3-multiply reduction */
-/* #define ES1_HARDWARE_ERROR    6 *//* An error was detected, most likely a hardware error. */
+/* #define S1_SUCCESS           0 *//* Success, but no factor */
+/* #define S1_FACTOR_FOUND      1 *//* Success, factor found */
+/* #define S1_CANNOT_DO_IT      2 *//* This k,b,n,c cannot be handled */
+/* #define S1_MEMORY            3 *//* Out of memory */
+/* #define S1_INTERRUPT         4 *//* Execution interrupted */
+/* #define S1_CANNOT_DO_QUICKLY 5 *//* Requires 3-multiply reduction */
+/* #define S1_HARDWARE_ERROR    6 *//* An error was detected, most likely a hardware error. */
 
-  strcpy( gwnum_msg[0], "ES1_SUCCESS");
-  strcpy( gwnum_msg[1], "ES1_FACTOR_FOUND");
-  strcpy( gwnum_msg[2], "ES1_CANNOT_DO_IT");
-  strcpy( gwnum_msg[3], "ES1_MEMORY");
-  strcpy( gwnum_msg[4], "ES1_INTERRUPT");
-  strcpy( gwnum_msg[5], "ES1_CANNOT_DO_QUICKLY");
-  strcpy( gwnum_msg[6], "ES1_HARDWARE_ERROR");
+  strcpy( gwnum_msg[0], "S1_SUCCESS");
+  strcpy( gwnum_msg[1], "S1_FACTOR_FOUND");
+  strcpy( gwnum_msg[2], "S1_CANNOT_DO_IT");
+  strcpy( gwnum_msg[3], "S1_MEMORY");
+  strcpy( gwnum_msg[4], "S1_INTERRUPT");
+  strcpy( gwnum_msg[5], "S1_CANNOT_DO_QUICKLY");
+  strcpy( gwnum_msg[6], "S1_HARDWARE_ERROR");
 
-  if (youpi == ES1_CANNOT_DO_IT || youpi == ES1_CANNOT_DO_QUICKLY)
+  if (youpi == S1_CANNOT_DO_IT || youpi == S1_CANNOT_DO_QUICKLY)
   {
     outputf (OUTPUT_VERBOSE, 
            "Notice: Did not use gwnum_ecmStage1(%.0f, %d, %d, %d, %.0f, %ld)\n",
@@ -644,7 +646,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
       /* How did that happen? Since we passed z, GWNUM should not do
          an extgcd and so not find factors... but if it did anyways, 
          we deal with it. Who's going to turn down a factor? */
-      /* Note (PBM): gwnum will report a factor if gcd(gw_A, orig_modulus) > 1 */
+      /* Note (PBM): gwnum will report a factor if gcd((gw_A + 2), orig_modulus) > 1 */
       outputf (OUTPUT_DEVVERBOSE, 
                "gw_ecm_stage1: Strange, gwnum_ecmStage1 reports a factor\n");
       mpres_get_z (f, P->x, modulus);

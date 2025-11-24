@@ -1122,7 +1122,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     if(chain_code_file != (FILE *)NULL )
     {
       using_code_file = 1;
-      outputf (OUTPUT_NORMAL, "Using Lucas chain codes\n");
+/*      outputf (OUTPUT_NORMAL, "Using Lucas chain codes\n"); */
 
       /* the first 3 chain elements are always value = 1, 2, and 3, respectively */
 	  Lchain[0].value = 1;
@@ -1139,7 +1139,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     }
     else
     {
-      outputf (OUTPUT_VERBOSE, "Lchain_codes.dat file failed to open, using prac\n");
+      outputf (OUTPUT_NORMAL, "Lchain_codes.dat file failed to open, using prac\n");
     }
   }
 

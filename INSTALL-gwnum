@@ -8,12 +8,12 @@ Users should familiarize themselves with the instructions in
 
 0) Download Prime 95 source files. As of June 2024, the current release is:
 
-   https://www.mersenne.org/download/software/v30/30.19/p95v3019b20.source.zip
+   https://www.mersenne.org/download/software/v30/30.19/p95v3019b21.source.zip
    
    Check links appended to "https://www.mersenne.org/download/software/" for
    future Prime 95 releases.
  
-   Note: due to critical bug fixes in the gwnum/ecmstag1.c and FFT
+   Note: due to critical bug fixes in the gwnum library and FFT
    assembly files used by GMP-ECM, versions of P95 before v3019b12
    will not work here (make check will fail) and should not be used.
    
@@ -73,7 +73,7 @@ Users should familiarize themselves with the instructions in
        with 'n' or '(b2^n2)' < 10^10. Also, k must be a positive integer with
        1 <= k < 2^53, and c must be a non-zero integer with |c| < 2^23.
        Note that the k upper limit of 2^53-1 is taken from the file
-       p95v3019b20.source/gwnum/gwnum.c, line 2181:
+       p95v3019b21.source/gwnum/gwnum.c, line 2181:
        "if (k > 9007199254740991.0) return (GWERROR_K_TOO_LARGE);"
        and is subject to change by Woltman.
    (2) For integer-character-only input strings N, GMP-ECM may detect if

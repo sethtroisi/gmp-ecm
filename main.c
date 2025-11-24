@@ -951,14 +951,6 @@ main (int argc, char *argv[])
         }
     }
 #endif
-
-#ifdef HAVE_GWNUM
-#ifdef gwnum_is_gpl
-      if (! gwnum_is_gpl ())
-#endif
-        printf ("Due to incompatible licenses, this binary file must not "
-                "be distributed.\n");
-#endif
     }
   
   /* set first stage bound B1 */
