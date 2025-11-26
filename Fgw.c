@@ -508,7 +508,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
            gw_k, gw_b, gw_n, gw_c);
     else
       outputf (OUTPUT_NORMAL, 
-           "Using gwnum fft's, k*b^n+c form: %d^%d + %d\n",
+           "Using gwnum fft's, b^n+c form: %d^%d + %d\n",
            gw_b, gw_n, gw_c);
 
     /* make sure tmp has adequate allocation */
