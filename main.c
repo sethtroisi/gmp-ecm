@@ -1188,7 +1188,16 @@ main (int argc, char *argv[])
         }
       mpcandi_t *n;
       mpz_t *f, *x;
-      returncode = gpu_pm1(infile, savefilename, &n, &f, &x, params, params, B1);
+      if (specific_x0) {
+          if (mpz_cmp_ui (mpq_denref (rat_x0),  1) != 0) {
+            {
+              fprintf (stderr, "Error, option -x0 must be small integer for GPU P-1\n");
+              exit (EXIT_FAILURE);
+            }
+          }
+          mpz_set (params->x, mpq_numref( rat_x0 ));
+      }
+      returncode = gpu_pm1(infilename, infile, savefilename, &n, &f, &x, params, params, B1);
       if (returncode == ECM_ERROR)
         {
           fprintf (stdout, "Error in GPU P-1\n");

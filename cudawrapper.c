@@ -221,7 +221,7 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
       return ECM_ERROR;
     }
 
-  if (params->go != NULL && mpz_cmp_ui (params->go, 1) > 0)
+  if (mpz_cmp_ui (params->go, 1) > 0)
     {
       outputf (OUTPUT_ERROR, "GPU: Error, option -go is not allowed\n");
       return ECM_ERROR;
@@ -548,7 +548,8 @@ end_gpu_ecm:
 
 
 // TODO trying to get two arrays out. residuals (in x) and n's in???
-/* Input: infile file containing a series of unique numbers
+/* Input: infilename name of input file
+          infile file containing a series of unique numbers
           B1 is the stage 1 bound
           params is ecm_parameters
    Output: n is array of candidates numbers,
@@ -558,7 +559,7 @@ end_gpu_ecm:
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-gpu_pm1 (FILE * infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
+gpu_pm1 (char *infilename, FILE *infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
          const ecm_params params, ecm_params mutable_params, double B1)
 {
   unsigned int i;
@@ -566,7 +567,6 @@ gpu_pm1 (FILE * infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
   long st;
   float gputime = 0.0;
 
-  /* Local pointers to params->gpu_return1, params->gpu_return2, params->gpu_return3. */
   mpcandi_t *inputs = NULL;
   mpz_t *numbers = NULL;
   mpz_t *factors = NULL; 
@@ -585,7 +585,7 @@ gpu_pm1 (FILE * infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
   ECM_STDERR = (params->es == NULL) ? stdout : params->es;
 
   /* Check for things GPU P-1 doesn't currently support */
-  if (params->go != NULL && mpz_cmp_ui (params->go, 1) > 0)
+  if (mpz_cmp_ui (params->go, 1) > 0)
     {
       outputf (OUTPUT_ERROR, "GPU: Error, option -go is not allowed\n");
       return ECM_ERROR;
@@ -609,10 +609,9 @@ gpu_pm1 (FILE * infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
       return ECM_ERROR;
     }
 
-  /* Cannot do resume on GPU */
-  if (infile == NULL || feof(infile))
+  if (infilename == NULL || infile == NULL || feof(infile))
     {
-      printf("Hi %d\n", feof(infile));
+      printf("Empty or invalid infile '%s'\n", infilename);
       outputf (OUTPUT_ERROR, "GPU: Must pass -inp file for GPU P-1.\n");
       return ECM_ERROR;
     }
@@ -662,9 +661,10 @@ gpu_pm1 (FILE * infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
   *f = factors;
   *x = residuals;
 
-  /* TODO figure out interface for this */
+  /* TODO document interface for this */
+  assert (infilename != NULL);
   assert (infile != NULL);
-  outputf (OUTPUT_VERBOSE, "GPU P-1: Loading numbers from 'TODO'\n");
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Loading numbers from '%s'\n", infilename);
 
   for (i = 0; i < nb_curves; i++)
     {
@@ -748,35 +748,36 @@ gpu_pm1 (FILE * infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
   if (factors_found)
       fprintf(ECM_STDOUT, "\n\n");
 
-  /* Copy out result from saved i'th P-1 results. */
   for (i = 0; i < nb_curves; i++)
     {
       outputf (OUTPUT_TRACE, "%d -> %Zd -> %Zd | %Zd\n", i, numbers[i], factors[i], residuals[i]);
       ASSERT_ALWAYS (mpz_cmp (numbers[i], inputs[i].n) == 0);
 
+      if (mpz_cmp_ui (factors[i], 1) > 0) {
+          ASSERT_ALWAYS (mpz_divisible_p (inputs[i].n, factors[i]));
+
+          // TODO this or possible just mpcandi_t_addfactor and some print statements
+
+          unsigned int fake_cnt = 1;
+          mpz_t fake_lastfac;
+          mpz_init(fake_lastfac);
+          // TODO not sure what these should be set to
+          int resume_wasPrp = 0;
+
+          // TODO rename process_newfactor's param gpu to is_ecm_gpu
+          // Pass returncode 0 so that youpi is updated.
+          youpi = process_newfactor (
+                  factors[i], ECM_FACTOR_FOUND_STEP1, &inputs[i], ECM_PM1,
+                  /* returncode */ 0, /* gpu (TODO change var to is_ecm_gpu) */ 0,
+                  &fake_cnt, &resume_wasPrp, fake_lastfac, /* resumefile */ NULL,
+                  params->verbose, /* deep */ 0);
+
+          mpz_clear (fake_lastfac);
+      }
+
+      /* Save i'th P-1 results. */
       if (savefilename != NULL)
         {
-          if (mpz_cmp_ui (factors[i], 1) > 0) {
-              ASSERT_ALWAYS (mpz_divisible_p (inputs[i].n, factors[i]));
-
-              // TODO this or possible just mpcandi_t_addfactor and some print statements
-
-              unsigned int fake_cnt = 1;
-              mpz_t fake_lastfac;
-              mpz_init(fake_lastfac);
-              // TODO not sure what these should be set to
-              int resume_wasPrp = 0;
-
-              process_newfactor (
-                      factors[i], ECM_FACTOR_FOUND_STEP1, &inputs[i], ECM_PM1,
-                      /* returncode */ 0, /* gpu (TODO change var to is_ecm_gpu) */ 0,
-                      &fake_cnt, &resume_wasPrp, fake_lastfac, /* resumefile */ NULL,
-                      params->verbose, /* deep */ 0);
-
-              mpz_clear (fake_lastfac);
-          }
-
-
           /* write_resumefile expects residual in params->x */
           mpz_set(mutable_params->x, residuals[i]);
 
@@ -791,10 +792,12 @@ gpu_pm1 (FILE * infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
   if (factors_found)
     {
       fprintf(ECM_STDOUT, "\n\n");
-      return ECM_FACTOR_FOUND_STEP1;
+      // TODO cleanup after checking asserts
+      assert( (youpi & 0x2) || (youpi == 0x8) );
+      assert( (youpi & 0xc)  );
     }
 
-  return ECM_NO_FACTOR_FOUND;
+  return youpi;
 }
 
 #endif /* HAVE_GPU */
