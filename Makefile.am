@@ -118,7 +118,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
              test.gwnum INSTALL-gwnum \
              getprime_r.h cgbn_stage1.cu \
-             test.gpuecm README.gpu c155 \
+             test.gpuecm test.gpupm1 README.gpu c155 \
              test_dummy.save test_prime95.save M877.save \
 	     M997.save test_Z2102.n LucasChainGenerator/README \
              LucasChainGenerator/src/LucasChainGen.h \
@@ -143,7 +143,7 @@ check_PROGRAMS = ecm$(EXEEXT)
 
 dist_check_SCRIPTS = test.pp1 test.pm1 test.ecm test.ecmfactor
 if WANT_GPU
-dist_check_SCRIPTS += test.gpuecm
+dist_check_SCRIPTS += test.gpuecm test.gpupm1
 endif
 if WITH_GWNUM
 dist_check_SCRIPTS += test.gwnum
@@ -175,6 +175,7 @@ longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 if WANT_GPU
 	$(srcdir)/test.gpuecm "$(VALGRIND) ./ecm$(EXEEXT)"
+	$(srcdir)/test.gpupm1 "$(VALGRIND) ./ecm$(EXEEXT)"
 endif
 if WITH_GWNUM
 	$(srcdir)/test.gwnum "$(VALGRIND) ./ecm$(EXEEXT)"

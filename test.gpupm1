@@ -22,8 +22,8 @@ set -u
 # http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 
-PM1="${1:-./ecm} -gpu -gpucurves 32 -pm1"
-PM1noGPU=$(echo "${1-./ecm}" | sed -e "s/-gpu//" -e "s/-cgbn//")
+PM1="${1:-./ecm} -gpu -gpucurves 32 -pm1 -x0 3"
+PM1noGPU=$(echo "${PM1}" | sed -e "s/-gpu//" -e "s/-cgbn//")
 
 GMPECM_DATADIR=${GMPECM_DATADIR:-.}
 
@@ -68,36 +68,40 @@ checkcode () {
 # step 1 finds $step1 factors and step 2 finds $step2 factors.
 # and that $unique factors are found
 checkfactorcount () {
-  step1found=$(grep -c 'factor [0-9]* found in Step 1' < $1)
-  step2found=$(grep -c 'factor [0-9]* found in Step 2' < $1)
-  uniquefound=$(grep -c 'Factor found in step' < $1)
+  step1found=$(grep -ci 'factor [0-9]* found in step 1' < $1)
+  step2found=$(grep -ci 'factor [0-9]* found in step 2' < $1)
+  uniquefound=$(grep -ci 'factor found in step' < $1)
+  source=""
+  if [ -n ${BASH_LINENO} ]
+  then
+        source="on line ${BASH_LINENO[0]}"
+  fi
+
   if [ $step1found != $2 ]
   then
     echo "################### ERROR ###################"
-    echo "Expected to find $2 factors in stage 1 found $step1found"
+    echo "Expected to find $2 factors in stage 1 found $step1found $source"
     exit 1
   fi
   if [ $step2found != $3 ]
   then
     echo "################### ERROR ###################"
-    echo "Expected to find $3 factors in stage 2 found $step2found"
+    echo "Expected to find $3 factors in stage 2 found $step2found $source"
     exit 1
   fi
   if [ $uniquefound != $4 ]
   then
     echo "################### ERROR ###################"
-    echo "Expected to find $4 unique factors found $uniquefound"
+    echo "Expected to find $4 unique factors found $uniquefound $source"
     exit 1
   fi
 }
 
-# test for stage 1 on GPU
+#### Tests for stage 1 on GPU
 
 # TODO add test for larger number than supported to test.gpuecm and here
 # TODO add a warning if fewer than X curves
 
-# No factors found
-# All find factors
 # Passing some numbers multiple times
 # P-1 contains small factor to high power
 # Finding composite factor 
@@ -105,30 +109,66 @@ checkfactorcount () {
 #    Compare with CPU residuals
 
 # Some primes with low B1/B2
-# TODO
-
-# TODO change this number
-echo "SOMETHING*(2^31-1)" > inp.test.pm1
-$PM1 -inp inp.test.pm1 -v 1e4 0 | tee test.output
+echo "5248576754387960561*(2^31-1)" > inp.test.pm1
+$PM1 -inp inp.test.pm1 -v 4e3 0 > test.output
+#cat test.output
 grep -q "GPU P-1: factor 2147483647 found in Step 1" test.output; checkcode $? 0
 
 # Factors at Never, B1 = 1000, 7000, 32000
 printf "2^127-1\n2^139-1\n2^103-1\n2^109-1\n" > inp.test.pm1
-
 $PM1 -inp inp.test.pm1 -v 100 0 > test.output; checkcode $? 0
 checkfactorcount test.output 0 0 0
 
-$PM1 -inp inp.test.pm1 -v 1000 0 > test.output checkcode $? 0
-checkfactorcount test.output 1 0 1
+# unique factors are printed twice in GPU P-1
+$PM1 -inp inp.test.pm1 -v 1000 0 > test.output; checkcode $? 14
+checkfactorcount test.output 1 0 2
 
-$PM1 -inp inp.test.pm1 -v 7000 0 > test.output checkcode $? 0
-checkfactorcount test.output 2 0 2
+$PM1 -inp inp.test.pm1 -v 7000 0 > test.output; checkcode $? 14
+checkfactorcount test.output 2 0 4
 
-# Finds two prime factors
-printf "SOMETHING" > inp.test.pm1
-$PM1 -inp inp.test.pm1 -v 5000 0 > test.output; checkcode $? 0
-cat test.output
-checkfactorcount test.output 2 0 3
+
+# Primes with multiple factors at low B1
+# 32191 = 2*3*5*29*37 + 1
+# 49939 = 2*3*7*29*41 + 1
+# 55987 = 2*3*7*31*43 + 1
+# 60631 = 2*3*5*43*47 + 1
+# 74731 = 2*3*5*47*53 + 1
+
+printf "32191*(2^31-1)\n" > inp.test.pm1
+printf "49939*(2^31-1)\n" >> inp.test.pm1
+printf "55987*(2^31-1)\n" >> inp.test.pm1
+printf "60631*(2^31-1)\n" >> inp.test.pm1
+printf "74731*(2^31-1)\n" >> inp.test.pm1
+printf "49939*55987*(2^31-1)\n" >> inp.test.pm1
+printf "49939*60631*74731\n" >> inp.test.pm1
+
+$PM1 -inp inp.test.pm1 -v 36 0 > test.output; checkcode $? 0
+checkfactorcount test.output 0 0 0
+
+$PM1 -inp inp.test.pm1 -v 37 0 > test.output; checkcode $? 14
+checkfactorcount test.output 1 0 2
+
+$PM1 -inp inp.test.pm1 -v 41 0 > test.output; checkcode $? 6
+checkfactorcount test.output 4 0 8
+
+$PM1 -inp inp.test.pm1 -v 43 0 > test.output; checkcode $? 6
+checkfactorcount test.output 5 0 10
+
+$PM1 -inp inp.test.pm1 -v 47 0 > test.output; checkcode $? 10
+checkfactorcount test.output 6 0 12
+
+$PM1 -inp inp.test.pm1 -v 53 0 > test.output; checkcode $? 8
+checkfactorcount test.output 7 0 14
+
+# Test -x0 
+# Requires B1=919 with x0=3, B1=853 with x0=300
+printf "6485489869349937894827\n" > inp.test.pm1
+$PM1noGPU -inp inp.test.pm1 -v 918 0 > test.output; checkcode $? 0
+$PM1 -inp inp.test.pm1 -v 918 0 > test.output; checkcode $? 0
+
+# Should find input number with x0=300
+$PM1noGPU -inp inp.test.pm1 -v -x0 300 853 0 > test.output; checkcode $? 8
+$PM1 -inp inp.test.pm1 -v -x0 300 853 0 > test.output; checkcode $? 8
 
 
 #### Unsupported Features ####
