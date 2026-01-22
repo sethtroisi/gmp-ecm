@@ -1,3 +1,6 @@
+This worked but was 20%(?) slower and not worth it. I think there's some notes on
+mersenneforum about it.
+
 [note: this file is outdated now that GMP-ECM moved to gitlab.]
 
 This is the README file for GMP-ECM. (See INSTALL-ecm for installing GMP-ECM
