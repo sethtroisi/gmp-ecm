@@ -1,3 +1,17 @@
+ecm is still used for testing F12-F28 (2^(2^12)+1)
+
+prime95 is probably "better" at searching this numbers
+and the main search probably no longer needs this general tool 
+but deleting the code caused some issues and no need to do it now.
+
+F22 has > 1million digits, feels unlikely that ecm is "best" at this search
+
+ECM progress says T60 done on F12-F15, T55 on F16/F17
+https://www.mersenne.org/report_ecm/
+
+ecm estimates 110GB of memory to do useful ecm (B1=260M) on F16.
+
+
 [note: this file is outdated now that GMP-ECM moved to gitlab.]
 
 This is the README file for GMP-ECM. (See INSTALL-ecm for installing GMP-ECM
