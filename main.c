@@ -1090,7 +1090,7 @@ main (int argc, char *argv[])
   if (resumefilename != NULL)
     {
       /* -resume should not be used with -gpu */
-      if (use_gpu)
+      if (use_gpu && method != ECM_PM1)
         {
           fprintf (stderr, "Error, -resume not allowed with -gpu\n");
           exit (EXIT_FAILURE);
@@ -1181,13 +1181,16 @@ main (int argc, char *argv[])
   if (use_gpu && method == ECM_PM1)
     {
 #ifdef WITH_GPU
-      if (infilename == NULL)
+      if (infilename == NULL && resumefilename == NULL)
         {
-          fprintf (stdout, "GPU P-1 requires -inp\n");
+          fprintf (stdout, "GPU P-1 requires -inp or -resume\n");
           exit (EXIT_FAILURE);
         }
-      mpcandi_t *n;
-      mpz_t *f, *x;
+      if (infilename == NULL && resumefilename == NULL)
+        {
+          fprintf (stdout, "GPU P-1 requires exactly one of -inp or -resume\n");
+          exit (EXIT_FAILURE);
+        }
       if (specific_x0) {
           if (mpz_cmp_ui (mpq_denref (rat_x0),  1) != 0) {
             {
@@ -1197,7 +1200,9 @@ main (int argc, char *argv[])
           }
           mpz_set (params->x, mpq_numref( rat_x0 ));
       }
-      returncode = gpu_pm1(infilename, infile, savefilename, &n, &f, &x, params, params, B1);
+      returncode = gpu_pm1(
+              infilename, resumefilename, infilename != NULL ? infile : resumefile,
+              savefilename, params, params, B1);
       if (returncode == ECM_ERROR)
         {
           fprintf (stdout, "Error in GPU P-1\n");

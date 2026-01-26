@@ -1105,7 +1105,7 @@ __global__ void kernel_pm1_partial(
 
 static
 uint32_t* set_gpu_pm1_data(
-        const mpz_t x0, const mpz_t *numbers,
+        const mpz_t *x0, const mpz_t *numbers,
         uint32_t instances, uint32_t BITS, size_t *data_size) {
   /**
    * Store 4 numbers per curve:
@@ -1140,7 +1140,7 @@ uint32_t* set_gpu_pm1_data(
 
       // TODO make sure not -1
       /* Base, make sure base mod n {1, -1} */
-      mpz_mod (x, x0, numbers[index]);
+      mpz_mod (x, x0[index], numbers[index]);
       if (mpz_cmp_ui (x, 1) == 0)
         {
           // increment one
@@ -1177,7 +1177,7 @@ int find_pm1_factor(mpz_t factor, const mpz_t N, const mpz_t a) {
 
 static
 int process_pm1_results(
-        const mpz_t x0,
+        const mpz_t *x0,
         const mpz_t *numbers,
         mpz_t *factors,
         mpz_t *residuals,
@@ -1212,7 +1212,7 @@ int process_pm1_results(
       continue;
 
     /* Very suspicious for base, result to match initial value */
-    if (mpz_cmp (base, x0) == 0 && mpz_cmp_ui(result, 1) == 0) {
+    if (mpz_cmp (base, x0[i]) == 0 && mpz_cmp_ui(result, 1) == 0) {
       errors += 1;
       if (errors < 10 || errors % 100 == 1)
         outputf (OUTPUT_ERROR, "GPU: curve %d n=%Zd\n", i, modulo);
@@ -1248,9 +1248,8 @@ int process_pm1_results(
 
 
 int cgbn_pm1_stage1(
-     const mpz_t *numbers, mpz_t *factors, mpz_t *residuals,
-     const mpz_t s, const mpz_t x0, 
-     uint32_t instances, float *gputime, int verbose)
+     const mpz_t *numbers, const mpz_t *x0, mpz_t *factors, mpz_t *residuals,
+     const mpz_t s, uint32_t instances, float *gputime, int verbose)
 {
   uint64_t s_num_bits;
   uint32_t *s_bits = allocate_and_set_s_bits(s, &s_num_bits);

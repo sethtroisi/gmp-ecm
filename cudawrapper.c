@@ -546,20 +546,160 @@ end_gpu_ecm:
   return youpi;
 }
 
+/* TODO document interface for this */
+int
+gpu_pm1_load_inp_file(
+        char *infilename, FILE *infile,
+        unsigned int *nb_curves,
+        mpcandi_t *inputs, mpz_t *n, mpz_t *f, mpz_t *x)
+{
+  assert (infile != NULL);
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Loading numbers from '%s'\n", infilename);
+
+  for (unsigned int i = 0; i < *nb_curves; i++)
+    {
+      mpcandi_t_init(&inputs[i]);
+      if (read_number(&inputs[i], infile, 1))
+        {
+          mpz_init_set (n[i], inputs[i].n);
+          mpz_init (f[i]);
+          mpz_init (x[i]);
+
+          // Validity checks, > 1, odd
+          if (mpz_cmp_ui(n[i], 1) <= 0)
+            {
+              fprintf(ECM_STDERR, "Error, n= should be great than 1.\n");
+              gmp_fprintf(ECM_STDERR, "n[%u]=%Zd\n", i, n[i]);
+              return ECM_ERROR;
+            }
+          /* TODO figure out how to divide out 2's here and add to factors[i] */
+          if (mpz_tstbit(n[i], 0) == 0)
+            {
+              fprintf(ECM_STDERR, "Error, numbers should all be odd.\n");
+              gmp_fprintf(ECM_STDERR, "n[%u]=%Zd\n", i, n[i]);
+              return ECM_ERROR;
+            }
+        }
+      else
+        {
+            mpcandi_t_free(&inputs[i]);
+
+            outputf (OUTPUT_VERBOSE,
+                     "GPU P-1: End of input truncating to %i curves\n", i);
+            // Reduce to running i curves
+            *nb_curves = i;
+            break;
+        }
+    }
+    return ECM_NO_FACTOR_FOUND;
+}
+
+/* TODO document interface for this */
+// It would be nice to correctly record x0 as the resume x0 and not x.
+int
+gpu_pm1_load_resume_file(
+        char *resumefilename, FILE *resumefile,
+        unsigned int *nb_curves,
+        mpcandi_t *inputs, mpz_t *an, mpz_t *af, mpz_t *ax0, mpz_t *ax)
+{
+  assert (resumefile != NULL);
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Resuming numbers from '%s'\n", resumefilename);
+
+  int method, Etype, param;
+  mpz_t x, y, sigma, A, x0, y0;
+  double b1, b1_temp;
+  char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
+  mpz_init(x);
+  mpz_init(y);
+  mpz_init(sigma);
+  mpz_init(A);
+  mpz_init(x0);
+  mpz_init(y0);
+
+  for (unsigned int i = 0; i < *nb_curves; i++)
+    {
+      mpcandi_t_init(&inputs[i]);
+      mpz_set_ui(x, 0);
+      mpz_set_ui(y, 0);
+      mpz_set_ui(sigma, 0);
+      mpz_set_ui(A, 0);
+      mpz_set_ui(x0, 0);
+      mpz_set_ui(y0, 0);
+
+      if (!read_resumefile_line (
+                  &method, x, y, &inputs[i], sigma, A,
+                  x0, y0, &Etype, &param, &b1_temp,
+                  program, who, rtime, comment, resumefile))
+        {
+          mpcandi_t_free(&inputs[i]);
+          outputf (OUTPUT_VERBOSE,
+                   "GPU P-1: End of input truncating to %i curves\n", i);
+          // Reduce to running i curves
+          *nb_curves = i;
+          break;
+        }
+      else
+        {
+          if (method != ECM_PM1)
+            {
+              fprintf(ECM_STDERR, "Error, Wrong method in resume input %d\n", i);
+              return ECM_ERROR;
+            }
+
+          // Validate n, x, x0 are set
+          if (mpz_sgn(inputs[i].n) == 0 || mpz_sgn(x) == 0 || mpz_sgn(x0) == 0)
+            {
+              fprintf(ECM_STDERR, "Error, N, x, or x0 not set in resume input %d\n", i);
+              return ECM_ERROR;
+            }
+
+           // Validate y, sigma, A, y0 not set
+           if (mpz_sgn(y) != 0 || mpz_sgn(sigma) != 0 || mpz_sgn(A) != 0
+                   || mpz_sgn(y0) != 0)
+             {
+               fprintf(ECM_STDERR, "Error, invalid param in resume input %d\n", i);
+               return ECM_ERROR;
+             }
+
+           if (i == 0)
+             b1 = b1_temp;
+
+           if (b1_temp != b1)
+             {
+               fprintf(ECM_STDERR, "Error, mismatched B1=%.0f vs %.0f on resume input %d\n",
+                       b1, b1_temp, i);
+               return ECM_ERROR;
+             }
+
+
+           mpz_init_set(an[i], inputs[i].n);
+           mpz_init_set_ui(af[i], 0);
+           mpz_init_set(ax0[i], x0);
+           mpz_init_set(ax[i], x);
+        }
+    }
+
+  mpz_clear(x);
+  mpz_clear(y);
+  mpz_clear(sigma);
+  mpz_clear(A);
+  mpz_clear(x0);
+  mpz_clear(y0);
+
+  return ECM_NO_FACTOR_FOUND;
+}
 
 // TODO trying to get two arrays out. residuals (in x) and n's in???
-/* Input: infilename name of input file
-          infile file containing a series of unique numbers
+/* Input: infilename name of input file (or NULL if none)
+          resumefilename name of resume file (or NULL if none)
+          infile file containing either a series of unique numbers from infile or
+              resume date, corresponding to if infilename or resumefilename is not NULL.
           B1 is the stage 1 bound
           params is ecm_parameters
-   Output: n is array of candidates numbers,
-           f is array of factors found,
-           x is array of stage-1 residual,
-           mutable_params->gpu_number_of_curves determines length of array
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-gpu_pm1 (char *infilename, FILE *infile, char* savefilename, mpcandi_t **n, mpz_t **f, mpz_t **x,
+gpu_pm1 (char *infilename, char *resumefilename, FILE *infile, char* savefilename,
          const ecm_params params, ecm_params mutable_params, double B1)
 {
   unsigned int i;
@@ -567,9 +707,21 @@ gpu_pm1 (char *infilename, FILE *infile, char* savefilename, mpcandi_t **n, mpz_
   long st;
   float gputime = 0.0;
 
+  /**
+   * GPU handles multiple P-1 at a time.
+   * Several arrays of mutable_params->gpu_number_of_curves
+   *
+   * inputs: N (possibly an expression)
+   * numbers: N (mpz_t)
+   * factors: any factor found in N
+   * x0: starting point, in resume case this will be x0 of the original curve
+   * residuals: residual after stage 1.
+   */
+
   mpcandi_t *inputs = NULL;
   mpz_t *numbers = NULL;
   mpz_t *factors = NULL; 
+  mpz_t *x0 = NULL; 
   mpz_t *residuals = NULL; 
 
   unsigned int nb_curves = 0; /* Local copy of number of curves */
@@ -609,10 +761,14 @@ gpu_pm1 (char *infilename, FILE *infile, char* savefilename, mpcandi_t **n, mpz_
       return ECM_ERROR;
     }
 
-  if (infilename == NULL || infile == NULL || feof(infile))
+  if ((infilename == NULL && resumefilename == NULL) || infile == NULL || feof(infile))
     {
-      printf("Empty or invalid infile '%s'\n", infilename);
-      outputf (OUTPUT_ERROR, "GPU: Must pass -inp file for GPU P-1.\n");
+      if (infilename)
+        printf("Empty or invalid -inp '%s'\n", infilename);
+      if (resumefilename)
+        printf("Empty or invalid -resume '%su' \n", resumefilename);
+
+      outputf (OUTPUT_ERROR, "GPU: Must pass -inp or -resume file for GPU P-1.\n");
       return ECM_ERROR;
     }
 
@@ -636,74 +792,43 @@ gpu_pm1 (char *infilename, FILE *infile, char* savefilename, mpcandi_t **n, mpz_
   // Set local copy of number of curves
   nb_curves = params->gpu_number_of_curves;
 
-  if (mpz_cmp_ui (params->x, 0) == 0)
-    {
-      mpz_t temp;
-      mpz_init_set_ui(temp, 0xFFFFFFFF);
-      // TODO figure out random include
-      mpz_set_ui(mutable_params->x, 3);
-      //__ecm_pm1_random_seed (mutable_params->x, temp, mutable_params->rng);
-      mpz_clear(temp);
-    }
-  outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd\n", mutable_params->x);
-
   /* Init arrays */
   inputs =  (mpcandi_t *) malloc(nb_curves * sizeof (mpcandi_t));
-  ASSERT_ALWAYS (inputs != NULL);
   numbers = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
-  ASSERT_ALWAYS (numbers != NULL);
   factors = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
-  ASSERT_ALWAYS (factors != NULL);
+  x0 = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
   residuals = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  ASSERT_ALWAYS (inputs != NULL);
+  ASSERT_ALWAYS (numbers != NULL);
+  ASSERT_ALWAYS (factors != NULL);
+  ASSERT_ALWAYS (x0 != NULL);
   ASSERT_ALWAYS (residuals != NULL);
 
-  *n = inputs;
-  *f = factors;
-  *x = residuals;
-
-  /* TODO document interface for this */
-  assert (infilename != NULL);
-  assert (infile != NULL);
-  outputf (OUTPUT_VERBOSE, "GPU P-1: Loading numbers from '%s'\n", infilename);
-
-  for (i = 0; i < nb_curves; i++)
+  if (infilename != NULL)
     {
-      mpcandi_t_init(&inputs[i]);
-      if (read_number(&inputs[i], infile, 1))
-        {
-          mpz_init_set (numbers[i], inputs[i].n);
-          mpz_init (factors[i]);
-          mpz_init (residuals[i]);
-           
-          // Validity checks, > 1, odd
-          if (mpz_cmp_ui(numbers[i], 1) <= 0)
-            {
-              fprintf(ECM_STDERR, "Error, n= should be great than 1.\n");
-              gmp_fprintf(ECM_STDERR, "n[%u]=%Zd\n", i, numbers[i]);
-              // GOTO FREE
-              return ECM_ERROR;
-            }
-          /* TODO figure out how to divide out 2's here and add to factors[i] */
-          if (mpz_tstbit(numbers[i], 0) == 0)
-            {
-              fprintf(ECM_STDERR, "Error, numbers should all be odd.\n");
-              gmp_fprintf(ECM_STDERR, "n[%u]=%Zd\n", i, numbers[i]);
-              // GOTO FREE
-              return ECM_ERROR;
-            }
-        }
-      else
-        {
-            mpcandi_t_free(&inputs[i]);
+      int result = gpu_pm1_load_inp_file(
+            infilename, infile,
+            &nb_curves,
+            inputs, numbers, factors, residuals);
+      if (result != ECM_NO_FACTOR_FOUND)
+         return result;
 
-            outputf (OUTPUT_VERBOSE,
-                     "GPU P-1: End of input truncating to %i curves\n", i);
-            // Reduce to running i curves
-            nb_curves = i;
-            mutable_params->gpu_number_of_curves = i;
-            break;
-        }
-    }
+      if (mpz_cmp_ui (params->x, 0) == 0)
+        mpz_set_ui(mutable_params->x, 3);
+      outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd\n", mutable_params->x);
+      for (i = 0; i < nb_curves; i++)
+         mpz_init_set(x0[i], mutable_params->x); 
+     }
+  if (resumefilename != NULL)
+    {
+      int result = gpu_pm1_load_resume_file(
+            resumefilename, infile,
+            &nb_curves,
+            inputs, numbers, factors, x0, residuals);
+      if (result != ECM_NO_FACTOR_FOUND)
+         return result;
+     }
+  mutable_params->gpu_number_of_curves = nb_curves;;
 
   /* Compute s */
   // TODO consider bload
@@ -722,8 +847,8 @@ gpu_pm1 (char *infilename, FILE *infile, char* savefilename, mpcandi_t **n, mpz_
   st = cputime ();
 
   youpi = cgbn_pm1_stage1 (
-      numbers, factors, residuals,
-      params->batch_s, params->x, nb_curves, &gputime, params->verbose);
+      numbers, x0, factors, residuals,
+      params->batch_s, nb_curves, &gputime, params->verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n",
@@ -736,10 +861,7 @@ gpu_pm1 (char *infilename, FILE *infile, char* savefilename, mpcandi_t **n, mpz_
   /* These have to be saved and restored on each output. */
   mutable_params->B1done = B1;
 
-  /* Variables needed for write_resumefile */
-  mpz_t x0;
-  char comment[2] = "";
-  mpz_init_set(x0, params->x);
+  char comment[] = "GPU P-1";
 
   int factors_found = 0;
   for (i = 0; i < nb_curves; i++)
@@ -781,13 +903,14 @@ gpu_pm1 (char *infilename, FILE *infile, char* savefilename, mpcandi_t **n, mpz_
           /* write_resumefile expects residual in params->x */
           mpz_set(mutable_params->x, residuals[i]);
 
+          // TODO: add outputf (OUTPUT_RESDEVOEUOEU
           write_resumefile (savefilename, ECM_PM1, mutable_params, &inputs[i],
-                  /* orig_n */ numbers[i], /* orig_x0 */ x0, /* orig_y0 */ NULL, comment);
+                  /* orig_n */ numbers[i], /* orig_x0 */ x0[i], /* orig_y0 */ NULL, comment);
         }
     }
 
-  mpz_set(mutable_params->x, x0);
-  mpz_clear(x0);
+  // Alternatively set to x0[0] if inputfile was used.
+  mpz_set_ui(mutable_params->x, 0);
 
   if (factors_found)
     {
