@@ -141,10 +141,8 @@ void free_expr (void);
 /* candi.c */
 void mpcandi_t_init (mpcandi_t *n);  /* damn, a C++ class sure would have been nice :(  */
 void mpcandi_t_free (mpcandi_t *n);
-int  mpcandi_t_copy (mpcandi_t *to, mpcandi_t *from);
 int  mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr, int bPrp);
 int  mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning);
-int  mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f);
 /* candi.c   Group Order candidate functions.  */
 void mpgocandi_t_init(mpgocandi_t *go);
 void mpgocandi_t_free(mpgocandi_t *go);
