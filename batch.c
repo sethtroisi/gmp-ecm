@@ -148,6 +148,78 @@ compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
   mpz_clear (ppz);
 }
 
+void
+compute_s_partial (mpz_t s, ecm_uint B1done, ecm_uint B1)
+{
+  if (B1done < 1)
+    return compute_s(s, B1);
+
+  // TODO add validation of B1done vs B1
+
+  mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
+  mpz_t ppz;
+  unsigned int i, j;
+  ecm_uint pi = 2, pp, maxpp, qi;
+  prime_info_t prime_info;
+
+  prime_info_init (prime_info);
+
+  ASSERT_ALWAYS (B1 <= MAX_B1_BATCH);
+
+  for (j = 0; j < MAX_HEIGHT; j++)
+    mpz_init (acc[j]); /* sets acc[j] to 0 */
+  mpz_init (ppz);
+
+  i = 0;
+  while (pi <= B1)
+    {
+      pp = qi = pi;
+      maxpp = B1 / qi;
+      while (pp <= maxpp)
+          pp *= qi;
+
+#if ECM_UINT_MAX == 4294967295
+      mpz_set_ui (ppz, pp);
+#else
+      mpz_set_uint64 (ppz, pp);
+#endif
+
+      if ((i & 1) == 0)
+        mpz_set (acc[0], ppz);
+      else
+        mpz_mul (acc[0], acc[0], ppz);
+
+      j = 0;
+      /* We have accumulated i+1 products so far. If bits 0..j of i are all
+         set, then i+1 is a multiple of 2^(j+1). */
+      while ((i & (1 << j)) != 0)
+        {
+          /* we use acc[MAX_HEIGHT-1] as 0-sentinel below, thus we need
+             j+1 < MAX_HEIGHT-1 */
+          ASSERT (j + 1 < MAX_HEIGHT - 1);
+          if ((i & (1 << (j + 1))) == 0) /* i+1 is not multiple of 2^(j+2),
+                                            thus add[j+1] is "empty" */
+            mpz_swap (acc[j+1], acc[j]); /* avoid a copy with mpz_set */
+          else
+            mpz_mul (acc[j+1], acc[j+1], acc[j]); /* accumulate in acc[j+1] */
+          mpz_set_ui (acc[j], 1);
+          j++;
+        }
+
+      i++;
+      pi = getprime_mt (prime_info);
+    }
+
+  for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
+    mpz_mul (s, s, acc[j]);
+
+  prime_info_clear (prime_info); /* free the prime tables */
+  
+  for (i = 0; i < MAX_HEIGHT; i++)
+    mpz_clear (acc[i]);
+  mpz_clear (ppz);
+}
+
 #if 0
 /* this function is useful in debug mode to print non-normalized residues */
 static void

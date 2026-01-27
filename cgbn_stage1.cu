@@ -1230,7 +1230,7 @@ int process_pm1_results(
     }
   }
 
-  mpz_init(modulo);
+  mpz_clear(modulo);
   mpz_clear(base);
   mpz_clear(result);
 
