@@ -382,7 +382,9 @@ AC_FUNC_ALLOCA
 m4_version_prereq([2.70],[AC_CHECK_INCLUDES_DEFAULT],[AC_HEADER_STDC])
 AC_PROG_EGREP
 
-AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h stdint.h inttypes.h endian.h sys/time.h unistd.h io.h signal.h fcntl.h])
+dnl These libraries are used unconditionally maybe throw AC_MSG_ERROR if not found.
+dnl AC_CHECK_HEADERS([math.h malloc.h endian.h])
+AC_CHECK_HEADERS([limits.h strings.h stdint.h inttypes.h endian.h sys/time.h unistd.h io.h signal.h fcntl.h])
 AC_CHECK_HEADERS([windows.h psapi.h], [], [],
    [[#ifdef HAVE_WINDOWS_H
      # include <windows.h>
@@ -402,15 +404,16 @@ dnl Check functions in the math library
 AC_CHECK_LIB(m,pow,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,floor,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,sqrt,,AC_MSG_ERROR(required function missing))
-AC_CHECK_LIB(m,fmod,,AC_MSG_ERROR(required function missing))
-AC_CHECK_LIB(m,cos)
 AC_CHECK_LIB(rt,aio_read)
+dnl This should only run on windows and AC_MSG_ERROR if not found.
 AC_CHECK_LIB(psapi,[GetProcessMemoryInfo])
 
-AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], [AC_MSG_ERROR([required function missing])])
+dnl No code is gated on HAVE_<X> for these functions. One joint check would be much faster.
+AC_CHECK_FUNCS([memset strchr strlen strncasecmp strstr], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([access unlink], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([isspace isdigit isxdigit], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([time ctime], [], [AC_MSG_ERROR([required function missing])])
+dnl HAVE_<X> are all tested for these
 AC_CHECK_FUNCS([gethostname gettimeofday getrusage memmove signal fcntl fileno setvbuf fallocate aio_read aio_init])
 
 if test "x$enable_mmap" = xyes; then
@@ -420,8 +423,7 @@ fi
 dnl Test for some Windows-specific functions that are available under MinGW
 dnl FIXME: which win32 library contains these functions?
 dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
-AC_CHECK_FUNCS([_fseeki64 _ftelli64])
-AC_CHECK_FUNCS([malloc_usable_size])
+AC_CHECK_FUNCS([_fseeki64])
 
 
 dnl If we use GCC and user has not specified his own CFLAGS, 
@@ -549,11 +551,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <gmp.h>
 ]],[[
 char buffer[100];
-if (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR <= 2 && 
-    __GNU_MP_VERSION_PATCHLEVEL == 0)
-  sprintf (buffer, "%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
-else
-  sprintf (buffer, "%d.%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
+sprintf (buffer, "%d.%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
    __GNU_MP_VERSION_PATCHLEVEL);
 printf ("(%s/%s) ", buffer, gmp_version);
 return strcmp (buffer, gmp_version);
@@ -564,8 +562,8 @@ return strcmp (buffer, gmp_version);
 )
 
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1 __gmpn_redc_2])
-AC_CHECK_FUNCS([__gmpn_mullo_n __gmpn_redc_n __gmpn_preinv_mod_1 __gmpn_mod_1s_4p_cps __gmpn_mod_1s_4p])
-AC_CHECK_FUNCS([__gmpn_mul_fft __gmpn_fft_next_size __gmpn_fft_best_k])
+AC_CHECK_FUNCS([__gmpn_mullo_n __gmpn_redc_n])
+AC_CHECK_FUNCS([__gmpn_mul_fft __gmpn_fft_next_size __gmpn_fft_best_k], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([__gmpn_mulmod_bnm1 __gmpn_mulmod_bnm1_next_size])
 
 LIBS="$LIBS_BACKUP"
