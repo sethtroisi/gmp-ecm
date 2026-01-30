@@ -697,6 +697,8 @@ int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t,
 /* batch.c */
 #define compute_s  __ECM(compute_s )
 void compute_s (mpz_t, ecm_uint, int *);
+#define compute_s_partial  __ECM(compute_s_partial )
+void compute_s_partial (mpz_t, uint64_t, uint64_t);
 #define ecm_stage1_batch  __ECM(ecm_stage1_batch)
 int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *, 
                                                                 int,  mpz_t);

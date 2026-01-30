@@ -149,22 +149,24 @@ compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
 }
 
 void
-compute_s_partial (mpz_t s, ecm_uint B1done, ecm_uint B1)
+compute_s_partial (mpz_t s, uint64_t B1, uint64_t B1done)
 {
   if (B1done < 1)
-    return compute_s(s, B1);
+    return compute_s(s, B1, NULL);
 
-  // TODO add validation of B1done vs B1
+  ASSERT_ALWAYS( B1 <= 100000000000 ); // B1 < 100e9
+  ASSERT_ALWAYS (B1 <= MAX_B1_BATCH);
+  ASSERT_ALWAYS( B1 >= B1done );
 
   mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
   mpz_t ppz;
   unsigned int i, j;
-  ecm_uint pi = 2, pp, maxpp, qi;
-  prime_info_t prime_info;
+  uint64_t pi = 2, pp, ppnew, maxpp;
 
+  prime_info_t prime_info;
   prime_info_init (prime_info);
 
-  ASSERT_ALWAYS (B1 <= MAX_B1_BATCH);
+  ASSERT_ALWAYS(ECM_UINT_MAX > 4294967295);
 
   for (j = 0; j < MAX_HEIGHT; j++)
     mpz_init (acc[j]); /* sets acc[j] to 0 */
@@ -173,21 +175,26 @@ compute_s_partial (mpz_t s, ecm_uint B1done, ecm_uint B1)
   i = 0;
   while (pi <= B1)
     {
-      pp = qi = pi;
-      maxpp = B1 / qi;
+      pp = pi;
+      ppnew = (pp > B1done) ? pi : 1;
+
+      maxpp = B1 / pi;
       while (pp <= maxpp)
-          pp *= qi;
+        {
+          pp *= pi;
+          if (pp > B1done)
+              ppnew *= pi;
+         }
 
-#if ECM_UINT_MAX == 4294967295
-      mpz_set_ui (ppz, pp);
-#else
-      mpz_set_uint64 (ppz, pp);
-#endif
-
-      if ((i & 1) == 0)
-        mpz_set (acc[0], ppz);
-      else
-        mpz_mul (acc[0], acc[0], ppz);
+      // Only add factors > B1done
+      if (ppnew)
+        {
+          mpz_set_ui (ppz, ppnew);
+          if ((i & 1) == 0)
+            mpz_set (acc[0], ppz);
+          else
+            mpz_mul (acc[0], acc[0], ppz);
+        }
 
       j = 0;
       /* We have accumulated i+1 products so far. If bits 0..j of i are all

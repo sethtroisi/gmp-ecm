@@ -598,6 +598,7 @@ int
 gpu_pm1_load_resume_file(
         char *resumefilename, FILE *resumefile,
         unsigned int *nb_curves, double *B1done,
+        /* an = array n, af = array f, ... */
         mpcandi_t *inputs, mpz_t *an, mpz_t *af, mpz_t *ax0, mpz_t *ax)
 {
   assert (resumefile != NULL);
@@ -794,6 +795,7 @@ gpu_pm1 (char *infilename, char *resumefilename, FILE *infile, char* savefilenam
   numbers = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
   factors = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
   orig_x0 = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  /* X and later residuals */
   x = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
   ASSERT_ALWAYS (inputs != NULL);
   ASSERT_ALWAYS (numbers != NULL);
@@ -842,21 +844,34 @@ gpu_pm1 (char *infilename, char *resumefilename, FILE *infile, char* savefilenam
   ASSERT_ALWAYS (B1 != params->batch_last_B1_used);
   ASSERT_ALWAYS (mpz_cmp_ui (params->batch_s, 1) <= 0);
 
-  // TODO need a new compute_s with B1done, can maybe be shared with pm1.c
-  ASSERT_ALWAYS( B1done == 0);
-
   st = cputime ();
   /* construct the batch exponent */
-  compute_s (mutable_params->batch_s, B1, NULL);
-  outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
-                           " bits) of primes up to B1=%1.0f took %ldms\n",
-                           mpz_sizeinbase (params->batch_s, 2), B1, cputime () - st);
+  /* Compute s */
+  if (B1 != params->batch_last_B1_used || mpz_cmp_ui (params->batch_s, 1) <= 0)
+    {
+      mutable_params->batch_last_B1_used = B1;
+
+      st = cputime ();
+      /* construct the batch exponent */
+      compute_s_partial (mutable_params->batch_s, B1, B1done);
+      if (B1done)
+          outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
+                                   " bits) of primes up to B1=%1.0f-%1.0f took %ldms\n",
+                                   mpz_sizeinbase (params->batch_s, 2), B1done, B1, cputime () - st);
+      else
+          outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
+                                   " bits) of primes up to B1=%1.0f took %ldms\n",
+                                   mpz_sizeinbase (params->batch_s, 2), B1, cputime () - st);
+    }
+  // XXX: need te record batch-last wast B1done-B1 not just B1
   mutable_params->batch_last_B1_used = B1;
 
   st = cputime ();
 
+  // x has been set to x0
+  // residuals comes out in x
   youpi = cgbn_pm1_stage1 (
-      numbers, orig_x0, factors, x,
+      numbers, x, factors, x,
       params->batch_s, nb_curves, &gputime, params->verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
