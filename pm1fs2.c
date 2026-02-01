@@ -2183,9 +2183,8 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
   long timestart, realstart;
 
   mpres_init (invr, modulus_parm);
-  mpres_invert (invr, r, modulus_parm); /* invr = r^{-1}. FIXME: test for 
-					   failure, even if theoretically 
-					   impossible */
+  if (!mpres_invert (invr, r, modulus_parm)) /* invr = r^{-1}. */
+      outputf (OUTPUT_ERROR, "Failed to invert r= %Zd\n");
 
   if (test_verbose (OUTPUT_TRACE))
     {
