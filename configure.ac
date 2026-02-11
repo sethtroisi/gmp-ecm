@@ -385,11 +385,6 @@ AC_PROG_EGREP
 dnl These libraries are used unconditionally maybe throw AC_MSG_ERROR if not found.
 dnl AC_CHECK_HEADERS([math.h malloc.h endian.h])
 AC_CHECK_HEADERS([limits.h strings.h stdint.h inttypes.h endian.h sys/time.h unistd.h io.h signal.h fcntl.h])
-AC_CHECK_HEADERS([windows.h psapi.h], [], [],
-   [[#ifdef HAVE_WINDOWS_H
-     # include <windows.h>
-     #endif
-     ]])
 AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h aio.h])
 
 if test "x$enable_mmap" = xyes; then
@@ -405,8 +400,12 @@ AC_CHECK_LIB(m,pow,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,floor,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,sqrt,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(rt,aio_read)
-dnl This should only run on windows and AC_MSG_ERROR if not found.
-AC_CHECK_LIB(psapi,[GetProcessMemoryInfo])
+case "$host_os" in
+  *mingw* | *cygwin* | *msvc* | *windows*)
+    AC_CHECK_HEADER(psapi.h,,AC_MSG_ERROR(psapi is required in windows))
+    AC_CHECK_LIB(psapi,GetProcessMemoryInfo,,AC_MSG_ERROR(required function missing))
+    ;;
+esac
 
 dnl No code is gated on HAVE_<X> for these functions. One joint check would be much faster.
 AC_CHECK_FUNCS([memset strchr strlen strncasecmp strstr], [], [AC_MSG_ERROR([required function missing])])
