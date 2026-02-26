@@ -265,9 +265,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   /* All primes sqrt(B1) < p <= B1 appear with exponent 1. All primes <= B1done
      are already included with exponent at least 1, so it's safe to skip
      ahead to B1done+1. */
-
-  while (p <= *B1done)
-    p = (double) getprime_mt (prime_info);
+  if (p <= *B1done)
+        p = getprime_jump_and_next_mt(prime_info, (*B1done)+1);
 
   /* then remaining primes > max(sqrt(B1), cascade_limit) and taken 
      with exponent 1 */
