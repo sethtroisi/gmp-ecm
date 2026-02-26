@@ -400,6 +400,8 @@ AC_CHECK_LIB(m,pow,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,floor,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,sqrt,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(rt,aio_read)
+AC_CHECK_LIB(primesieve,primesieve_init)
+
 case "$host_os" in
   *mingw* | *cygwin* | *msvc* | *windows*)
    AC_CHECK_HEADER(windows.h, [], AC_MSG_ERROR([required header file missing]))

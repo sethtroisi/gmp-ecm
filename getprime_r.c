@@ -48,6 +48,37 @@
       prime_info_clear (pi);
 */
 
+#ifdef HAVE_LIBPRIMESIEVE
+#include <primesieve.h>
+void
+prime_info_init (prime_info_t i)
+{
+    primesieve_init(i);
+    // getprime starts at 3 so consume 2 here.
+    primesieve_next_prime (i);
+}
+
+void
+prime_info_clear (prime_info_t i)
+{
+    primesieve_free_iterator (i);
+}
+
+ecm_uint
+getprime_mt (prime_info_t i)
+{
+    return primesieve_next_prime (i);
+}
+
+/* Returns first prime >= n */
+ecm_uint
+getprime_jump_and_next_mt (prime_info_t i, ecm_uint n)
+{
+    primesieve_jump_to (i, n, ECM_UINT_MAX);
+    return primesieve_next_prime (i);
+}
+
+#else
 void
 prime_info_init (prime_info_t i)
 {
@@ -186,6 +217,19 @@ getprime_mt (prime_info_t i)
                                   around x */
   return i->offset + 2 * i->current;
 }
+
+ecm_uint
+getprime_jump_and_next_mt (prime_info_t i, ecm_uint n)
+{
+   // TODO: add an assert that n isn't less than last prime.
+   ecm_uint p;
+   do {
+     p = getprime_mt(i);
+   } while (p < n);
+   return p;
+}
+#endif  // HAVE_LIBPRIMESIEVE
+
 
 #ifdef MAIN
 int
