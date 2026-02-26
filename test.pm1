@@ -84,6 +84,17 @@ echo 474476178924594486566271953891 | $PM1 9594209 519569569; checkcode $? 8
 ### stage 2 less than 10^10 ###
 echo 2124306045220073929294177 | $PM1 290021 1193749003; checkcode $? 8
 
+### Test B1 and B2 intervals
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 906-1009 10007-11000; checkcode $? 14
+# 907 not included in lower interval
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 907-1009 10007-11000; checkcode $? 0
+# 1009 not included in lower interval
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 907-1008 10007-11000; checkcode $? 0
+# 10007 not included in upper interval
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 906-1009 8000-9000; checkcode $? 0
+# 10007 not included in upper interval
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 906-1009 10100-10200; checkcode $? 0
+
 ### Try saving and resuming
 TEST=test.pm1.save$$
 echo 25591172394760497166702530699464321 | $PM1 -save $TEST 100000
