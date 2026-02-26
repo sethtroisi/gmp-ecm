@@ -406,6 +406,7 @@ AC_CHECK_LIB(m,fmod,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,cos)
 AC_CHECK_LIB(rt,aio_read)
 AC_CHECK_LIB(psapi,[GetProcessMemoryInfo])
+AC_CHECK_LIB(primesieve,primesieve_init)
 
 AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([access unlink], [], [AC_MSG_ERROR([required function missing])])
