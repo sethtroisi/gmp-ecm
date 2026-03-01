@@ -789,7 +789,10 @@ write_s_in_file (const char *fn, mpz_t s, int want_mmap, uint64_t B1)
   } else {
     ret = mpz_out_raw (file, s);
   }
-  /* gmp_printf("Wrote %Zx to %s\n", s, fn); */
+  gmp_printf("write_s HEADER: %u, %u %u %u %u %u %lu\n",
+          magic, S_FILE_VERSION, mmapped, is_le, limb_size, checksum, B1le);
+  gmp_printf("write size,limps: %lu, %lu\n", &s->_mp_size, s->_mp_d);
+  gmp_printf("Wrote %Zx to %s\n", s, fn);
 
   fclose (file);
   return ret;
