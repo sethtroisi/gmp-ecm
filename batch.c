@@ -29,11 +29,12 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    Y^2 = X^3 + a/b*X^2 + 1/b^2*X.
 */
 
+#include <math.h>
 #include <stdlib.h>
 #include "ecm-impl.h"
 #include "getprime_r.h"
 
-#define MAX_HEIGHT 32
+#define MAX_HEIGHT 34
 
 #if ECM_UINT_MAX == 4294967295
 /* On a 32-bit machine, with no access to a 64-bit type,
@@ -48,7 +49,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MAX_B1_BATCH 3124253146UL
 #else
 /* nth_prime(2^(MAX_HEIGHT-1))-1 */
-#define MAX_B1_BATCH 50685770166ULL
+#define MAX_B1_BATCH 215187847710ULL
 #endif
 
 /* If forbiddenres != NULL, forbiddenres = "m r_1 ... r_k -1" indicating that
@@ -154,7 +155,7 @@ compute_s_partial (mpz_t s, uint64_t B1, uint64_t B1done)
   if (B1done < 1)
     return compute_s(s, B1, NULL);
 
-  ASSERT_ALWAYS( B1 <= 100000000000 ); // B1 < 100e9
+  ASSERT_ALWAYS( B1 <= 200000000000 ); // B1 < 200e9
   ASSERT_ALWAYS (B1 <= MAX_B1_BATCH);
   ASSERT_ALWAYS( B1 >= B1done );
 
@@ -172,8 +173,11 @@ compute_s_partial (mpz_t s, uint64_t B1, uint64_t B1done)
     mpz_init (acc[j]); /* sets acc[j] to 0 */
   mpz_init (ppz);
 
+  /** Can skip from B0 to B1done. After B0, primes are to 1st power. */
+  double B0 = ceil (sqrt (B1));
+
   i = 0;
-  while (pi <= B1)
+  while (pi <= B0)
     {
       pp = pi;
       ppnew = (pp > B1done) ? pi : 1;
@@ -195,6 +199,41 @@ compute_s_partial (mpz_t s, uint64_t B1, uint64_t B1done)
           else
             mpz_mul (acc[0], acc[0], ppz);
         }
+
+      j = 0;
+      /* We have accumulated i+1 products so far. If bits 0..j of i are all
+         set, then i+1 is a multiple of 2^(j+1). */
+      while ((i & (1 << j)) != 0)
+        {
+          /* we use acc[MAX_HEIGHT-1] as 0-sentinel below, thus we need
+             j+1 < MAX_HEIGHT-1 */
+          ASSERT (j + 1 < MAX_HEIGHT - 1);
+          if ((i & (1 << (j + 1))) == 0) /* i+1 is not multiple of 2^(j+2),
+                                            thus add[j+1] is "empty" */
+            mpz_swap (acc[j+1], acc[j]); /* avoid a copy with mpz_set */
+          else
+            mpz_mul (acc[j+1], acc[j+1], acc[j]); /* accumulate in acc[j+1] */
+          mpz_set_ui (acc[j], 1);
+          j++;
+        }
+
+      i++;
+      pi = getprime_mt (prime_info);
+    }
+
+  // Skip to B1done+1.
+  if (pi <= B1done) {
+      pi = getprime_jump_and_next_mt (prime_info, B1done+1);
+  }
+
+  // Handle all primes >= max(B0, B1done)
+  while (pi <= B1)
+    {
+      mpz_set_ui (ppz, pi);
+      if ((i & 1) == 0)
+        mpz_set (acc[0], ppz);
+      else
+        mpz_mul (acc[0], acc[0], ppz);
 
       j = 0;
       /* We have accumulated i+1 products so far. If bits 0..j of i are all
