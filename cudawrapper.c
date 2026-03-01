@@ -4,7 +4,8 @@
 
 #include "cudacommon.h"
 
-#include "cgbn_stage1.h"
+#include "gpu_ecm.h"
+#include "gpu_pm1.h"
 #include "ecm-ecm.h"
 
 

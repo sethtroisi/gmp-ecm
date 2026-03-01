@@ -1,6 +1,6 @@
-/* cgbn_stage1.h: header for CGBN (GPU) based ecm stage 1.
+/* gpu_pm1.h: header for GPU (CGBN) P-1stage 1.
 
-Copyright 2021 Seth Troisi
+Copyright 2021-2026 Seth Troisi
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #error "This file should only be compiled with nvcc"
 #endif
 
-#include "cgbn_stage1.h"
+#include "gpu_pm1.h"
 
 #include <cassert>
 #include <stdio.h>
