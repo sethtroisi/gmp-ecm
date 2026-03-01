@@ -2,6 +2,10 @@
 #define ECM_INT_H_
 
 #include "config.h"
+#ifdef HAVE_LIMITS_H
+# include <limits.h>
+#endif
+
 
 #if defined UINT64_MAX || defined uint64_t
 typedef int64_t ecm_int;
