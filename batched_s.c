@@ -215,6 +215,39 @@ mulcascade_get_z_with_clear (mpz_t r, mul_casc *c)
       }
 }
 
+void
+advance_to (batched_info_t info, uint64_t B1done)
+{
+    // Advance up to B1done, no need to compute s.
+    for (int p_i = 0; p_i < SMALL_PRIMES; p_i++)
+      {
+        uint64_t pp = info->small_q[p_i];
+        /* if next power of small prime is <= B1done */
+        /* < is correct so that UINT_MAX can be sentinel for overflow */
+        while (pp < B1done)
+          {
+            uint64_t p = SMALL_PRIME[p_i];
+            // if pp * p will overflow set as max value.
+            uint64_t t = ECM_UINT_MAX / p;
+            pp += 1;
+            pp = (t >= pp) ? (pp * p - 1) : ECM_UINT_MAX;
+          }
+        info->small_q[p_i] = pp;
+      }
+
+    for (int j = 1; j <= BATCHED_ITERATORS; j++)
+      {
+        struct prime_iterator_s *it = &info->iterator[j-1];
+        uint64_t max_p = floor_nth_root (B1done, j);
+        uint64_t p = it->current_prime;
+        while (p <= max_p)
+          {
+              p = getprime_mt (it->p_i);
+          }
+        it->current_prime = p;
+      }
+    info->B1 = B1done;
+}
 
 
 void

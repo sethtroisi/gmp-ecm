@@ -325,39 +325,36 @@ static int
 pm1_stage1_batched (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
             mpz_t go, int (*stop_asap)(void), char *chkfilename)
 {
-  mpz_t g;
+  mpz_t S;
   int youpi = ECM_NO_FACTOR_FOUND;
   long last_chkpnt_time;
 
-  mpz_init (g);
+  mpz_init (S);
 
-  last_chkpnt_time = cputime ();
+  /* Choose batch so that overhead is minimized without cascade being huge.
+     S has consistently 1.44 * B1_incr bits, 1.44 = log2(e).
+     Hitting the threshold for window size in gmp mpn/powm is a small gain
+     B1_incr=20000 gives > 28000 bits, B1_incr=8600 gives > 11500 bits. */
+  uint64_t B1_incr = MIN(B1, 20000);
+  uint64_t B1_current = *B1done + B1_incr;
+  outputf (OUTPUT_NORMAL, "P-1 batch size: %" PRIu64 "\n", B1_incr);
 
-  /* Build up chunks of g */
+  /* Build up chunks of S */
   batched_info_t batched;
   batched_info_init(batched);
 
-  /* Choose batch so that overhead is minimized without cascade being huge */
-  uint64_t B1_incr = MIN(B1, 20000);
-  uint64_t B1_current = B1_incr;
+  advance_to(batched, *B1done);
 
-  /* Work up to B1_done, throwing away batch_s */
-  for (; B1_current < *B1done; B1_current += B1_incr)
-    {
-        get_batch(batched, g, B1_current);
-        if (stop_asap != NULL && (*stop_asap) ())
-            goto clear_pm1_stage1;
-    }
-  get_batch(batched, g, *B1done);
-
-  /* if the user knows that P-1 has a given divisor, he can supply it */
+  /* if the user knows that P-1 has a given divisor add it. */
   if (mpz_cmp_ui (go, 1) > 0)
     mpres_pow (a, a, go, n);
 
+  last_chkpnt_time = cputime ();
+
   for (; B1_current <= B1; B1_current += B1_incr)
     {
-      get_batch(batched, g, B1_current);
-      mpres_pow (a, a, g, n);
+      get_batch(batched, S, B1_current);
+      mpres_pow (a, a, S, n);
       *B1done = B1_current;
       if (chkfilename != NULL &&
           elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
@@ -367,14 +364,13 @@ pm1_stage1_batched (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
          }
       if (stop_asap != NULL && (*stop_asap) ())
         {
-          outputf (OUTPUT_NORMAL, "Interrupted at B1=%" PRIu64 "\n", *B1done);
           goto clear_pm1_stage1;
         }
     }
 
-  /* Handle final batch from B1_current to B1*/
-  get_batch(batched, g, B1);
-  mpres_pow (a, a, g, n);
+  /* Handle final batch from B1_current to B1 */
+  get_batch(batched, S, B1);
+  mpres_pow (a, a, S, n);
   *B1done = B1;
 
   mpres_sub_ui (a, a, 1, n);
@@ -386,8 +382,9 @@ pm1_stage1_batched (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
  clear_pm1_stage1:
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_PM1, *B1done, n, NULL, a, NULL, NULL);
+
   batched_info_clear(batched);
-  mpz_clear (g);
+  mpz_clear (S);
 
   return youpi;
 }
