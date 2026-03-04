@@ -1,18 +1,35 @@
 #ifndef BATCHED_S_H_
 #define BATCHED_S_H_
 
+#include "basicdefs.h"
 #include "ecm_int.h"
 #include "getprime_r.h"
+#include <gmp.h>
+
+/* Keep this many iterators */
+#define BATCHED_ITERATORS 9
+/* Need to keep small primes up to LIMIT_B1 ^ (1/(ITERATORS+1))
+   (2^64) ** (1/10) = 84, last prime is 83
+ */
+#define MAX_SMALL_PRIME 137
+#define SMALL_PRIMES 23
+
+/* batched_info_s is made up of several prime iterators
+   with each iterator tracking the current prime */
+struct prime_iterator_s {
+  uint64_t current_prime;
+  prime_info_t p_i;
+};
+typedef struct prime_iterator_s prime_iterator_t[1];
 
 struct batched_info_s {
-  ecm_uint batch; /* index of batch */
-  prime_info_s;   /* current prime iterator */
-  ecm_uint prime; /* next prime to process */
-  double B1;      /* B1 */
-  ecm_uint B1_2;  /* B1^(1/2) */
-  ecm_uint B1_3;  /* B1^(1/3) */
+  uint32_t B1;    /* B1 */
+  uint64_t small_q[SMALL_PRIMES];
+  struct prime_iterator_s iterator[BATCHED_ITERATORS];
 };
-typedef struct batched_info_s prime_info_t[1];
+typedef struct batched_info_s batched_info_t[1];
+
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,9 +37,7 @@ extern "C" {
 
 void batched_info_init (batched_info_t);
 void batched_info_clear (batched_info_t);
-
-/* Get next batch of primes in 
-int  get_batch (prime_info_t);
+void get_batch (batched_info_t, mpz_t, uint64_t);
 
 #ifdef __cplusplus
 }

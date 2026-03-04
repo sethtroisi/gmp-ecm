@@ -29,6 +29,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #endif
 #include "ecm-impl.h"
 #include "ecm-ecm.h"
+#include "batched_s.h"
 
 #include "config.h"
 
@@ -1063,6 +1064,51 @@ main (int argc, char *argv[])
           exit (EXIT_FAILURE);
         }
     }
+
+  /*
+  mpz_t S1, S_a, S_b;
+  mpz_init(S1);
+  mpz_init(S_a);
+  mpz_init(S_b);
+
+  compute_s(S1, mpz_get_ui(B2), NULL);
+  gmp_printf("S(%Zd) has %llu bits\n", B2, mpz_sizeinbase (S1, 2));
+
+  for (uint64_t B1_step = 100; mpz_cmp_ui(B2, B1_step) >= 0; B1_step *= 1.07)
+    {
+        printf("Testing batched_s with step=%lu\n", B1_step);
+        batched_info_t batched;
+        batched_info_init(batched);
+        get_batch(batched, S_a, 12);
+
+        gmp_printf("\tcmp(S_a, S_b) = %d | %lu bits\n", mpz_cmp(S_a, S_b), mpz_sizeinbase(S_a, 2));
+        //gmp_printf("\tS_a = %Zd\n\tS_b = %Zd\n", S_a, S_b);
+        //ASSERT_ALWAYS(mpz_cmp(S_a, S_b) == 0);
+
+        uint64_t B1_i = B1_step + B1_step;
+        while (B1_i <= mpz_get_ui(B2)) {
+           get_batch(batched, S_b, B1_i);
+           mpz_mul(S_a, S_a, S_b);
+           //gmp_printf("\t\t%lu -> %lu bits\n", B1_i, mpz_sizeinbase(S_a, 2));
+
+           //compute_s(S_b, B1_i, NULL);
+           //ASSERT_ALWAYS(mpz_cmp(S_a, S_b) == 0);
+
+           B1_i += B1_step;
+        }
+
+        get_batch(batched, S_b, mpz_get_ui(B2));
+        //mpz_mul(S_a, S_a, S_b);
+        gmp_printf("\t%Zd -> %lu bits | cmp: %d\n", B2, mpz_sizeinbase(S_a, 2), mpz_cmp(S1, S_a));
+        //if (mpz_cmp(S1, S_a) != 0) {
+        //        gmp_printf("%Zd\n%Zd\n", S1, S_a);
+        //}
+        //ASSERT_ALWAYS(mpz_cmp(S1, S_a) == 0);
+
+        batched_info_clear(batched);
+    }
+    */
+
 
   /* set static parameters (i.e. those that don't change during the program) */
   params->verbose = verbose;
