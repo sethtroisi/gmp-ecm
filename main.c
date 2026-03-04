@@ -71,6 +71,7 @@ signal_handler (int sig)
     {
       exit_asap_value = 1;
       exit_asap_signalnr = sig;
+      printf("Caught Signal\n");
       /* If one of these two signals arrives again, we'll let the default
          handler take over,  which will usually terminate the process
          immediately. */
@@ -1071,43 +1072,48 @@ main (int argc, char *argv[])
   mpz_init(S_a);
   mpz_init(S_b);
 
-  compute_s(S1, mpz_get_ui(B2), NULL);
-  gmp_printf("S(%Zd) has %llu bits\n", B2, mpz_sizeinbase (S1, 2));
+  //compute_s(S1, mpz_get_ui(B2), NULL);
+  //gmp_printf("S(%Zd) has %llu bits\n", B2, mpz_sizeinbase (S1, 2));
 
-  for (uint64_t B1_step = 100; mpz_cmp_ui(B2, B1_step) >= 0; B1_step *= 1.07)
+  for (uint64_t B1_step = sqrt(mpz_get_ui(B2)); mpz_cmp_ui(B2, B1_step) >= 0; B1_step *= 1.07)
     {
         printf("Testing batched_s with step=%lu\n", B1_step);
         batched_info_t batched;
         batched_info_init(batched);
         get_batch(batched, S_a, 12);
 
-        gmp_printf("\tcmp(S_a, S_b) = %d | %lu bits\n", mpz_cmp(S_a, S_b), mpz_sizeinbase(S_a, 2));
-        //gmp_printf("\tS_a = %Zd\n\tS_b = %Zd\n", S_a, S_b);
-        //ASSERT_ALWAYS(mpz_cmp(S_a, S_b) == 0);
-
         uint64_t B1_i = B1_step + B1_step;
         while (B1_i <= mpz_get_ui(B2)) {
            get_batch(batched, S_b, B1_i);
-           mpz_mul(S_a, S_a, S_b);
-           //gmp_printf("\t\t%lu -> %lu bits\n", B1_i, mpz_sizeinbase(S_a, 2));
-
-           //compute_s(S_b, B1_i, NULL);
-           //ASSERT_ALWAYS(mpz_cmp(S_a, S_b) == 0);
+           gmp_printf("\t\t%lu -> %lu bits\n", B1_i, mpz_sizeinbase(S_b, 2));
+           // mpz_mul(S_a, S_a, S_b);
+           // gmp_printf("\t\t%lu -> %lu bits\n", B1_i, mpz_sizeinbase(S_a, 2));
+           // compute_s(S_b, B1_i, NULL);
+           // if (mpz_cmp(S_a, S_b) != 0) {
+           //    gmp_printf("%Zd\n%Zd\n", S_b, S_a);
+           //    gmp_printf("\t%lu vs %lu | %lu\n",
+           //            mpz_sizeinbase(S_b, 2), mpz_sizeinbase(S_a, 2), mpz_divisible_p(S_b, S_a));
+           //    mpz_tdiv_q(S1, S_b, S_a);
+           //    gmp_printf("\tMaybe missing %Zd\n", S1);
+           //    ASSERT_ALWAYS(0);
+           // }
 
            B1_i += B1_step;
         }
 
         get_batch(batched, S_b, mpz_get_ui(B2));
         //mpz_mul(S_a, S_a, S_b);
-        gmp_printf("\t%Zd -> %lu bits | cmp: %d\n", B2, mpz_sizeinbase(S_a, 2), mpz_cmp(S1, S_a));
+        //gmp_printf("\t%Zd -> %lu bits | cmp: %d\n", B2, mpz_sizeinbase(S_a, 2), mpz_cmp(S1, S_a));
         //if (mpz_cmp(S1, S_a) != 0) {
         //        gmp_printf("%Zd\n%Zd\n", S1, S_a);
         //}
         //ASSERT_ALWAYS(mpz_cmp(S1, S_a) == 0);
 
         batched_info_clear(batched);
+
+        B1_step *= 100000;
     }
-    */
+    // */
 
 
   /* set static parameters (i.e. those that don't change during the program) */

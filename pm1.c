@@ -24,6 +24,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdlib.h>
 #include "ecm-impl.h"
 #include "getprime_r.h"
+#include "batched_s.h"
 
 #define CASCADE_THRES 3
 #define CASCADE_MAX 50000000.0
@@ -325,6 +326,79 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   return youpi;
 }
 
+static int
+pm1_stage1_batched (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done, 
+            mpz_t go, int (*stop_asap)(void), char *chkfilename)
+{
+  mpz_t g;
+  int youpi = ECM_NO_FACTOR_FOUND;
+  long last_chkpnt_time;
+
+  mpz_init (g);
+
+  last_chkpnt_time = cputime ();
+  
+  /* Build up chunks of g */
+  batched_info_t batched;
+  batched_info_init(batched);
+
+  /* Choose batch so that overhead is minimized without cascade being huge */
+  uint64_t B1_incr = MIN(B1, 20000);
+  uint64_t B1_current = B1_incr;
+
+  /* Work up to B1_done, throwing away batch */
+  for (; B1_current < *B1done; B1_current += B1_incr)
+    {
+        get_batch(batched, g, B1_current);
+        if (stop_asap != NULL && (*stop_asap) ())
+            goto clear_pm1_stage1;
+    }
+  get_batch(batched, g, *B1done);
+
+  /* if the user knows that P-1 has a given divisor, he can supply it */
+  if (mpz_cmp_ui (go, 1) > 0)
+    mpres_pow (a, a, go, n);
+
+  for (; B1_current <= B1; B1_current += B1_incr)
+    {
+      get_batch(batched, g, B1_current);
+      //outputf (OUTPUT_NORMAL, "P-1 Batch: %" PRIu64 "\n", B1_current);
+      mpres_pow (a, a, g, n);
+      if (chkfilename != NULL &&
+          elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
+        {
+          writechkfile (chkfilename, ECM_PM1, B1_current, n, NULL, a, NULL, NULL);
+          last_chkpnt_time = cputime ();
+         }
+      if (stop_asap != NULL && (*stop_asap) ())
+        {
+          outputf (OUTPUT_NORMAL, "Interrupted at B1=%" PRIu64 "\n", B1_current);
+          *B1done = B1_current;
+          goto clear_pm1_stage1;
+        }
+    }
+
+  // Handle final batch
+  get_batch(batched, g, B1);
+  outputf (OUTPUT_NORMAL, "P-1 Final batch: %" PRIu64 "\n", (uint64_t) B1);
+  mpres_pow (a, a, g, n);
+  *B1done = B1;
+
+  mpres_sub_ui (a, a, 1, n);
+  mpres_gcd (f, a, n);
+  if (mpz_cmp_ui (f, 1) > 0)
+    youpi = ECM_FACTOR_FOUND_STEP1;
+  mpres_add_ui (a, a, 1, n);
+
+ clear_pm1_stage1:
+  if (chkfilename != NULL)
+    writechkfile (chkfilename, ECM_PM1, *B1done, n, NULL, a, NULL, NULL);
+  batched_info_clear(batched);
+  mpz_clear (g);
+
+  return youpi;
+}
+
 
 void
 print_prob (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
@@ -570,7 +644,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   st = cputime ();
 
   if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done, go, stop_asap, chkfilename);
+    //youpi = pm1_stage1 (f, x, modulus, B1, B1done, go, stop_asap, chkfilename);
+    youpi = pm1_stage1_batched (f, x, modulus, B1, B1done, go, stop_asap, chkfilename);
 
   st = elltime (st, cputime ());
 

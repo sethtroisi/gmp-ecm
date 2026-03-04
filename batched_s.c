@@ -43,7 +43,7 @@ batched_info_init (batched_info_t info)
         for (int j = 1; j <= BATCHED_ITERATORS; j++)
             pp *= p;
         /* pp = p ^ (ITERATIONS+1) */
-        info->small_q[p_i] = pp;
+        info->small_q[p_i] = pp - 1;
     }
     for (int i = 0; i < BATCHED_ITERATORS; i++)
       {
@@ -131,10 +131,12 @@ mulcascade_init (void)
 
   t = (mul_casc *) malloc (sizeof (mul_casc));
   ASSERT_ALWAYS(t != NULL);
-  t->val = (mpz_t*) malloc (sizeof (mpz_t));
+
+  t->size = 2;
+  t->val = (mpz_t*) malloc (t->size * sizeof (mpz_t));
   ASSERT_ALWAYS(t->val != NULL);
-  mpz_init (t->val[0]);
-  t->size = 1;
+  for (unsigned int i = 0; i < t->size; i++)
+    mpz_init (t->val[i]);
   return t;
 }
 
@@ -154,10 +156,22 @@ mulcascade_mul (mul_casc *c, const uint64_t n)
 {
   unsigned int i;
 
+  // Always free c->val[0] but don't continue if c->val[1] is small
   ASSERT_ALWAYS (mpz_sgn (c->val[0]) == 0);
   mpz_set_uint64 (c->val[0], n);
 
-  for (i = 1; i < c->size; i++)
+  if (mpz_sgn (c->val[1]) == 0)
+    {
+      mpz_swap(c->val[0], c->val[1]);
+      return;
+    }
+
+  mpz_mul(c->val[1], c->val[1], c->val[0]);
+  mpz_set_ui(c->val[0], 0);
+  if (mpz_size (c->val[1]) <= CASCADE_THRES)
+    return;
+
+  for (i = 2; i < c->size; i++)
     {
       if (mpz_sgn (c->val[i]) == 0)
         {
@@ -206,8 +220,6 @@ mulcascade_get_z_with_clear (mpz_t r, mul_casc *c)
 void
 get_batch (batched_info_t info, mpz_t s, uint64_t B1_next)
 {
-    ASSERT_ALWAYS(B1_next < ECM_UINT_MAX); // largest value is reserved.
-   
     mpz_set_ui(s, 1);
     /* TODO could save this between calls. */
     mul_casc *cascade = mulcascade_init ();
@@ -216,15 +228,16 @@ get_batch (batched_info_t info, mpz_t s, uint64_t B1_next)
       {
         uint64_t pp = info->small_q[p_i];
         /* if next power of small prime is <= B1_next add a multiple of p */
-        while (pp <= B1_next)
+        /* < is correct so that UINT_MAX can be sentinel for overflow */
+        while (pp < B1_next)
           {
             uint64_t p = SMALL_PRIME[p_i];
-            // No cascade for small primes
-            mpz_mul_ui(s, s, p);
+            mulcascade_mul (cascade, p);
 
-            // if q * p will overflow set as max value.
+            // if pp * p will overflow set as max value.
             uint64_t t = ECM_UINT_MAX / p;
-            pp = (t >= pp) ? (pp * p) : ECM_UINT_MAX;
+            pp += 1;
+            pp = (t >= pp) ? (pp * p - 1) : ECM_UINT_MAX;
           }
         info->small_q[p_i] = pp;
       }

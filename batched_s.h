@@ -23,7 +23,9 @@ struct prime_iterator_s {
 typedef struct prime_iterator_s prime_iterator_t[1];
 
 struct batched_info_s {
-  uint32_t B1;    /* B1 */
+  uint32_t B1;
+  /* q is p^current_power - 1
+     -1 is important so that UINT_MAX can be a sentinel */
   uint64_t small_q[SMALL_PRIMES];
   struct prime_iterator_s iterator[BATCHED_ITERATORS];
 };
