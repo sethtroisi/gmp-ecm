@@ -336,33 +336,30 @@ pm1_stage1_batched (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
 
   mpz_init (g);
 
-  last_chkpnt_time = cputime ();
+  /* Choose batch so that overhead is minimized without cascade being huge */
+  /* Hitting the threshold for window size in gmp mpn/powm is a small gain
+     20000 incr gives > 28000 bits, 8600 incr gives > 11500 bits. */
+  uint64_t B1_incr = MIN(B1, 20000); //MAX(10000, 15 * size_n));
+  uint64_t B1_current = *B1done + B1_incr;
+  outputf (OUTPUT_NORMAL, "P-1 batch size: %" PRIu64 "\n", B1_incr);
   
   /* Build up chunks of g */
   batched_info_t batched;
   batched_info_init(batched);
 
-  /* Choose batch so that overhead is minimized without cascade being huge */
-  uint64_t B1_incr = MIN(B1, 20000);
-  uint64_t B1_current = B1_incr;
-
-  /* Work up to B1_done, throwing away batch */
-  for (; B1_current < *B1done; B1_current += B1_incr)
-    {
-        get_batch(batched, g, B1_current);
-        if (stop_asap != NULL && (*stop_asap) ())
-            goto clear_pm1_stage1;
-    }
-  get_batch(batched, g, *B1done);
+  advance_to(batched, *B1done);
 
   /* if the user knows that P-1 has a given divisor, he can supply it */
   if (mpz_cmp_ui (go, 1) > 0)
     mpres_pow (a, a, go, n);
 
+  last_chkpnt_time = cputime ();
+
   for (; B1_current <= B1; B1_current += B1_incr)
     {
       get_batch(batched, g, B1_current);
-      //outputf (OUTPUT_NORMAL, "P-1 Batch: %" PRIu64 "\n", B1_current);
+      //outputf (OUTPUT_NORMAL, "P-1 Batch: %" PRIu64 " -> %lu bits\n",
+      //        B1_current, mpz_sizeinbase (g, 2));
       mpres_pow (a, a, g, n);
       if (chkfilename != NULL &&
           elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)

@@ -39,6 +39,7 @@ extern "C" {
 
 void batched_info_init (batched_info_t);
 void batched_info_clear (batched_info_t);
+void advance_to (batched_info_t, uint64_t);
 void get_batch (batched_info_t, mpz_t, uint64_t);
 
 #ifdef __cplusplus

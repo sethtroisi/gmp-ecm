@@ -72,7 +72,7 @@ cmp_power(uint64_t m, uint64_t t, uint64_t n)
     uint64_t pp = t;
     for (unsigned int p = 2; p < n; p++)
       pp *= t;
-   
+
     /* Avoid overflow by comparing m/t ? t^(n-1) */
     uint64_t q = m / t;
     if (q > pp) {
@@ -198,15 +198,15 @@ mulcascade_mul (mul_casc *c, const uint64_t n)
 /* pm1.c had mulcascade_set to initialize with an existing mpz_t */
 // static void mulcascade_set (mul_casc *c, mpz_t n)
 
-static void 
-mulcascade_get_z_with_clear (mpz_t r, mul_casc *c) 
+static void
+mulcascade_get_z_with_clear (mpz_t r, mul_casc *c)
 {
-  unsigned int i; 
-  
+  unsigned int i;
+
   ASSERT(c->size != 0);
-      
+
   mpz_set_ui (r, 1);
-      
+
   for (i = 0; i < c->size; i++)
     if (mpz_sgn (c->val[i]) != 0)
       {
@@ -215,6 +215,39 @@ mulcascade_get_z_with_clear (mpz_t r, mul_casc *c)
       }
 }
 
+void
+advance_to (batched_info_t info, uint64_t B1done)
+{
+    // Advance up to B1done, no need to compute s.
+    for (int p_i = 0; p_i < SMALL_PRIMES; p_i++)
+      {
+        uint64_t pp = info->small_q[p_i];
+        /* if next power of small prime is <= B1done */
+        /* < is correct so that UINT_MAX can be sentinel for overflow */
+        while (pp < B1done)
+          {
+            uint64_t p = SMALL_PRIME[p_i];
+            // if pp * p will overflow set as max value.
+            uint64_t t = ECM_UINT_MAX / p;
+            pp += 1;
+            pp = (t >= pp) ? (pp * p - 1) : ECM_UINT_MAX;
+          }
+        info->small_q[p_i] = pp;
+      }
+
+    for (int j = 1; j <= BATCHED_ITERATORS; j++)
+      {
+        struct prime_iterator_s *it = &info->iterator[j-1];
+        uint64_t max_p = floor_nth_root (B1done, j);
+        uint64_t p = it->current_prime;
+        while (p <= max_p)
+          {
+              p = getprime_mt (it->p_i);
+          }
+        it->current_prime = p;
+      }
+    info->B1 = B1done;
+}
 
 
 void
@@ -223,7 +256,7 @@ get_batch (batched_info_t info, mpz_t s, uint64_t B1_next)
     mpz_set_ui(s, 1);
     /* TODO could save this between calls. */
     mul_casc *cascade = mulcascade_init ();
- 
+
     for (int p_i = 0; p_i < SMALL_PRIMES; p_i++)
       {
         uint64_t pp = info->small_q[p_i];
@@ -241,7 +274,7 @@ get_batch (batched_info_t info, mpz_t s, uint64_t B1_next)
           }
         info->small_q[p_i] = pp;
       }
-    
+
     /* Handle primes^{2,3,4,5} */
     for (int j = 2; j <= BATCHED_ITERATORS; j++)
       {
@@ -254,7 +287,7 @@ get_batch (batched_info_t info, mpz_t s, uint64_t B1_next)
               p = getprime_mt (it->p_i);
           }
         it->current_prime = p;
-      } 
+      }
 
     /* primes^1 */
     struct prime_iterator_s *it = &info->iterator[0];
