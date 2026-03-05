@@ -43,7 +43,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-gpu.h"
 #include "batched_s.h"
 
-
 // See cgbn_error_t enum (cgbn.h:39)
 #define cgbn_normalized_error ((cgbn_error_t) 14)
 #define cgbn_positive_overflow ((cgbn_error_t) 15)
@@ -159,10 +158,12 @@ int verify_size_of_n(const mpz_t N, size_t max_bits) {
   if (n_log2 <= max_usable_bits)
     return ECM_NO_FACTOR_FOUND;
 
-  outputf (OUTPUT_ERROR, "GPU: N(%d bits) + carry(%d bits) > BITS(%d)\n",
-      n_log2, CARRY_BITS, max_bits);
-  outputf (OUTPUT_ERROR, "GPU: Error, input number should be stricly lower than 2^%d\n",
-      max_usable_bits);
+  outputf (OUTPUT_ERROR,
+          "GPU P-1: N(%d bits) + carry(%d bits) > BITS(%d)\n",
+          n_log2, CARRY_BITS, max_bits);
+  outputf (OUTPUT_ERROR,
+          "GPU P-1: Error, input number should be stricly lower than 2^%d\n",
+          max_usable_bits);
   return ECM_ERROR;
 }
 
@@ -370,22 +371,20 @@ __global__ void kernel_pm1_partial(
 
 static void
 set_gpu_pm1_data(
-        const mpz_t *x0, const mpz_t *numbers, uint32_t *datum,
+        const mpz_t *x0, const mpz_t *n, uint32_t *datum,
         uint32_t instances, uint32_t BITS, size_t data_size) {
   /**
    * Store 4 numbers per curve:
    * N, Base, partial Base, partial Result
    */
-
   const size_t limbs_per = BITS/32;
-
   mpz_t x;
   mpz_init(x);
 
   for(int index = 0; index < instances; index++, datum += 4 * limbs_per)
     {
       // Some numbers may be zero at end of batch
-      if (mpz_sgn(numbers[index]) == 0) {
+      if (mpz_sgn(n[index]) == 0) {
         outputf (OUTPUT_VERBOSE, "GPU P-1: skipping %i n=0\n", index);
         // Set base and result to 0 also
         mpz_set_ui (x, 0);
@@ -397,25 +396,15 @@ set_gpu_pm1_data(
       }
 
       /* Modulo (n) */
-      from_mpz(numbers[index], datum + 0 * limbs_per, BITS/32);
-      outputf (OUTPUT_TRACE, "GPU P-1: %d = %Zd\n", index, numbers[index]);
-
-      // TODO make sure not -1
-      /* Base, make sure base mod n != {1, -1} */
-      mpz_mod (x, x0[index], numbers[index]);
-      if (mpz_cmp_ui (x, 1) == 0)
-        {
-          // increment one
-          mpz_add_ui (x, x, 1);
-          outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd for %d=%Zd\n",
-                   x, index, numbers[index]);
-        }
-      from_mpz(x, datum + 1 * limbs_per, BITS/32);
-      from_mpz(x, datum + 2 * limbs_per, BITS/32);
-
-      /* Result */
+      from_mpz(n[index], datum + 0 * limbs_per, BITS/32);
+      from_mpz(x0[index], datum + 1 * limbs_per, BITS/32);
+      from_mpz(x0[index], datum + 2 * limbs_per, BITS/32);
+      /* Result set to 1 as sentinel */
       mpz_set_ui (x, 1);
       from_mpz(x, datum + 3 * limbs_per, BITS/32);
+
+      outputf (OUTPUT_TRACE, "GPU P-1: %5d | N=%Zd x0=%Zd\n",
+              index, n[index], x0[index]);
     }
   mpz_clear(x);
 }
@@ -436,12 +425,17 @@ int find_pm1_factor(mpz_t factor, const mpz_t N, const mpz_t a) {
 }
 
 
+/**
+ * Read GPU data back.
+ * res[i] = x0[i] ^ s mod numbers[i]
+ * return 0 on success, ECM_ERROR on failure.
+ */
 static
 int process_pm1_results(
         const mpz_t *x0,
         const mpz_t *numbers,
         mpz_t *factors,
-        mpz_t *residuals,
+        mpz_t *res,
         const uint32_t *data, uint32_t cgbn_bits,
         int instances) {
   mpz_t modulo, base, result, tmp;
@@ -451,7 +445,6 @@ int process_pm1_results(
   mpz_init(tmp);
 
   const uint32_t limbs_per = cgbn_bits / 32;
-  int youpi = ECM_NO_FACTOR_FOUND;
   int errors = 0;
   for(size_t i = 0; i < instances; i++) {
     const uint32_t *datum = data + (4 * i * limbs_per);;
@@ -463,7 +456,6 @@ int process_pm1_results(
     to_mpz(base, datum + 2 * limbs_per, limbs_per);
     to_mpz(result, datum + 3 * limbs_per, limbs_per);
 
-    // TODO do this same thing to the other process_result
     if (test_verbose (OUTPUT_TRACE) && i <= 10) {
       outputf (OUTPUT_TRACE, "index: %lu, modulo: %Zd\n", i, modulo);
       outputf (OUTPUT_TRACE, "index: %lu, base: %Zd\n", i, base);
@@ -481,7 +473,7 @@ int process_pm1_results(
         outputf (OUTPUT_ERROR, "GPU: curve %d didn't compute or found input?\n", i);
     }
 
-    mpz_set(residuals[i], result);
+    mpz_set(res[i], result);
     mpz_set(tmp, factors[i]);
     int found = find_pm1_factor(factors[i], modulo, result);
     // Don't print already found factors again.
@@ -507,14 +499,50 @@ int process_pm1_results(
   if (errors > 2)
       return ECM_ERROR;
 
-  return youpi;
+  return 0;
+}
+
+/* Similiar to writechkfile for batch for results */
+void
+writechkfile_batch (
+     char *chkfilename, uint64_t B1,
+     uint32_t instances, const mpz_t *n, const mpz_t *x)
+{
+  FILE *chkfile;
+  char methodname[] = "P-1";
+
+  outputf (OUTPUT_DEVVERBOSE, "Writing GPU checkpoint to %s at B1 = %" PRIu64 "\n",
+           chkfilename, B1);
+
+  chkfile = fopen (chkfilename, "w");
+  ASSERT_ALWAYS(chkfile != NULL);
+
+  for (size_t i = 0; i < instances; i++)
+      gmp_fprintf (chkfile,
+              "METHOD=%s; B1=%" PRIu64 "; N=%Zd; X=0x%Zx; "
+              "COMMENT=GPU P-1 checkpoint\n",
+              methodname, B1, n[i], x[i]);
+
+  fflush (chkfile);
+  fclose (chkfile);
 }
 
 
+/* Performs P-1 from B1done-B1 on many numbers at the same time.
+ * Params:
+ *   n: numbers
+ *   x0: initial x0
+ *   factors: any factor found during stage 1
+ *   res: at return contains x = x0 ^ S, S = lcm(prod(B1)
+ * Returns ECM_ERROR if stop_asap or problem during execution
+ */
 int cgbn_pm1_stage1(
-     const mpz_t *numbers, const mpz_t *x0, mpz_t *factors, mpz_t *residuals,
-     const uint64_t B1, const uint64_t B1done, uint32_t instances, float *gputime, int verbose)
+     const mpz_t *n, const mpz_t *x0, mpz_t *factors, mpz_t *res,
+     const uint64_t B1, uint32_t instances,
+     float *gputime, const ecm_params params, ecm_params mutable_params)
 {
+  int verbose = params->verbose;
+
   /* Choose batch so that cascade isn't huge, but also minizing number
      of Host->GPU memcpys */
   uint64_t B1_incr = MIN(B1, 2000000);
@@ -527,7 +555,7 @@ int cgbn_pm1_stage1(
   CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, s_buffer_bytes));
   assert( gpu_s_bits != NULL );
 
-  outputf (OUTPUT_NORMAL, "GPU: B1 increment = %'lu, Allocated %d MB\n",
+  outputf (OUTPUT_DEVVERBOSE, "GPU P-1: B1 increment = %'lu, allocated %d MB\n",
           B1_incr, s_buffer_bytes >> 20);
 
   cudaEvent_t global_start, batch_start, stop;
@@ -545,10 +573,10 @@ int cgbn_pm1_stage1(
   size_t n_log2 = 0;
   size_t largest_i = 0;
   for (size_t i = 1; i < instances; i++)
-      if (mpz_cmp(numbers[i], numbers[largest_i]) > 0)
+      if (mpz_cmp(n[i], n[largest_i]) > 0)
           largest_i = i;
 
-  n_log2 = mpz_sizeinbase(numbers[largest_i], 2);
+  n_log2 = mpz_sizeinbase(n[largest_i], 2);
   assert(n_log2 > 1);
   outputf (OUTPUT_VERBOSE, "GPU P-1: Largest number line %lu, %lu bits\n",
            largest_i+1, n_log2);
@@ -581,7 +609,7 @@ int cgbn_pm1_stage1(
   std::vector<uint32_t> available_kernels;
 
   /* These are P-1 kernels, don't mistake them for ECM kernels */
-  typedef cgbn_params_t<4, 512>   cgbn_params_small;
+  typedef cgbn_params_t<8, 768>   cgbn_params_small;
   typedef cgbn_params_t<8, 1024>  cgbn_params_medium;
   available_kernels.push_back((uint32_t)cgbn_params_small::BITS);
   available_kernels.push_back((uint32_t)cgbn_params_medium::BITS);
@@ -663,7 +691,7 @@ int cgbn_pm1_stage1(
     }
   }
 
-  int youpi = verify_size_of_n(numbers[largest_i], BITS);
+  int youpi = verify_size_of_n(n[largest_i], BITS);
   if (youpi != ECM_NO_FACTOR_FOUND) {
     return youpi;
   }
@@ -672,6 +700,10 @@ int cgbn_pm1_stage1(
   assert( sizeof(power_mod_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
   assert( sizeof(power_mod_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
 
+  outputf (OUTPUT_VERBOSE,
+          "CGBN<%d, %d> running kernel<%d block x %d threads> input number is %d bits\n",
+          BITS, TPI, BLOCK_COUNT, TPB, n_log2);
+
   /* Set up CPU and GPU memory for data */
   const size_t limbs_per = BITS/32;
   const size_t data_size = 4 * instances * limbs_per * sizeof(uint32_t);
@@ -679,43 +711,43 @@ int cgbn_pm1_stage1(
   uint32_t *gpu_data;
   CUDA_CHECK(cudaMalloc((void **)&gpu_data, data_size));
 
-  outputf (OUTPUT_VERBOSE,
-          "CGBN<%d, %d> running kernel<%d block x %d threads> input number is %d bits\n",
-          BITS, TPI, BLOCK_COUNT, TPB, n_log2);
+  outputf (OUTPUT_DEVVERBOSE,
+          "GPU P-1: data is %'lu bytes, S is %'lu bytes\n",
+          data_size, s_buffer_bytes);
 
+  /* For eta */
+  // TODO A BETTER NAME
+  uint64_t temp = params->B1done;
   /* For computing S in batches. */
-  uint64_t B1_current = B1done, B1_finished;
+  uint64_t B1_partial = (params->B1done) < 2.0 ? 0 : params->B1done;
   mpz_t s;
   mpz_init(s);
   batched_info_t batched;
   batched_info_init(batched);
-  advance_to(batched, B1done);
+  advance_to(batched, params->B1done);
 
   /* Start with small batches and increase till timing is ~100ms */
   uint64_t batch_size = 2000;
   int batches_complete = 0;
   /* gputime and batch_time are measured in ms */
   float batch_time = 0;
+  long last_chkpnt_time = time(0);
 
-  while (B1_current < B1)
+  while (B1_partial < B1)
     {
-      /* Set up x0 */
-      set_gpu_pm1_data(x0, numbers, data, instances, BITS, data_size);
+      /* This isn't working the second time around */
+      set_gpu_pm1_data(
+        batches_complete == 0 ? x0 : res,
+        n, data, instances, BITS, data_size);
 
-      // Copy data
-      //outputf (OUTPUT_VERBOSE, "Copying %'lu bytes of instances data to GPU\n", data_size);
       CUDA_CHECK(cudaMemcpy(gpu_data, data, data_size, cudaMemcpyHostToDevice));
 
-
       /* Set up S */
-      B1_finished = B1_current;
-      B1_current = std::min(B1_current + B1_incr, B1);
-      uint64_t B1_batch = B1_current - B1_finished;
-      get_batch(batched, s, B1_current);
+      B1_partial = std::min<uint64_t>(B1_partial + B1_incr, B1);
+      get_batch(batched, s, B1_partial);
       uint64_t s_num_bits = mpz_sizeinbase(s, 2);
       set_s_bits_copy_to_gpu(s, s_buffer_bytes, s_bits, gpu_s_bits);
-
-      //outputf (OUTPUT_VERBOSE, "Processing B1=%lu-%lu\n", B1_finished+1, B1_current);
+      outputf (OUTPUT_TRACE, "GPU P-1: Processing B1=%lu-%lu\n", params->B1done+1, B1_partial);
 
       /* Synchronize, waiting for memCpy to GPU to finish */
       CUDA_CHECK(cudaDeviceSynchronize());
@@ -723,20 +755,34 @@ int cgbn_pm1_stage1(
       uint64_t s_partial = 0;
       while (s_partial < s_num_bits)
         {
+          if (params->stop_asap != NULL && params->stop_asap())
+            {
+              outputf (OUTPUT_ERROR, "GPU P-1: Exiting from stop_asap()\n");
+              if (batches_complete < 1000)
+                youpi = ECM_ERROR;
+              goto cleanup;
+            }
+
           /* decrease batch_size for final batch if needed */
           batch_size = std::min(s_num_bits - s_partial, batch_size);
 
-          /* print ETA with lessing frequently, 5 early + 5 per 10s + 5 per 100s + every 1000s */
+          /* print with decreasing frequency, 3 + 3/1s + 3/10s + 5/100s + every 1000s */
           if (print_nth_batch (batches_complete)) {
-            double fraction_complete = ((double) B1_finished + B1_batch * s_partial / s_num_bits) / B1;
-            outputf (OUTPUT_VERBOSE, "Computing %d bits/call, B1=%lu, %lu/%lu (%.1f%%)",
-                batch_size, B1_finished, s_partial, s_num_bits, 100.0 * fraction_complete);
-            if (batches_complete < 2 || *gputime < 1000) {
+            double batch_partial = (double) s_partial / s_num_bits * (B1_partial - params->B1done);
+            double fraction = ((double) params->B1done + batch_partial - temp) / (B1 - temp);
+            outputf (OUTPUT_VERBOSE,
+                "GPU P-1: %lu bits, B1=%.0f-%lu, %lu/%lu (%.1f%%)",
+                batch_size, params->B1done+1, B1_partial,
+                s_partial, s_num_bits, 100.0 * fraction);
+                
+            if (*gputime < 1000 || batches_complete < 2) {
               outputf (OUTPUT_VERBOSE, "\n");
             } else {
-              float estimated_total = (*gputime) / fraction_complete;
+              /* TODO need to account for any B1done that was passed in */
+              float estimated_total = (*gputime) / fraction;
               float eta = estimated_total - (*gputime);
-              outputf (OUTPUT_VERBOSE, ", ETA %.f + %.f = %.f seconds (~%.f ms/instance)\n",
+              outputf (OUTPUT_VERBOSE,
+                      ", ETA %.f + %.f = %.f seconds (~%.f ms/instance)\n",
                       eta / 1000, *gputime / 1000, estimated_total / 1000,
                       estimated_total / instances);
             }
@@ -793,12 +839,21 @@ int cgbn_pm1_stage1(
       /* After S is finished copy data back, possible take checkpoint */
       CUDA_CHECK(cudaMemcpy(data, gpu_data, data_size, cudaMemcpyDeviceToHost));
 
-      // Get x0 out of Data
-      process_pm1_results(x0, numbers, factors, residuals, data, BITS, instances);
+      /* Get x (res) back from data */
+      if (process_pm1_results(x0, n, factors, res, data, BITS, instances) == ECM_ERROR)
+          goto cleanup;
+
+      /* Update B1done */
+      mutable_params->B1done = B1_partial;
+
+      if (params->chkfilename != NULL && (time(0) - last_chkpnt_time) > 120)
+        {
+          writechkfile_batch (params->chkfilename, B1_partial, instances, n, res);
+          last_chkpnt_time = time(0);
+        }
     }
 
-  cudaEventElapsedTime (gputime, global_start, stop);
-
+cleanup:
 
   // clean up
   CUDA_CHECK(cudaFree(gpu_s_bits));

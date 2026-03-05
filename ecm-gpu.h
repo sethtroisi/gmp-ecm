@@ -2,6 +2,7 @@
 #define _ECM_GPU_H 1
 
 #include "ecm-ecm.h"
+#include "ecm.h"
 
 #ifndef _DO_NOT_INCLUDE_ECM_IMPL_H
 #include "ecm-impl.h"
@@ -24,7 +25,7 @@
 #define gpu_ecm __ECM(gpu_ecm)
 #ifdef WITH_GPU
 int gpu_ecm (mpz_t, const ecm_params, ecm_params, mpz_t, double);
-int gpu_pm1 (char *, char*, FILE *, char *, 
+int gpu_pm1 (char *, char*, FILE *, char *,
              const ecm_params, ecm_params, double);
 
 #endif

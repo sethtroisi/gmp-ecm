@@ -22,8 +22,9 @@
 #define _GPU_PM1_H 1
 
 #include <stdint.h>
-
 #include <gmp.h>
+
+#include "ecm.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,8 +32,8 @@ extern "C" {
 
 int cgbn_pm1_stage1(
              const mpz_t *numbers, const mpz_t *x0, mpz_t *factors, mpz_t *residuals,
-             const uint64_t B1, const uint64_t B1done,
-             uint32_t curves, float *gputime, int verbose);
+             const uint64_t B1, uint32_t curves,
+             float *gputime, const ecm_params params, ecm_params mutable_params);
 
 #ifdef __cplusplus
 }

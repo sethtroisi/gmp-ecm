@@ -862,7 +862,7 @@ int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
     /* decrease batch_size for final batch if needed */
     batch_size = std::min(s_num_bits - s_partial, batch_size);
 
-    /* print ETA with lessing frequently, 5 early + 5 per 10s + 5 per 100s + every 1000s */
+    /* print with decreasing frequency, 5 + 5/10s + 5/100s + every 1000s */
     if (print_nth_batch (batches_complete)) {
       outputf (OUTPUT_VERBOSE, "Computing %d bits/call, %lu/%lu (%.1f%%)",
           batch_size, s_partial, s_num_bits, 100.0 * s_partial / s_num_bits);

@@ -92,7 +92,7 @@ cmp_power(uint64_t m, uint64_t t, uint64_t n)
 static uint64_t
 floor_nth_root (uint64_t m, uint64_t n)
 {
-  if (n == 1)
+  if (n == 1 || m <= 1)
     return m;
 
   uint64_t t = pow((double) m, 1.0 / n);

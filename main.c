@@ -1167,12 +1167,12 @@ main (int argc, char *argv[])
 #ifdef WITH_GPU
       if (infilename == NULL && resumefilename == NULL)
         {
-          fprintf (stdout, "GPU P-1 requires -inp or -resume\n");
+          fprintf (stderr, "GPU P-1 requires -inp or -resume\n");
           exit (EXIT_FAILURE);
         }
       if (infilename == NULL && resumefilename == NULL)
         {
-          fprintf (stdout, "GPU P-1 requires exactly one of -inp or -resume\n");
+          fprintf (stderr, "GPU P-1 requires exactly one of -inp or -resume\n");
           exit (EXIT_FAILURE);
         }
       if (specific_x0) {
@@ -1184,6 +1184,11 @@ main (int argc, char *argv[])
           }
           mpz_set (params->x, mpq_numref( rat_x0 ));
       }
+      if (savefilename == NULL)
+         {
+           fprintf (stderr, "GPU P-1 only makes sense with -save or -savea\n");
+           exit (EXIT_FAILURE);
+         }
       returncode = gpu_pm1(
               infilename, resumefilename, infilename != NULL ? infile : resumefile,
               savefilename, params, params, B1);
