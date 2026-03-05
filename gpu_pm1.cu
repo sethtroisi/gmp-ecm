@@ -41,6 +41,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include "ecm.h"
 #include "ecm-gpu.h"
+#include "batched_s.h"
 
 
 // See cgbn_error_t enum (cgbn.h:39)
@@ -92,13 +93,13 @@ void cgbn_check(cgbn_error_report_t *report, const char *file=NULL, int32_t line
 
 #define CGBN_CHECK(report) cgbn_check(report, __FILE__, __LINE__)
 
-static
-void to_mpz(mpz_t r, const uint32_t *x, uint32_t count) {
+static void
+to_mpz(mpz_t r, const uint32_t *x, uint32_t count) {
   mpz_import (r, count, -1, sizeof(uint32_t), 0, 0, x);
 }
 
-static
-void from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
+static void
+from_mpz(const mpz_t s, uint32_t *x, uint32_t count) {
   size_t words;
 
   if(mpz_sizeinbase (s, 2) > count * 32) {
@@ -166,18 +167,18 @@ int verify_size_of_n(const mpz_t N, size_t max_bits) {
 }
 
 
-static
-uint32_t* allocate_and_set_s_bits(const mpz_t s, uint64_t *nbits) {
-  uint64_t num_bits = *nbits = mpz_sizeinbase (s, 2);
+static void
+set_s_bits_copy_to_gpu(
+    const mpz_t s, const uint64_t buffer_bytes,
+    uint32_t* const s_bits, uint32_t *gpu_s_bits)
+{
+  memset(s_bits, 0, buffer_bytes);
 
-  uint64_t allocated = (num_bits + 31) / 32;
-  uint32_t *s_bits = (uint32_t*) malloc (sizeof(uint32_t) * allocated);
+   uint64_t countp;
+  mpz_export (s_bits, &countp, -1, sizeof(uint32_t), /* endian */ 0, 0, s);
+  assert (4 * countp < buffer_bytes);
 
-  uint64_t countp;
-  mpz_export (s_bits, &countp, -1, sizeof(uint32_t), 0, 0, s);
-  assert (countp == allocated);
-
-  return s_bits;
+  CUDA_CHECK(cudaMemcpy(gpu_s_bits, s_bits, buffer_bytes, cudaMemcpyHostToDevice));
 }
 
 
@@ -367,19 +368,16 @@ __global__ void kernel_pm1_partial(
   }
 }
 
-static
-uint32_t* set_gpu_pm1_data(
-        const mpz_t *x0, const mpz_t *numbers,
-        uint32_t instances, uint32_t BITS, size_t *data_size) {
+static void
+set_gpu_pm1_data(
+        const mpz_t *x0, const mpz_t *numbers, uint32_t *datum,
+        uint32_t instances, uint32_t BITS, size_t data_size) {
   /**
    * Store 4 numbers per curve:
    * N, Base, partial Base, partial Result
    */
 
   const size_t limbs_per = BITS/32;
-  *data_size = 4 * instances * limbs_per * sizeof(uint32_t);
-  uint32_t *data = (uint32_t*) malloc(*data_size);
-  uint32_t *datum = data;
 
   mpz_t x;
   mpz_init(x);
@@ -403,7 +401,7 @@ uint32_t* set_gpu_pm1_data(
       outputf (OUTPUT_TRACE, "GPU P-1: %d = %Zd\n", index, numbers[index]);
 
       // TODO make sure not -1
-      /* Base, make sure base mod n {1, -1} */
+      /* Base, make sure base mod n != {1, -1} */
       mpz_mod (x, x0[index], numbers[index]);
       if (mpz_cmp_ui (x, 1) == 0)
         {
@@ -420,7 +418,6 @@ uint32_t* set_gpu_pm1_data(
       from_mpz(x, datum + 3 * limbs_per, BITS/32);
     }
   mpz_clear(x);
-  return data;
 }
 
 
@@ -447,10 +444,11 @@ int process_pm1_results(
         mpz_t *residuals,
         const uint32_t *data, uint32_t cgbn_bits,
         int instances) {
-  mpz_t modulo, base, result;
+  mpz_t modulo, base, result, tmp;
   mpz_init(modulo);
   mpz_init(base);
   mpz_init(result);
+  mpz_init(tmp);
 
   const uint32_t limbs_per = cgbn_bits / 32;
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -484,9 +482,10 @@ int process_pm1_results(
     }
 
     mpz_set(residuals[i], result);
+    mpz_set(tmp, factors[i]);
     int found = find_pm1_factor(factors[i], modulo, result);
-
-    if (found != ECM_NO_FACTOR_FOUND) {
+    // Don't print already found factors again.
+    if (found != ECM_NO_FACTOR_FOUND && mpz_cmp(factors[i], tmp) != 0) {
       outputf (OUTPUT_NORMAL, "GPU P-1: factor %Zd found in Step 1 with curve %ld\n",
           factors[i], i);
       outputf (OUTPUT_VERBOSE, "Input number is %Zd\n", modulo);
@@ -497,6 +496,7 @@ int process_pm1_results(
   mpz_clear(modulo);
   mpz_clear(base);
   mpz_clear(result);
+  mpz_clear(tmp);
 
 #ifdef IS_DEV_BUILD
   if (errors)
@@ -513,20 +513,22 @@ int process_pm1_results(
 
 int cgbn_pm1_stage1(
      const mpz_t *numbers, const mpz_t *x0, mpz_t *factors, mpz_t *residuals,
-     const mpz_t s, uint32_t instances, float *gputime, int verbose)
+     const uint64_t B1, const uint64_t B1done, uint32_t instances, float *gputime, int verbose)
 {
-  uint64_t s_num_bits;
-  uint32_t *s_bits = allocate_and_set_s_bits(s, &s_num_bits);
-  if (s_num_bits >= 4000000000)
-      outputf (OUTPUT_ALWAYS, "GPU: Very Large B1! Check magnitute of B1.\n");
+  /* Choose batch so that cascade isn't huge, but also minizing number
+     of Host->GPU memcpys */
+  uint64_t B1_incr = MIN(B1, 2000000);
 
-  if (s_num_bits >= 100000000)
-      outputf (OUTPUT_NORMAL, "GPU: Large B1, S = %'lu bits = %d MB\n",
-               s_num_bits, s_num_bits >> 23);
+  /* Batches are 1.44 bits * B1_incr, allocate 20% extra. */
+  const uint64_t s_buffer_bytes = ((B1_incr * 216 / 100 + 127) / 128) * 128;
+  uint32_t* const s_bits = (uint32_t*) malloc (s_buffer_bytes);
   assert( s_bits != NULL );
+  uint32_t *gpu_s_bits;
+  CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, s_buffer_bytes));
+  assert( gpu_s_bits != NULL );
 
-  if (s_num_bits <= 100)
-      outputf (OUTPUT_VERBOSE, "s: %Zd\n", s);
+  outputf (OUTPUT_NORMAL, "GPU: B1 increment = %'lu, Allocated %d MB\n",
+          B1_incr, s_buffer_bytes >> 20);
 
   cudaEvent_t global_start, batch_start, stop;
   CUDA_CHECK(cudaEventCreate (&global_start));
@@ -534,18 +536,10 @@ int cgbn_pm1_stage1(
   CUDA_CHECK(cudaEventCreate (&stop));
   CUDA_CHECK(cudaEventRecord (global_start));
 
-  // Copy s_bits
-  uint32_t *gpu_s_bits;
-  uint32_t s_words = (s_num_bits + 31) / 32;
-  CUDA_CHECK(cudaMalloc((void **)&gpu_s_bits, sizeof(uint32_t) * s_words));
-  CUDA_CHECK(cudaMemcpy(gpu_s_bits, s_bits, sizeof(uint32_t) * s_words, cudaMemcpyHostToDevice));
 
   cgbn_error_report_t *report;
   // create a cgbn_error_report for CGBN to report back errors
   CUDA_CHECK(cgbn_error_report_alloc(&report));
-
-  size_t    data_size;
-  uint32_t *data, *gpu_data;
 
   // Find Largest N
   size_t n_log2 = 0;
@@ -587,7 +581,7 @@ int cgbn_pm1_stage1(
   std::vector<uint32_t> available_kernels;
 
   /* These are P-1 kernels, don't mistake them for ECM kernels */
-  typedef cgbn_params_t<8, 768>   cgbn_params_small;
+  typedef cgbn_params_t<4, 512>   cgbn_params_small;
   typedef cgbn_params_t<8, 1024>  cgbn_params_medium;
   available_kernels.push_back((uint32_t)cgbn_params_small::BITS);
   available_kernels.push_back((uint32_t)cgbn_params_medium::BITS);
@@ -677,99 +671,134 @@ int cgbn_pm1_stage1(
   /* Consistency check that struct cgbn_mem_t is byte aligned without extra fields. */
   assert( sizeof(power_mod_t<cgbn_params_small>::mem_t) == cgbn_params_small::BITS/8 );
   assert( sizeof(power_mod_t<cgbn_params_medium>::mem_t) == cgbn_params_medium::BITS/8 );
-  data = set_gpu_pm1_data(x0, numbers, instances, BITS, &data_size);
 
-  // Copy data
-  outputf (OUTPUT_VERBOSE, "Copying %'lu bytes of instances data to GPU\n", data_size);
+  /* Set up CPU and GPU memory for data */
+  const size_t limbs_per = BITS/32;
+  const size_t data_size = 4 * instances * limbs_per * sizeof(uint32_t);
+  uint32_t* const data = (uint32_t*) malloc(data_size);
+  uint32_t *gpu_data;
   CUDA_CHECK(cudaMalloc((void **)&gpu_data, data_size));
-  CUDA_CHECK(cudaMemcpy(gpu_data, data, data_size, cudaMemcpyHostToDevice));
 
   outputf (OUTPUT_VERBOSE,
           "CGBN<%d, %d> running kernel<%d block x %d threads> input number is %d bits\n",
           BITS, TPI, BLOCK_COUNT, TPB, n_log2);
 
-  uint64_t s_partial = 0;
+  /* For computing S in batches. */
+  uint64_t B1_current = B1done, B1_finished;
+  mpz_t s;
+  mpz_init(s);
+  batched_info_t batched;
+  batched_info_init(batched);
+  advance_to(batched, B1done);
 
   /* Start with small batches and increase till timing is ~100ms */
   uint64_t batch_size = 2000;
-
   int batches_complete = 0;
   /* gputime and batch_time are measured in ms */
   float batch_time = 0;
 
-  while (s_partial < s_num_bits) {
-    /* decrease batch_size for final batch if needed */
-    batch_size = std::min(s_num_bits - s_partial, batch_size);
-    /* print ETA with lessing frequently, 5 early + 5 per 10s + 5 per 100s + every 1000s */
-    if (print_nth_batch (batches_complete)) {
-      outputf (OUTPUT_VERBOSE, "Computing %d bits/call, %lu/%lu (%.1f%%)",
-          batch_size, s_partial, s_num_bits, 100.0 * s_partial / s_num_bits);
-      if (batches_complete < 2 || *gputime < 1000) {
-        outputf (OUTPUT_VERBOSE, "\n");
-      } else {
-        float estimated_total = (*gputime) * ((float) s_num_bits) / s_partial;
-        float eta = estimated_total - (*gputime);
-        outputf (OUTPUT_VERBOSE, ", ETA %.f + %.f = %.f seconds (~%.f ms/instances)\n",
-                eta / 1000, *gputime / 1000, estimated_total / 1000,
-                estimated_total / instances);
-      }
-    }
+  while (B1_current < B1)
+    {
+      /* Set up x0 */
+      set_gpu_pm1_data(x0, numbers, data, instances, BITS, data_size);
 
-    CUDA_CHECK(cudaEventRecord (batch_start));
+      // Copy data
+      //outputf (OUTPUT_VERBOSE, "Copying %'lu bytes of instances data to GPU\n", data_size);
+      CUDA_CHECK(cudaMemcpy(gpu_data, data, data_size, cudaMemcpyHostToDevice));
 
-    if (BITS == cgbn_params_small::BITS) {
-      kernel_pm1_partial<cgbn_params_small><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
-    } else if (BITS == cgbn_params_medium::BITS) {
-      kernel_pm1_partial<cgbn_params_medium><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+
+      /* Set up S */
+      B1_finished = B1_current;
+      B1_current = std::min(B1_current + B1_incr, B1);
+      uint64_t B1_batch = B1_current - B1_finished;
+      get_batch(batched, s, B1_current);
+      uint64_t s_num_bits = mpz_sizeinbase(s, 2);
+      set_s_bits_copy_to_gpu(s, s_buffer_bytes, s_bits, gpu_s_bits);
+
+      //outputf (OUTPUT_VERBOSE, "Processing B1=%lu-%lu\n", B1_finished+1, B1_current);
+
+      /* Synchronize, waiting for memCpy to GPU to finish */
+      CUDA_CHECK(cudaDeviceSynchronize());
+
+      uint64_t s_partial = 0;
+      while (s_partial < s_num_bits)
+        {
+          /* decrease batch_size for final batch if needed */
+          batch_size = std::min(s_num_bits - s_partial, batch_size);
+
+          /* print ETA with lessing frequently, 5 early + 5 per 10s + 5 per 100s + every 1000s */
+          if (print_nth_batch (batches_complete)) {
+            double fraction_complete = ((double) B1_finished + B1_batch * s_partial / s_num_bits) / B1;
+            outputf (OUTPUT_VERBOSE, "Computing %d bits/call, B1=%lu, %lu/%lu (%.1f%%)",
+                batch_size, B1_finished, s_partial, s_num_bits, 100.0 * fraction_complete);
+            if (batches_complete < 2 || *gputime < 1000) {
+              outputf (OUTPUT_VERBOSE, "\n");
+            } else {
+              float estimated_total = (*gputime) / fraction_complete;
+              float eta = estimated_total - (*gputime);
+              outputf (OUTPUT_VERBOSE, ", ETA %.f + %.f = %.f seconds (~%.f ms/instance)\n",
+                      eta / 1000, *gputime / 1000, estimated_total / 1000,
+                      estimated_total / instances);
+            }
+          }
+
+          CUDA_CHECK(cudaEventRecord (batch_start));
+
+          if (BITS == cgbn_params_small::BITS) {
+            kernel_pm1_partial<cgbn_params_small><<<BLOCK_COUNT, TPB>>>(
+                report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+          } else if (BITS == cgbn_params_medium::BITS) {
+            kernel_pm1_partial<cgbn_params_medium><<<BLOCK_COUNT, TPB>>>(
+                report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
 #ifndef IS_DEV_BUILD
-    } else if (BITS == cgbn_params_1536::BITS) {
-      kernel_pm1_partial<cgbn_params_1536><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
-    } else if (BITS == cgbn_params_2048::BITS) {
-      kernel_pm1_partial<cgbn_params_2048><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
-    } else if (BITS == cgbn_params_3072::BITS) {
-      kernel_pm1_partial<cgbn_params_3072><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
-    } else if (BITS == cgbn_params_4096::BITS) {
-      kernel_pm1_partial<cgbn_params_4096><<<BLOCK_COUNT, TPB>>>(
-          report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+          } else if (BITS == cgbn_params_1536::BITS) {
+            kernel_pm1_partial<cgbn_params_1536><<<BLOCK_COUNT, TPB>>>(
+                report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+          } else if (BITS == cgbn_params_2048::BITS) {
+            kernel_pm1_partial<cgbn_params_2048><<<BLOCK_COUNT, TPB>>>(
+                report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+          } else if (BITS == cgbn_params_3072::BITS) {
+            kernel_pm1_partial<cgbn_params_3072><<<BLOCK_COUNT, TPB>>>(
+                report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
+          } else if (BITS == cgbn_params_4096::BITS) {
+            kernel_pm1_partial<cgbn_params_4096><<<BLOCK_COUNT, TPB>>>(
+                report, s_num_bits, s_partial, batch_size, gpu_s_bits, gpu_data, instances);
 #endif
-    } else {
-      outputf (OUTPUT_ERROR, "CGBN Kernel not found for %d bits\n", BITS);
-      return ECM_ERROR;
+          } else {
+            outputf (OUTPUT_ERROR, "CGBN P-1 Kernel not found for %d bits\n", BITS);
+            return ECM_ERROR;
+          }
+
+          s_partial += batch_size;
+          batches_complete++;
+
+          /* error report uses managed memory, sync the device and check for cgbn errors */
+          CUDA_CHECK(cudaDeviceSynchronize());
+          if (report->_error)
+            outputf (OUTPUT_ERROR, "\n\nerror: %d\n", report->_error);
+          CGBN_CHECK(report);
+
+          CUDA_CHECK(cudaEventRecord (stop));
+          CUDA_CHECK(cudaEventSynchronize (stop));
+          cudaEventElapsedTime (&batch_time, batch_start, stop);
+          cudaEventElapsedTime (gputime, global_start, stop);
+          /* Adjust batch_size to aim for 100ms */
+          if (batch_time < 80) {
+            batch_size = 11*batch_size/10;
+          } else if (batch_time > 120) {
+            batch_size = max(100ul, 9*batch_size / 10);
+          }
+        }
+
+      /* After S is finished copy data back, possible take checkpoint */
+      CUDA_CHECK(cudaMemcpy(data, gpu_data, data_size, cudaMemcpyDeviceToHost));
+
+      // Get x0 out of Data
+      process_pm1_results(x0, numbers, factors, residuals, data, BITS, instances);
     }
-
-    s_partial += batch_size;
-    batches_complete++;
-
-    /* error report uses managed memory, sync the device and check for cgbn errors */
-    CUDA_CHECK(cudaDeviceSynchronize());
-    if (report->_error)
-      outputf (OUTPUT_ERROR, "\n\nerror: %d\n", report->_error);
-    CGBN_CHECK(report);
-
-    CUDA_CHECK(cudaEventRecord (stop));
-    CUDA_CHECK(cudaEventSynchronize (stop));
-    cudaEventElapsedTime (&batch_time, batch_start, stop);
-    cudaEventElapsedTime (gputime, global_start, stop);
-    /* Adjust batch_size to aim for 100ms */
-    if (batch_time < 80) {
-      batch_size = 11*batch_size/10;
-    } else if (batch_time > 120) {
-      batch_size = max(100ul, 9*batch_size / 10);
-    }
-  }
-
-  // Copy data back from GPU memory
-  outputf (OUTPUT_VERBOSE, "Copying results back to CPU ...\n");
-  CUDA_CHECK(cudaMemcpy(data, gpu_data, data_size, cudaMemcpyDeviceToHost));
 
   cudaEventElapsedTime (gputime, global_start, stop);
 
-  youpi = process_pm1_results(x0, numbers, factors, residuals, data, BITS, instances);
 
   // clean up
   CUDA_CHECK(cudaFree(gpu_s_bits));

@@ -31,7 +31,8 @@ extern "C" {
 
 int cgbn_pm1_stage1(
              const mpz_t *numbers, const mpz_t *x0, mpz_t *factors, mpz_t *residuals,
-             const mpz_t s, uint32_t curves, float *gputime, int verbose);
+             const uint64_t B1, const uint64_t B1done,
+             uint32_t curves, float *gputime, int verbose);
 
 #ifdef __cplusplus
 }

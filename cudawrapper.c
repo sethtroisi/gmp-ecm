@@ -753,13 +753,6 @@ gpu_pm1 (char *infilename, char *resumefilename, FILE *infile, char* savefilenam
       outputf (OUTPUT_ERROR, "GPU: Warning, the value of repr will be ignored "
       "for step 1 on GPU.\n");
 
-  /* Cannot do resume on GPU */
-  if (!ECM_IS_DEFAULT_B1_DONE(params->B1done) && params->B1done < B1)
-    {
-      outputf (OUTPUT_ERROR, "GPU: Error, cannot resume on GPU.\n");
-      return ECM_ERROR;
-    }
-
   if ((infilename == NULL && resumefilename == NULL) || infile == NULL || feof(infile))
     {
       if (infilename)
@@ -816,7 +809,7 @@ gpu_pm1 (char *infilename, char *resumefilename, FILE *infile, char* savefilenam
       outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd\n", mutable_params->x);
       for (i = 0; i < nb_curves; i++)
         {
-          mpz_init(factors[i]);
+          mpz_init_set_ui(factors[i], 0);
           mpz_init_set(orig_x0[i], mutable_params->x); 
           mpz_init_set(x[i], mutable_params->x); 
         }
@@ -846,34 +839,12 @@ gpu_pm1 (char *infilename, char *resumefilename, FILE *infile, char* savefilenam
   ASSERT_ALWAYS (mpz_cmp_ui (params->batch_s, 1) <= 0);
 
   st = cputime ();
-  /* construct the batch exponent */
-  /* Compute s */
-  if (B1 != params->batch_last_B1_used || mpz_cmp_ui (params->batch_s, 1) <= 0)
-    {
-      mutable_params->batch_last_B1_used = B1;
-
-      st = cputime ();
-      /* construct the batch exponent */
-      compute_s_partial (mutable_params->batch_s, B1, B1done);
-      if (B1done)
-          outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
-                                   " bits) of primes up to B1=%1.0f-%1.0f took %ldms\n",
-                                   mpz_sizeinbase (params->batch_s, 2), B1done, B1, cputime () - st);
-      else
-          outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
-                                   " bits) of primes up to B1=%1.0f took %ldms\n",
-                                   mpz_sizeinbase (params->batch_s, 2), B1, cputime () - st);
-    }
-  // XXX: need te record batch-last wast B1done-B1 not just B1
-  mutable_params->batch_last_B1_used = B1;
-
-  st = cputime ();
 
   // x has been set to x0
   // residuals comes out in x
   youpi = cgbn_pm1_stage1 (
       numbers, x, factors, x,
-      params->batch_s, nb_curves, &gputime, params->verbose);
+      B1, B1done, nb_curves, &gputime, params->verbose);
 
   outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n",
