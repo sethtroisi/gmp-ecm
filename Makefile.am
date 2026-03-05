@@ -130,7 +130,7 @@ DIST_SUBDIRS = x86_64 powerpc64 aprtcle
 DISTCLEANFILES = config.m4 LCG.log Lchain_codes.dat
 
 if WANT_GPU
-.cu.lo: cgbn_stage1.h
+.cu.lo:
 		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(NVCCFLAGS) --compiler-options -fPIC $(CPPFLAGS) -o $@ $^ -static
 endif
 

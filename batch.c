@@ -153,7 +153,10 @@ void
 compute_s_partial (mpz_t s, uint64_t B1, uint64_t B1done)
 {
   if (B1done < 1)
-    return compute_s(s, B1, NULL);
+    {
+      compute_s(s, B1, NULL);
+      return;
+    }
 
   ASSERT_ALWAYS( B1 <= 200000000000 ); // B1 < 200e9
   ASSERT_ALWAYS (B1 <= MAX_B1_BATCH);
