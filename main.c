@@ -1096,7 +1096,7 @@ main (int argc, char *argv[])
       /* Are we not appending and does this file already exist ? */
       if (!saveappend && access (savefilename, F_OK) == 0)
         {
-          printf ("Save file %s already exists, will not overwrite\n", 
+          fprintf (stderr, "Save file %s already exists, will not overwrite\n",
                   savefilename);
           exit (EXIT_FAILURE);
         }
@@ -1108,6 +1108,12 @@ main (int argc, char *argv[])
           exit (EXIT_FAILURE);
         }
       fclose (savefile);
+      /* Delete nonappend savefile to prevent empty files */
+      if (!saveappend && remove (savefilename) != 0)
+        {
+          fprintf (stderr, "Save file %s could not be cleaned up\n", savefilename);
+          exit (EXIT_FAILURE);
+        }
     }
 
   if (specific_sigma && (specific_x0 || specific_A))
