@@ -438,8 +438,9 @@ error:
 }
 
 
+
 /* Append a residue in file. */
-static void  
+void  
 write_resumefile_line (FILE *file, int method, double B1, const mpz_t sigma,
                        int sigma_is_A, int Etype, int param, const mpz_t x, const mpz_t y,
 		       const mpcandi_t *n, const mpz_t x0, const mpz_t y0, const char *comment)

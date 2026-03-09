@@ -41,7 +41,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include "ecm.h"
 #include "ecm-gpu.h"
+#include "ecm-ecm.h"
 #include "batched_s.h"
+
+#define BATCH_MS_GOAL 100
 
 // See cgbn_error_t enum (cgbn.h:39)
 #define cgbn_normalized_error ((cgbn_error_t) 14)
@@ -186,11 +189,15 @@ set_s_bits_copy_to_gpu(
 static
 int print_nth_batch(int n)
 {
-  return ((n < 3) ||
-          (n < 30 && n % 10 == 0) ||
+  return ((n < 2) ||
+          (n < 20 && n % 10 == 0) ||
           (n < 500 && n % 100 == 0) ||
+#if BATCH_MS_GOAL >= 1000
+          (n % 1000 == 0));
+#else
           (n < 5000 && n % 1000 == 0) ||
           (n % 10000 == 0));
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -505,39 +512,50 @@ int process_pm1_results(
 /* Similiar to writechkfile for batch for results */
 void
 writechkfile_batch (
-     char *chkfilename, uint64_t B1,
-     uint32_t instances, const mpz_t *n, const mpz_t *x)
+     char *chkfilename, const ecm_params params,
+     uint32_t instances, const mpz_t *n, const mpz_t *x, const mpz_t *orig_x0)
 {
   FILE *chkfile;
-  char methodname[] = "P-1";
+  char comment[] = "GPU P-1 checkpoint";
+
+  mpcandi_t tmp_n;
+  mpcandi_t_init(&tmp_n);
 
   outputf (OUTPUT_DEVVERBOSE, "Writing GPU checkpoint to %s at B1 = %" PRIu64 "\n",
-           chkfilename, B1);
+           chkfilename, params->B1done);
 
   chkfile = fopen (chkfilename, "w");
   ASSERT_ALWAYS(chkfile != NULL);
 
   for (size_t i = 0; i < instances; i++)
-      gmp_fprintf (chkfile,
-              "METHOD=%s; B1=%" PRIu64 "; N=%Zd; X=0x%Zx; "
-              "COMMENT=GPU P-1 checkpoint\n",
-              methodname, B1, n[i], x[i]);
+    {
+      mpz_set(tmp_n.n, n[i]);
+      write_resumefile_line(
+              chkfile, ECM_PM1, params->B1done,
+              /*sigma=*/ NULL, /*sigma_is_A=*/ 0, /*Etype=*/ 0, /*param=*/ 0,
+              /*x=*/ x[i], /*y=*/ NULL, /*n=*/ &tmp_n,
+              /*x0=*/ orig_x0[i], /*y0=*/ NULL,
+              comment);
+    }
 
   fflush (chkfile);
   fclose (chkfile);
+  mpcandi_t_free(&tmp_n);
 }
 
 
 /* Performs P-1 from B1done-B1 on many numbers at the same time.
  * Params:
  *   n: numbers
- *   x0: initial x0
+ *   x0: x0 for computation
+ *   orig_x0: orig_x0 for resume files.
  *   factors: any factor found during stage 1
  *   res: at return contains x = x0 ^ S, S = lcm(prod(B1)
  * Returns ECM_ERROR if stop_asap or problem during execution
  */
 int cgbn_pm1_stage1(
-     const mpz_t *n, const mpz_t *x0, mpz_t *factors, mpz_t *res,
+     const mpz_t *n, const mpz_t *x0, const mpz_t *orig_x0,
+     mpz_t *factors, mpz_t *res,
      const uint64_t B1, uint32_t instances,
      float *gputime, const ecm_params params, ecm_params mutable_params)
 {
@@ -716,8 +734,7 @@ int cgbn_pm1_stage1(
           data_size, s_buffer_bytes);
 
   /* For eta */
-  // TODO A BETTER NAME
-  uint64_t temp = params->B1done;
+  uint64_t B1start = params->B1done;
   /* For computing S in batches. */
   uint64_t B1_partial = (params->B1done) < 2.0 ? 0 : params->B1done;
   mpz_t s;
@@ -726,12 +743,13 @@ int cgbn_pm1_stage1(
   batched_info_init(batched);
   advance_to(batched, params->B1done);
 
-  /* Start with small batches and increase till timing is ~100ms */
+  /* Start with small batches and increase till timing is BATCH_MS_GOAL */
   uint64_t batch_size = 2000;
   int batches_complete = 0;
   /* gputime and batch_time are measured in ms */
   float batch_time = 0;
   long last_chkpnt_time = time(0);
+  const long GPU_CHKPNT_PERIOD = 180;
 
   while (B1_partial < B1)
     {
@@ -764,17 +782,21 @@ int cgbn_pm1_stage1(
             }
 
           /* decrease batch_size for final batch if needed */
-          batch_size = std::min(s_num_bits - s_partial, batch_size);
+          uint64_t remaining = s_num_bits - s_partial;
+          if (remaining < 2 * batch_size) {
+              batch_size = remaining;
+          }
 
           /* print with decreasing frequency, 3 + 3/1s + 3/10s + 5/100s + every 1000s */
           if (print_nth_batch (batches_complete)) {
             double batch_partial = (double) s_partial / s_num_bits * (B1_partial - params->B1done);
-            double fraction = ((double) params->B1done + batch_partial - temp) / (B1 - temp);
+            double fraction = ((double) params->B1done + batch_partial - B1start) / (B1 - B1start);
             outputf (OUTPUT_VERBOSE,
-                "GPU P-1: %lu bits, B1=%.0f-%lu, %lu/%lu (%.1f%%)",
-                batch_size, params->B1done+1, B1_partial,
-                s_partial, s_num_bits, 100.0 * fraction);
-                
+                "GPU P-1: B1=%.0f-%lu, %lu/%lu batch: %lu (%.1f%%)",
+                params->B1done+1, B1_partial,
+                s_partial, s_num_bits, batch_size,
+                100.0 * fraction);
+
             if (*gputime < 1000 || batches_complete < 2) {
               outputf (OUTPUT_VERBOSE, "\n");
             } else {
@@ -828,10 +850,11 @@ int cgbn_pm1_stage1(
           CUDA_CHECK(cudaEventSynchronize (stop));
           cudaEventElapsedTime (&batch_time, batch_start, stop);
           cudaEventElapsedTime (gputime, global_start, stop);
-          /* Adjust batch_size to aim for 100ms */
-          if (batch_time < 80) {
-            batch_size = 11*batch_size/10;
-          } else if (batch_time > 120) {
+
+          /* Adjust batch_size to aim for BATCH_MS_GOAL. */
+          if (10 * batch_time < 8 * BATCH_MS_GOAL ) {
+            batch_size = 11*batch_size/10 + 1;
+          } else if (8 * batch_time > 10 * BATCH_MS_GOAL) {
             batch_size = max(100ul, 9*batch_size / 10);
           }
         }
@@ -846,9 +869,10 @@ int cgbn_pm1_stage1(
       /* Update B1done */
       mutable_params->B1done = B1_partial;
 
-      if (params->chkfilename != NULL && (time(0) - last_chkpnt_time) > 120)
+      if (params->chkfilename != NULL &&
+          (time(0) - last_chkpnt_time) > GPU_CHKPNT_PERIOD)
         {
-          writechkfile_batch (params->chkfilename, B1_partial, instances, n, res);
+          writechkfile_batch (params->chkfilename, params, instances, n, res, orig_x0);
           last_chkpnt_time = time(0);
         }
     }

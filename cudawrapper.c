@@ -728,7 +728,7 @@ gpu_pm1 (char *infilename, char *resumefilename, FILE *infile, char* savefilenam
    * inputs: N (possibly an expression)
    * n: N (mpz_t)
    * factors: any factor found in N
-   * orig_x0: Neede for resume case to store x0 from resume file.
+   * orig_x0: Needed for resume case to store x0 from resume file.
    * x0: starting point of this round in resume case this is x
    * x: starts as x0 then changes to residual after stage 1.
    */
@@ -858,9 +858,8 @@ gpu_pm1 (char *infilename, char *resumefilename, FILE *infile, char* savefilenam
   if (invalid > 1)
     fprintf (stderr, "%u invalid x0; x0 mod n = {0, 1, -1}\n", invalid);
 
-  /* takes active x0, not orig_x0 and produces x = x0^s */
   youpi = cgbn_pm1_stage1 (
-      n, x0, factors, x,
+      n, x0, orig_x0, factors, x,
       B1, nb_curves, &gputime, params, mutable_params);
 
   outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "

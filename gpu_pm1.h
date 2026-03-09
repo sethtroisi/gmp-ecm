@@ -31,7 +31,8 @@ extern "C" {
 #endif
 
 int cgbn_pm1_stage1(
-             const mpz_t *numbers, const mpz_t *x0, mpz_t *factors, mpz_t *residuals,
+             const mpz_t *numbers, const mpz_t *x0, const mpz_t *orig_x0,
+             mpz_t *factors, mpz_t *residuals,
              const uint64_t B1, uint32_t curves,
              float *gputime, const ecm_params params, ecm_params mutable_params);
 
