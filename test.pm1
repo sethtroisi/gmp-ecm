@@ -52,6 +52,9 @@ echo 335203548019575991076297 | $PM1 -x0 2 23 31; checkcode $? 8
 ### stage 2 of length 1 ###
 echo 335203548019575991076297 | $PM1 -x0 3 31 58766400424189339249-58766400424189339249; checkcode $? 8
 
+### Stage 1 of length 10 ###
+echo "200000004934000028207" | $PM1 -x0 2 1000000000-1000000010 100000000000-100000002000; checkcode $? 8
+
 # try primes < d in stage 2
 echo 2050449353925555290706354283 | $PM1 -k 1 20 0-1e6; checkcode $? 14
 
@@ -83,6 +86,17 @@ echo 474476178924594486566271953891 | $PM1 9594209 519569569; checkcode $? 8
 
 ### stage 2 less than 10^10 ###
 echo 2124306045220073929294177 | $PM1 290021 1193749003; checkcode $? 8
+
+### Test B1 and B2 intervals
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 906-1009 10007-11000; checkcode $? 14
+# 907 not included in lower interval
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 907-1009 10007-11000; checkcode $? 0
+# 1009 not included in lower interval
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 907-1008 10007-11000; checkcode $? 0
+# 10007 not included in upper interval
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 906-1009 8000-9000; checkcode $? 0
+# 10007 not included in upper interval
+echo "(2*907*1009*10007+1)*(2^89-1)" | $PM1 -go 2 906-1009 10100-10200; checkcode $? 0
 
 ### Try saving and resuming
 TEST=test.pm1.save$$

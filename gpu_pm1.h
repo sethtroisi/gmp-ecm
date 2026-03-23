@@ -1,6 +1,6 @@
-/* cgbn_stage1.h: header for CGBN (GPU) based ecm stage 1.
+/* gpu_pm1.h: header for GPU (CGBN) P-1 stage 1.
 
-  Copyright 2021 Seth Troisi
+  Copyright 2021-2026 Seth Troisi
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -18,25 +18,27 @@
   02111-1307, USA.
 */
 
-#ifndef _CGBN_STAGE1_H
-#define _CGBN_STAGE1_H 1
+#ifndef _GPU_PM1_H
+#define _GPU_PM1_H 1
 
 #include <stdint.h>
-
 #include <gmp.h>
+
+#include "ecm.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int cgbn_ecm_stage1(mpz_t *factors, int *array_found,
-             const mpz_t N, const mpz_t s,
-             uint32_t curves, uint32_t sigma,
-             float *gputime, int verbose);
+int cgbn_pm1_stage1(
+             const mpz_t *numbers, const mpz_t *x0, const mpz_t *orig_x0,
+             mpz_t *factors, mpz_t *residuals,
+             const uint64_t B1, uint32_t curves,
+             float *gputime, const ecm_params params, ecm_params mutable_params);
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif /* _CGBN_STAGE1_H */
+#endif /* _GPU_PM1_H */

@@ -34,6 +34,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdint.h>
 #include "ecm.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Structure for candidate usage.  This is much more powerful than using a
    simple mpz_t to hold the candidate.  This structure also houses the 
    expression (in raw form), and will modify the expression as factors 
@@ -125,6 +129,11 @@ int write_resumefile (char *, int, ecm_params params,
 int write_s_in_file (const char *, mpz_t, int, uint64_t);
 int read_s_from_file (mpz_t, const char *, int, double); 
 void free_s_data(int, mpz_t);
+// Used by GPU code
+void write_resumefile_line (FILE *, int, double, const mpz_t,
+                       int, int, int, const mpz_t, const mpz_t,
+                       const mpcandi_t *, const mpz_t, const mpz_t, const char *);
+
 
 /* main.c */
 int kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c,
@@ -188,5 +197,9 @@ long PeakMemusage (void);
                  Use mpz_probab_prime_p if n has more digits than cutoff2 */
 #define APRCL_CUTOFF2 500 /* for more than APRCL_CUTOFF2 digits, perform
                               a pseudo-primality test */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ECM_ECM_H */

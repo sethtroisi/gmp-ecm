@@ -43,7 +43,7 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime_r.c listz.c lucas.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
 		   ntt_gfp.c ecm_ntt.c pm1fs2.c sets_long.c \
 		   auxarith.c batch.c parametrizations.c cudawrapper.c \
-		   aprtcle/mpz_aprcl.c addlaws.c torsions.c
+		   aprtcle/mpz_aprcl.c addlaws.c torsions.c batched_s.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g -lpthread
@@ -52,14 +52,13 @@ libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g -lpthread
 # update, increment current, and set revision to 0.
 libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 1:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY)
-if WANT_GPU 
-  libecm_la_SOURCES += cudacommon.cu
-  libecm_la_SOURCES += cgbn_stage1.cu
+libecm_la_LIBADD += $(GMPLIB)
+if WANT_GPU
+  libecm_la_SOURCES += cudacommon.cu gpu_pm1.cu gpu_ecm.cu auxi.c candi.c eval.c resume.c
   libecm_la_LIBADD += $(CUDALIB)
   libecm_la_LDFLAGS += $(CUDALDFLAGS)
   ecm_LDFLAGS = $(CUDARPATH)
 endif
-libecm_la_LIBADD += $(GMPLIB)
 
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor bench_mulredc aprcl LucasChainGen
@@ -70,7 +69,8 @@ LDADD = libecm.la $(GMPLIB)
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_CFLAGS = $(OPENMP_CFLAGS) -g
 ecm_SOURCES = auxi.c candi.c eval.c main.c resume.c addlaws.c torsions.c \
-              getprime_r.c champions.h aprtcle/mpz_aprcl.c memusage.c
+              getprime_r.c champions.h aprtcle/mpz_aprcl.c memusage.c \
+              batched_s.c
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                schoen_strass.c polyeval.c median.c ecm_ntt.c \
@@ -108,9 +108,9 @@ endif
 include_HEADERS = ecm.h
 noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h \
                  ecm-params.h mpmod.h ecm-gpu.h torsions.h \
-                 cudacommon.h cgbn_stage1.h \
+                 cudacommon.h gpu_ecm.h gpu_pm1.h \
                  addlaws.h getprime_r.h ecm_int.h \
-                 aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
+                 aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h batched_s.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              x86/params.h ia64/params.h arm/params.h    \
@@ -118,8 +118,8 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              hppa/params.h mips/params.h x86_64/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
              test.gwnum INSTALL-gwnum \
-             getprime_r.h cgbn_stage1.cu \
-             test.gpuecm README.gpu c155 \
+             getprime_r.h batched_s.h gpu_pm1.cu gpu_ecm.cu \
+             test.gpuecm test.gpupm1 README.gpu c155 \
              test_dummy.save test_prime95.save M877.save \
 	     M997.save test_Z2102.n LucasChainGenerator/README \
              LucasChainGenerator/src/LucasChainGen.h \
@@ -130,7 +130,7 @@ DIST_SUBDIRS = x86_64 powerpc64 aprtcle
 DISTCLEANFILES = config.m4 LCG.log Lchain_codes.dat
 
 if WANT_GPU
-.cu.lo: cgbn_stage1.h
+.cu.lo:
 		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(NVCCFLAGS) --compiler-options -fPIC $(CPPFLAGS) -o $@ $^ -static
 endif
 
@@ -144,7 +144,7 @@ check_PROGRAMS = ecm$(EXEEXT)
 
 dist_check_SCRIPTS = test.pp1 test.pm1 test.ecm test.ecmfactor
 if WANT_GPU
-dist_check_SCRIPTS += test.gpuecm
+dist_check_SCRIPTS += test.gpuecm test.gpupm1
 endif
 if WITH_GWNUM
 dist_check_SCRIPTS += test.gwnum
@@ -176,6 +176,7 @@ longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 if WANT_GPU
 	$(srcdir)/test.gpuecm "$(VALGRIND) ./ecm$(EXEEXT)"
+	$(srcdir)/test.gpupm1 "$(VALGRIND) ./ecm$(EXEEXT)"
 endif
 if WITH_GWNUM
 	$(srcdir)/test.gwnum "$(VALGRIND) ./ecm$(EXEEXT)"
