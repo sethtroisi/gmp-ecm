@@ -43,7 +43,7 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime_r.c listz.c lucas.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
 		   ntt_gfp.c ecm_ntt.c pm1fs2.c sets_long.c \
 		   auxarith.c batch.c parametrizations.c cudawrapper.c \
-		   aprtcle/mpz_aprcl.c addlaws.c torsions.c
+		   aprtcle/mpz_aprcl.c addlaws.c torsions.c batched_s.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g -lpthread
@@ -70,7 +70,8 @@ LDADD = libecm.la $(GMPLIB)
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_CFLAGS = $(OPENMP_CFLAGS) -g
 ecm_SOURCES = auxi.c candi.c eval.c main.c resume.c addlaws.c torsions.c \
-              getprime_r.c champions.h aprtcle/mpz_aprcl.c memusage.c
+              getprime_r.c champions.h aprtcle/mpz_aprcl.c memusage.c \
+              batched_s.c
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                schoen_strass.c polyeval.c median.c ecm_ntt.c \
@@ -110,7 +111,7 @@ noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h \
                  ecm-params.h mpmod.h ecm-gpu.h torsions.h \
                  cudacommon.h cgbn_stage1.h \
                  addlaws.h getprime_r.h ecm_int.h \
-                 aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
+                 aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h batched_s.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              x86/params.h ia64/params.h arm/params.h    \
@@ -118,7 +119,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              hppa/params.h mips/params.h x86_64/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
              test.gwnum INSTALL-gwnum \
-             getprime_r.h cgbn_stage1.cu \
+             getprime_r.h batched_s.h cgbn_stage1.h \
              test.gpuecm README.gpu c155 \
              test_dummy.save test_prime95.save M877.save \
 	     M997.save test_Z2102.n LucasChainGenerator/README \

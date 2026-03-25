@@ -24,6 +24,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdlib.h>
 #include "ecm-impl.h"
 #include "getprime_r.h"
+#include "batched_s.h"
 
 #define CASCADE_THRES 3
 #define CASCADE_MAX 50000000.0
@@ -320,6 +321,76 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   return youpi;
 }
 
+#ifdef USE_BATCHED_PM1
+static int
+pm1_stage1_batched (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
+            mpz_t go, int (*stop_asap)(void), char *chkfilename)
+{
+  mpz_t S;
+  int youpi = ECM_NO_FACTOR_FOUND;
+  long last_chkpnt_time;
+
+  mpz_init (S);
+
+  /* Choose batch so that overhead is minimized without cascade being huge.
+     S has consistently 1.44 * B1_incr bits, 1.44 = log2(e).
+     Hitting the threshold for window size in gmp mpn/powm is a small gain
+     B1_incr=20000 gives > 28000 bits, B1_incr=8600 gives > 11500 bits. */
+  uint64_t B1_incr = MIN(B1, 20000);
+  uint64_t B1_current = *B1done + B1_incr;
+  outputf (OUTPUT_DEVVERBOSE, "P-1 batch size: %" PRIu64 "\n", B1_incr);
+
+  /* Build up chunks of S */
+  batched_info_t batched;
+  batched_info_init(batched);
+
+  advance_to(batched, *B1done);
+
+  /* if the user knows that P-1 has a given divisor add it. */
+  if (mpz_cmp_ui (go, 1) > 0)
+    mpres_pow (a, a, go, n);
+
+  last_chkpnt_time = cputime ();
+
+  for (; B1_current <= B1; B1_current += B1_incr)
+    {
+      get_batch(batched, S, B1_current);
+      mpres_pow (a, a, S, n);
+      *B1done = B1_current;
+      if (chkfilename != NULL &&
+          elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
+        {
+          writechkfile (chkfilename, ECM_PM1, B1_current, n, NULL, a, NULL, NULL);
+          last_chkpnt_time = cputime ();
+         }
+      if (stop_asap != NULL && (*stop_asap) ())
+        {
+          goto clear_pm1_stage1;
+        }
+    }
+
+  /* Handle final batch from B1_current to B1 */
+  get_batch(batched, S, B1);
+  mpres_pow (a, a, S, n);
+  *B1done = B1;
+
+  mpres_sub_ui (a, a, 1, n);
+  mpres_gcd (f, a, n);
+  if (mpz_cmp_ui (f, 1) > 0)
+    youpi = ECM_FACTOR_FOUND_STEP1;
+  mpres_add_ui (a, a, 1, n);
+
+ clear_pm1_stage1:
+  if (chkfilename != NULL)
+    writechkfile (chkfilename, ECM_PM1, *B1done, n, NULL, a, NULL, NULL);
+
+  batched_info_clear(batched);
+  mpz_clear (S);
+
+  return youpi;
+}
+#endif  // USE_BATCHED_PM1
+
 
 void
 print_prob (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
@@ -566,7 +637,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   st = cputime ();
 
   if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
+#ifdef USE_BATCHED_PM1
+    youpi = pm1_stage1_batched (f, x, modulus, B1, B1done, go, stop_asap, chkfilename);
+#else
     youpi = pm1_stage1 (f, x, modulus, B1, B1done, go, stop_asap, chkfilename);
+#endif
 
   st = elltime (st, cputime ());
 
