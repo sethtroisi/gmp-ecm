@@ -11,9 +11,9 @@
 #ifdef __cplusplus
 /* cpp + CUDA only code */
 
-#define CUDA_CHECK(action) cuda_check(action, #action, __FILE__, __LINE__)
+#define CUDA_CHECK(action) _cuda_check(action, #action, __FILE__, __LINE__)
 
-inline void cuda_check(cudaError_t status, const char *action=NULL, const char *file=NULL, int32_t line=0) {
+inline void _cuda_check(cudaError_t status, const char *action=NULL, const char *file=NULL, int32_t line=0) {
   if (status != cudaSuccess) {
     fprintf (stderr, "CUDA error (%d) occurred: %s\n", status, cudaGetErrorString(status));
     if (action!=NULL)

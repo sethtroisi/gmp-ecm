@@ -4,7 +4,9 @@
 
 #include "cudacommon.h"
 
-#include "cgbn_stage1.h"
+#include "gpu_ecm.h"
+#include "gpu_pm1.h"
+#include "ecm-ecm.h"
 
 
 #define TWO32 4294967296 /* 2^32 */
@@ -174,8 +176,8 @@ gpu_ecm (mpz_t f, const ecm_params params, ecm_params mutable_params, mpz_t n, d
   unsigned int firstsigma_ui;
   float gputime = 0.0;
   mpz_t tmp_A;
-  mpz_t *factors = NULL; /* Contains either a factor of n either end-of-stage-1
-                         residue (depending of the value of array_found */
+  mpz_t *factors = NULL; /* Contains either a factor of n or end-of-stage-1
+                            residue (depending of the value of array_found). */
   int *array_found = NULL;
   /* Only for stage 2 */
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -541,6 +543,386 @@ end_gpu_ecm:
   mpz_clear (tmp_A);
   mpz_clear (B2);
   mpz_clear (B2min);
+
+  return youpi;
+}
+
+int
+gpu_pm1_load_inp_file(
+        char *infilename, FILE *infile,
+        unsigned int *nb_curves,
+        mpcandi_t *inputs, mpz_t *n)
+{
+  assert (infile != NULL);
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Loading numbers from '%s'\n", infilename);
+
+  for (unsigned int i = 0; i < *nb_curves; i++)
+    {
+      mpcandi_t_init (&inputs[i]);
+      if (read_number (&inputs[i], infile, 1))
+        {
+          mpz_init_set (n[i], inputs[i].n);
+
+          // Validity checks, > 1, odd
+          if (mpz_cmp_ui (n[i], 1) <= 0 || mpz_even_p (n[i]))
+            {
+              fprintf (ECM_STDERR, "Error, should be odd and great than 1.\n");
+              gmp_fprintf (ECM_STDERR, "n[%u]=%Zd\n", i, n[i]);
+              return ECM_ERROR;
+            }
+        }
+      else
+        {
+            mpcandi_t_free(&inputs[i]);
+
+            outputf (OUTPUT_VERBOSE,
+                     "GPU P-1: End of input truncating to %i curves\n", i);
+            // Reduce to running i curves
+            *nb_curves = i;
+            break;
+        }
+    }
+    return ECM_NO_FACTOR_FOUND;
+}
+
+int
+gpu_pm1_load_resume_file(
+        char *resumefilename, FILE *resumefile,
+        unsigned int *nb_curves, double *B1done,
+        /* an = array n, af = array f, ... */
+        mpcandi_t *inputs, mpz_t *an, mpz_t *af, mpz_t *ax0, mpz_t *ax)
+{
+  assert (resumefile != NULL);
+  outputf (OUTPUT_VERBOSE, "GPU P-1: Resuming numbers from '%s'\n", resumefilename);
+
+  int method, Etype, param;
+  mpz_t x, y, sigma, A, x0, y0;
+  double b1_temp;
+  char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
+  mpz_init(x);
+  mpz_init(x0);
+  mpz_init_set_ui(y, 0);
+  mpz_init_set_ui(y0, 0);
+  mpz_init_set_ui(sigma, 0);
+  mpz_init_set_ui(A, 0);
+
+  for (unsigned int i = 0; i < *nb_curves; i++)
+    {
+      mpcandi_t_init(&inputs[i]);
+      mpz_set_ui(x, 0);
+      mpz_set_ui(x0, 0);
+
+      if (!read_resumefile_line (
+                  &method, x, y, &inputs[i], sigma, A,
+                  x0, y0, &Etype, &param, &b1_temp,
+                  program, who, rtime, comment, resumefile))
+        {
+          mpcandi_t_free(&inputs[i]);
+          outputf (OUTPUT_VERBOSE,
+                   "GPU P-1: End of input truncating to %i curves\n", i);
+          // Reduce to running i curves
+          *nb_curves = i;
+          break;
+        }
+      else
+        {
+          if (method != ECM_PM1)
+            {
+              fprintf(ECM_STDERR, "Error, Wrong method in resume input %d\n", i);
+              return ECM_ERROR;
+            }
+
+          // Validate n, x, x0 are set
+          if (mpz_sgn(inputs[i].n) == 0 || mpz_sgn(x) == 0 || mpz_sgn(x0) == 0)
+            {
+              fprintf(ECM_STDERR, "Error, N, x, or x0 not set in resume input %d\n", i);
+              return ECM_ERROR;
+            }
+
+           // Validate y, sigma, A, y0 not set
+           if (mpz_sgn(y) != 0 || mpz_sgn(sigma) != 0 || mpz_sgn(A) != 0
+                   || mpz_sgn(y0) != 0)
+             {
+               fprintf(ECM_STDERR, "Error, invalid param in resume input %d\n", i);
+               return ECM_ERROR;
+             }
+
+           if (i == 0)
+             *B1done = b1_temp;
+
+           if (*B1done != b1_temp)
+             {
+               fprintf(ECM_STDERR, "Error, mismatched B1=%.0f vs %.0f on resume input %d\n",
+                       *B1done, b1_temp, i);
+               return ECM_ERROR;
+             }
+
+
+           mpz_init_set(an[i], inputs[i].n);
+           mpz_init_set_ui(af[i], 0);
+           mpz_init_set(ax0[i], x0);
+           mpz_init_set(ax[i], x);
+        }
+    }
+
+  mpz_clear(x);
+  mpz_clear(y);
+  mpz_clear(sigma);
+  mpz_clear(A);
+  mpz_clear(x0);
+  mpz_clear(y0);
+
+  return ECM_NO_FACTOR_FOUND;
+}
+
+unsigned int
+invalid_x0(const mpz_t *n, const mpz_t *x0, unsigned int nb_curves)
+{
+  mpz_t tmp;
+  mpz_init(tmp);
+  unsigned int invalid = 0;
+  for (unsigned int i = 0; i < nb_curves; i++)
+  {
+      mpz_mod(tmp, n[i], x0[i]);
+      // x0[i] mod n[i] = {0, 1}
+      invalid += (mpz_cmp_ui(tmp, 1) <= 0);
+      mpz_add_ui(tmp, tmp, 1);
+      // x0[i] mod n[i] = {-1}
+      invalid += mpz_cmp(tmp, n[i]) == 0;
+  }
+  return invalid;
+}
+
+/* Input: infilename name of input file (or NULL if none)
+          resumefilename name of resume file (or NULL if none)
+          infile file containing either a series of unique numbers from infile or
+              resume date, corresponding to if infilename or resumefilename is not NULL.
+          B1 is the stage 1 bound
+          params is ecm_parameters
+   Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
+*/
+int
+gpu_pm1 (char *infilename, char *resumefilename, FILE *infile, char* savefilename,
+         const ecm_params params, ecm_params mutable_params, double B1)
+{
+  unsigned int i;
+  int youpi = ECM_NO_FACTOR_FOUND;
+  long st;
+  float gputime = 0.0;
+
+  /**
+   * GPU handles multiple P-1 at a time.
+   * Several arrays of mutable_params->gpu_number_of_curves
+   *
+   * inputs: N (possibly an expression)
+   * n: N (mpz_t)
+   * factors: any factor found in N
+   * orig_x0: Needed for resume case to store x0 from resume file.
+   * x0: starting point of this round in resume case this is x
+   * x: starts as x0 then changes to residual after stage 1.
+   */
+
+  mpcandi_t *inputs = NULL;
+  mpz_t *n = NULL, *factors = NULL, *orig_x0 = NULL, *x0 = NULL, *x = NULL;
+
+  unsigned int nb_curves = 0; /* Local copy of number of curves */
+
+  /* This helps keep track of when params is changed in this function. */
+  assert((void*) params == (void*) mutable_params); /* params != mutable params */
+
+  ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
+
+  /* Set global VERBOSE to avoid the need to explicitly passing verbose */
+  set_verbose (params->verbose);
+  ECM_STDOUT = (params->os == NULL) ? stdout : params->os;
+  ECM_STDERR = (params->es == NULL) ? stdout : params->es;
+
+  /* Check for things GPU P-1 doesn't currently support */
+  if (mpz_cmp_ui (params->go, 1) > 0)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, option -go is not allowed\n");
+      return ECM_ERROR;
+    }
+
+  if (mpz_cmp_ui (params->B2, 0) != 0)
+    {
+      outputf (OUTPUT_ERROR, "GPU P-1: Only supports stage 1, requires B2=0\n");
+      return ECM_ERROR;
+    }
+
+  /* check that repr == ECM_MOD_DEFAULT or ECM_MOD_BASE2 (only for stage 2) */
+  if (params->repr != ECM_MOD_DEFAULT && params->repr != ECM_MOD_BASE2)
+      outputf (OUTPUT_ERROR, "GPU: Warning, the value of repr will be ignored "
+      "for step 1 on GPU.\n");
+
+  if ((infilename == NULL && resumefilename == NULL) || infile == NULL || feof(infile))
+    {
+      if (infilename)
+        outputf (OUTPUT_ERROR, "Empty or invalid -inp '%s'\n", infilename);
+      if (resumefilename)
+        outputf (OUTPUT_ERROR, "Empty or invalid -resume '%su' \n", resumefilename);
+
+      outputf (OUTPUT_ERROR, "GPU: Must pass -inp or -resume file for GPU P-1.\n");
+      return ECM_ERROR;
+    }
+
+  /* Initialize the GPU if necessary and determine nb_curves */
+  if (!params->gpu_device_init)
+    {
+      st = cputime ();
+      youpi = select_and_init_GPU (
+              params->gpu_device,
+              &mutable_params->gpu_number_of_curves,
+              test_verbose (OUTPUT_VERBOSE));
+      if (youpi != 0)
+        return ECM_ERROR;
+
+      outputf (OUTPUT_VERBOSE, "GPU: Selection and initialization of the device "
+                               "took %ldms\n", elltime (st, cputime ()));
+      /* TRICKS: If initialization of the device is too long (few seconds), */
+      /* try running 'nvidia-smi -q -l' on the background .                 */
+      mutable_params->gpu_device_init = 1;
+    }
+  // Set local copy of number of curves
+  nb_curves = params->gpu_number_of_curves;
+
+  /* Init arrays */
+  inputs =  (mpcandi_t *) malloc(nb_curves * sizeof (mpcandi_t));
+  n = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  factors = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  orig_x0 = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  x0 = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  x = (mpz_t *) malloc (nb_curves * sizeof (mpz_t));
+  ASSERT_ALWAYS (inputs != NULL);
+  ASSERT_ALWAYS (n != NULL);
+  ASSERT_ALWAYS (factors != NULL);
+  ASSERT_ALWAYS (orig_x0 != NULL);
+  ASSERT_ALWAYS (x0 != NULL);
+  ASSERT_ALWAYS (x != NULL);
+
+  // init x
+  for (i = 0; i < nb_curves; i++)
+     mpz_init_set_ui(x[i], 0);
+
+  if (infilename != NULL)
+    {
+      int result = gpu_pm1_load_inp_file(infilename, infile, &nb_curves, inputs, n);
+      if (result != ECM_NO_FACTOR_FOUND)
+         return result;
+
+      if (mpz_cmp_ui (params->x, 0) == 0)
+        mpz_set_ui(mutable_params->x, 3);
+      outputf (OUTPUT_VERBOSE, "GPU P-1: Using x0=%Zd\n", mutable_params->x);
+      for (i = 0; i < nb_curves; i++)
+        {
+          mpz_init_set_ui(factors[i], 0);
+          mpz_init_set(orig_x0[i], mutable_params->x);
+          mpz_init_set(x0[i], mutable_params->x);
+        }
+     }
+  if (resumefilename != NULL)
+    {
+      double B1done = 0;
+      int result = gpu_pm1_load_resume_file(
+            resumefilename, infile,
+            &nb_curves, &B1done,
+            inputs, n, factors, orig_x0, x0);
+      if (result != ECM_NO_FACTOR_FOUND)
+         return result;
+
+      outputf (OUTPUT_NORMAL, "Resuming from B1=%.0f\n", B1done);
+      if (B1done < 0 || B1done >= B1)
+        {
+            outputf(OUTPUT_ERROR, "Bad resume B1=%.0f vs requested B1=%.0f\n",
+                    B1done, B1);
+            return ECM_ERROR;
+        }
+      mutable_params->B1done = B1done;
+    }
+  mutable_params->gpu_number_of_curves = nb_curves;
+
+  st = cputime ();
+
+  unsigned int invalid = invalid_x0(n, x0, nb_curves);
+  if (invalid > 1)
+    fprintf (stderr, "%u invalid x0; x0 mod n = {0, 1, -1}\n", invalid);
+
+  youpi = cgbn_pm1_stage1 (
+      n, x0, orig_x0, factors, x,
+      B1, nb_curves, &gputime, params, mutable_params);
+
+  outputf (OUTPUT_NORMAL, "Computing %u P-1 Step 1 took %ldms of CPU time / "
+                          "%.0fms of GPU time\n",
+                          nb_curves, elltime (st, cputime ()), gputime);
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f numbers per second ",
+                                                 1000 * nb_curves/gputime);
+  outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n",
+                                                        gputime/nb_curves);
+
+  /* Don't write savefile if error happened */
+  if (youpi == ECM_ERROR)
+    goto cleanup;
+
+  // Sometimes not B1 in stop_asap case
+  B1 = mutable_params->B1done;
+
+  int factors_found = 0;
+  for (i = 0; i < nb_curves; i++)
+      factors_found += mpz_cmp_ui(factors[i], 1) > 0;
+
+  if (factors_found)
+      fprintf(ECM_STDOUT, "\n\n");
+
+  char comment[] = "GPU P-1";
+  for (i = 0; i < nb_curves; i++)
+    {
+      outputf (OUTPUT_TRACE, "%d -> %Zd -> %Zd | %Zd\n", i, n[i], factors[i], x[i]);
+      ASSERT_ALWAYS (mpz_cmp (n[i], inputs[i].n) == 0);
+
+      if (mpz_cmp_ui (factors[i], 1) > 0) {
+          ASSERT_ALWAYS (mpz_divisible_p (inputs[i].n, factors[i]));
+
+          unsigned int fake_cnt;
+          mpz_t fake_lastfac;
+
+          youpi = process_newfactor (
+                  factors[i], ECM_FACTOR_FOUND_STEP1, &inputs[i], ECM_PM1,
+                  /* returncode */ 0, /* gpu */ 0,
+                  &fake_cnt, NULL, fake_lastfac, /* resumefile */ NULL,
+                  params->verbose, /* deep */ 0);
+      }
+
+      /* Save i'th P-1 results. */
+      if (savefilename != NULL)
+        {
+          /* write_resumefile expects residual in params->x */
+          outputf (OUTPUT_DEVVERBOSE, "N=%Zd x=%Zd\n", n[i], x[i]);
+          mpz_set(mutable_params->x, x[i]);
+
+          write_resumefile (savefilename, ECM_PM1, mutable_params, &inputs[i],
+                  /* orig_n */ n[i], orig_x0[i], /* orig_y0 */ NULL, comment);
+        }
+    }
+
+  /* Clear this out */
+  mpz_set_ui(mutable_params->x, 0);
+
+  if (factors_found)
+      fprintf(ECM_STDOUT, "\n\n");
+
+cleanup:
+  for (i = 0; i < nb_curves; i++)
+    {
+        mpcandi_t_init (&inputs[i]);
+        mpz_clears (n[i], factors[i], orig_x0[i], x0[i], x[i], NULL);
+    }
+
+  free (inputs);
+  free (n);
+  free (factors);
+  free (orig_x0);
+  free (x0);
+  free (x);
 
   return youpi;
 }

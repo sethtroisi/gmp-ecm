@@ -58,6 +58,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "torsions.h" /* to benefit from more torsion groups */
 #endif
 
+#ifdef WITH_GPU
+#include "ecm-gpu.h"
+#endif
 
 /* #define DEBUG */
 
@@ -1066,7 +1069,7 @@ main (int argc, char *argv[])
   if (resumefilename != NULL)
     {
       /* -resume should not be used with -gpu */
-      if (use_gpu)
+      if (use_gpu && method != ECM_PM1)
         {
           fprintf (stderr, "Error, -resume not allowed with -gpu\n");
           exit (EXIT_FAILURE);
@@ -1166,6 +1169,48 @@ main (int argc, char *argv[])
       params->stop_asap = &stop_asap_test;
     }
 #endif
+
+  if (use_gpu && method == ECM_PM1)
+    {
+#ifdef WITH_GPU
+      if (infilename == NULL && resumefilename == NULL)
+        {
+          fprintf (stderr, "GPU P-1 requires -inp or -resume\n");
+          exit (EXIT_FAILURE);
+        }
+      if (infilename == NULL && resumefilename == NULL)
+        {
+          fprintf (stderr, "GPU P-1 requires exactly one of -inp or -resume\n");
+          exit (EXIT_FAILURE);
+        }
+      if (specific_x0) {
+          if (mpz_cmp_ui (mpq_denref (rat_x0),  1) != 0) {
+            {
+              fprintf (stderr, "Error, option -x0 must be small integer for GPU P-1\n");
+              exit (EXIT_FAILURE);
+            }
+          }
+          mpz_set (params->x, mpq_numref( rat_x0 ));
+      }
+      if (savefilename == NULL)
+         {
+           fprintf (stderr, "GPU P-1 only makes sense with -save or -savea\n");
+           exit (EXIT_FAILURE);
+         }
+      returncode = gpu_pm1(
+              infilename, resumefilename, infilename != NULL ? infile : resumefile,
+              savefilename, params, params, B1);
+      if (returncode == ECM_ERROR)
+        {
+          fprintf (stdout, "Error in GPU P-1\n");
+          exit (EXIT_FAILURE);
+        }
+#else
+      fprintf (stdout, "NOT COMPILED WITH -gpu???\n");
+      exit (EXIT_FAILURE);
+#endif
+      goto free_all1;
+    }
 
   /* loop for number in standard input or file */
 
