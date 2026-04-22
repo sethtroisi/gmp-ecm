@@ -391,6 +391,7 @@ AC_ARG_ENABLE(gpu,
       AS_CASE(["x$enableval"],
         [ xyes ], [],
         [ x[[2-9]][[0-9]] ], [ WANTED_GPU_ARCH="$enableval" ],
+        [ x1[[2-9]][[0-9]] ], [ WANTED_GPU_ARCH="$enableval" ],
         [ AC_MSG_ERROR([Didn't recognize GPU_ARCH="$enableval"]) ])
     ]) ])
 
